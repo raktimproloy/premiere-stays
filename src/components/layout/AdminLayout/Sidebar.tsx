@@ -14,19 +14,26 @@ const Profile = '/images/icons/user.svg'
 const Settings = '/images/icons/setting.svg'
 const Help = '/images/icons/help.svg'
 
-export default function Sidebar({sidebarOpen}: { sidebarOpen: boolean }) {
+export default function Sidebar({sidebarOpen, setSidebarOpen}: { sidebarOpen: boolean, setSidebarOpen: (open: boolean) => void }) {
     const { isAuthenticated, logout } = useAuth();
   return (
     <aside 
-    className={`fixed inset-y-0 left-0 z-30 w-64 bg-white text-black transition-transform duration-300 ease-in-out transform shadow-md ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:z-auto`}
+    className={`fixed inset-y-0 left-0 z-30 w-64 bg-white text-black transition-transform duration-300 ease-in-out transform shadow-md ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:z-auto` }
   >
-    <div className="flex flex-col h-full">
-      <div className="p-4">
+    <div className="flex flex-col h-screen overflow-y-auto">
+      <div className="p-4 flex items-center justify-between">
         {/* <h1 className="text-xl font-bold flex items-center gap-2">
           <FiPieChart className="text-blue-400" />
           Admin Panel
         </h1> */}
         <Image src={Logo} alt='logo' width={157} height={70} ></Image>
+        <button 
+          onClick={() => setSidebarOpen(false)} 
+          className="md:hidden text-gray-600 hover:text-gray-900 focus:outline-none"
+          aria-label="Close sidebar"
+        >
+          <FiX size={24} />
+        </button>
       </div>
       
       <nav className="flex-1 p-4 pb-0">

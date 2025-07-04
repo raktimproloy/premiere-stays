@@ -42,7 +42,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Sidebar */}
-      <Sidebar sidebarOpen={sidebarOpen} />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
