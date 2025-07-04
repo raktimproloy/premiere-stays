@@ -28,7 +28,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }: { sidebarOpen: b
   }, []);
 
   return (
-    <header className="bg-white shadow-md">
+    <header className="bg-white shadow-sm z-10">
       <div className="flex items-center justify-between p-4">
         {/* Sidebar toggle button */}
         <button

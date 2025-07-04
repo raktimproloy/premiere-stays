@@ -18,7 +18,7 @@ export default function Sidebar({sidebarOpen}: { sidebarOpen: boolean }) {
     const { isAuthenticated, logout } = useAuth();
   return (
     <aside 
-    className={`fixed inset-y-0 left-0 z-30 w-64 bg-white text-black transition-transform duration-300 ease-in-out transform shadow-xl ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:z-auto`}
+    className={`fixed inset-y-0 left-0 z-30 w-64 bg-white text-black transition-transform duration-300 ease-in-out transform shadow-md ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:z-auto`}
   >
     <div className="flex flex-col h-full">
       <div className="p-4">
