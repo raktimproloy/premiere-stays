@@ -3,7 +3,11 @@
 import React, { useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from 'date-fns';
 
-const BookingCalendar: React.FC = () => {
+// interface RevenueChartProps {
+//   bookings: Booking[];
+// }
+
+const BookingCalendar = () => {
   const today = new Date();
   const currentYear = today.getFullYear()
   const presentMonth = today.getMonth() + 1

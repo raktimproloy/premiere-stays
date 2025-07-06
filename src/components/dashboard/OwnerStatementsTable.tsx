@@ -8,7 +8,7 @@ interface Statement {
   status: 'Paid' | 'Pending' | 'Overdue';
 }
 
-const OwnerStatementsTable: React.FC = () => {
+const OwnerStatementsTable = () => {
   // Sample data - replace with your API data
   const statements: Statement[] = [
     { statementDate: 'Mar 2025', amount: 2250, status: 'Paid' },

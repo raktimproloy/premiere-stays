@@ -17,7 +17,7 @@ interface RevenueData {
   isCurrentMonth?: boolean;
 }
 
-const RevenueDashboard: React.FC = () => {
+const RevenueDashboard= () => {
   // Generate sample data with two revenue streams
   const generateRevenueData = (): RevenueData[] => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];

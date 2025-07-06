@@ -55,7 +55,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
           </div>
           
           {/* Social Sign Up */}
-          <div className="mt-2 flex justify-center">
+          <div className="mt-2 flex justify-center gap-3">
             <button
               type="button"
               className="inline-flex py-2 text-sm font-medium"
