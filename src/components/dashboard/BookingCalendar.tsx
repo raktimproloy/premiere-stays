@@ -1,119 +1,469 @@
 'use client';
 
-import React, { useState } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from 'date-fns';
+import React, { useState, useRef, useEffect } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
+import interactionPlugin from '@fullcalendar/interaction';
+import { format } from 'date-fns';
+import { X, Info, Calendar, Grid } from 'react-feather';
 
-// interface RevenueChartProps {
-//   bookings: Booking[];
-// }
+interface Booking {
+  id: number;
+  arrival: string;
+  departure: string;
+  property: {
+    id: number;
+    name: string;
+  };
+  listing_site: string;
+  status: string;
+  platform_reservation_number: string;
+  is_block: boolean;
+  notes?: string;
+}
 
-const BookingCalendar = () => {
-  const today = new Date();
-  const currentYear = today.getFullYear()
-  const presentMonth = today.getMonth() + 1
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date(currentYear, today.getMonth(), 1)); // First day of current month
+interface BookingSourcesChartProps {
+  bookings: Booking[];
+}
 
-  // Generate days for the current month view
-  const generateDays = () => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const startDate = new Date(monthStart);
-    const endDate = new Date(monthEnd);
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  color: string;
+  extendedProps: {
+    source: string;
+    status: string;
+    reservationNumber: string;
+    notes?: string;
+    isBlock: boolean;
+    propertyName: string;
+  };
+}
 
-    // Adjust to show full weeks (including days from previous/next month)
-    startDate.setDate(monthStart.getDate() - getDay(monthStart));
-    endDate.setDate(monthEnd.getDate() + (6 - getDay(monthEnd)));
+const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
+  const [currentView, setCurrentView] = useState<'dayGridMonth' | 'timeGridWeek' | 'listWeek'>('dayGridMonth');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<any>(null);
+  const [currentDateTitle, setCurrentDateTitle] = useState('');
+  const calendarRef = useRef<any>(null);
+  
+  // Update date title when view changes
+  useEffect(() => {
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      setCurrentDateTitle(calendarApi.view.title);
+    }
+  }, [currentView]);
 
-    return eachDayOfInterval({ start: startDate, end: endDate });
+
+    const getVisibleRange = () => {
+    if (!events.length) return { start: new Date(), end: new Date() };
+    
+    const eventStarts = events.map(e => new Date(e.start).getTime());
+    const eventEnds = events.map(e => new Date(e.end).getTime());
+    
+    const minDate = new Date(Math.min(...eventStarts));
+    const maxDate = new Date(Math.max(...eventEnds));
+    
+    // Add buffer days for better visibility
+    minDate.setDate(minDate.getDate() - 1);
+    maxDate.setDate(maxDate.getDate() + 1);
+    
+    return {
+      start: minDate,
+      end: maxDate
+    };
   };
 
-  const days = generateDays();
-  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Transform bookings data into calendar events
+  const events: CalendarEvent[] = bookings.map((booking) => ({
+    id: `event-${booking.id}`,
+    title: booking.property.name,
+    start: booking.arrival,
+    end: booking.departure,
+    color: booking.is_block ? '#FF5252' : 
+          booking.status === 'active' ? '#00CC91' : '#FFC107',
+    extendedProps: {
+      source: booking.listing_site,
+      status: booking.status,
+      reservationNumber: booking.platform_reservation_number,
+      notes: booking.notes,
+      isBlock: booking.is_block,
+      propertyName: booking.property.name
+    }
+  }));
 
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const handleDateSelect = (selectInfo: any) => {
+    const title = prompt('Enter a reason for blocking these dates:');
+    const calendarApi = selectInfo.view.calendar;
 
-  // Sample booking data - replace with your actual data
-  const bookings = [
-    new Date(2025, 6, 12),
-    new Date(2025, 6, 20),
-    new Date(2025, 6, 21)
-  ];
+    if (title) {
+      calendarApi.addEvent({
+        id: `new-block-${Date.now()}`,
+        title,
+        start: selectInfo.startStr,
+        end: selectInfo.endStr,
+        color: '#FF5252',
+        allDay: selectInfo.allDay,
+        extendedProps: {
+          isBlock: true,
+          propertyName: 'Blocked Dates'
+        }
+      });
+    }
+  };
+
+  const handlePrev = () => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().prev();
+      updateDateTitle();
+    }
+  };
+
+  const handleNext = () => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().next();
+      updateDateTitle();
+    }
+  };
+
+  const updateDateTitle = () => {
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      setCurrentDateTitle(calendarApi.view.title);
+    }
+  };
+
+  const handleViewChange = (view: 'dayGridMonth' | 'timeGridWeek' | 'listWeek') => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().changeView(view);
+    }
+    setCurrentView(view);
+  };
+
+  const handleEventClick = (clickInfo: any) => {
+    const event = clickInfo.event;
+    setModalData({
+      title: event.title,
+      start: event.startStr,
+      end: event.endStr,
+      source: event.extendedProps.source,
+      status: event.extendedProps.status,
+      reservationNumber: event.extendedProps.reservationNumber,
+      notes: event.extendedProps.notes,
+      isBlock: event.extendedProps.isBlock,
+      propertyName: event.extendedProps.propertyName
+    });
+    setModalOpen(true);
+  };
+
+  const renderEventContent = (eventInfo: any) => {
+    const viewType = eventInfo.view?.type || '';
+    const title = eventInfo.event.title;
+
+    if (viewType.startsWith('list')) {
+      // For list view, show full title and additional info
+      return (
+        <div className="flex flex-col" onClick={() => handleEventClick({ event: eventInfo.event })}>
+          <div className="text-sm font-semibold text-gray-900">{title}</div>
+          <div className="text-xs text-gray-600">{eventInfo.event.extendedProps.source}</div>
+        </div>
+      );
+    } else {
+      // For other views, truncate title
+      const truncatedTitle = title.length > 6 ? `${title.substring(0, 6)}...` : title;
+      return (
+        <div 
+          className="fc-event-main-frame w-full h-full flex items-center justify-center"
+          onClick={() => handleEventClick({ event: eventInfo.event })}
+        >
+          <div className="fc-event-title-container px-1">
+            <div className="fc-event-title text-xs font-medium text-center leading-tight">
+              {truncatedTitle}
+            </div>
+          </div>
+        </div>
+      );
+    }
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 pb-0 md:pb-9">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-2 sm:mb-0">Booking Calendar</h2>
-        <div className="flex items-center space-x-4 text-sm md:text-md">
-          <button 
-            onClick={prevMonth}
-            className="p-1 rounded-full hover:bg-gray-100"
+    <div className="bg-white rounded-xl shadow-lg p-4 md:p-5">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+          {/* <Calendar size={20} /> */}
+          Booking Calendar
+        </h2>
+        <button
+          onClick={handlePrev}
+          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="text-sm font-medium text-gray-700 px-2 min-w-[180px] text-center">
+          {currentDateTitle}
+        </div>
+        <button
+          onClick={handleNext}
+          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex items-center gap-2 mt-3 sm:mt-0 mb-4">
+        
+        <div className="ml-2 flex bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => handleViewChange('dayGridMonth')}
+            className={`px-2.5 py-1.5 text-xs rounded-md flex items-center ${currentView === 'dayGridMonth' ? 'bg-white shadow text-[#586DF7]' : 'text-gray-600'}`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <Grid size={14} className="mr-1" />
+            Month
           </button>
-          <span className="text-lg font-medium text-gray-700">
-            {format(currentMonth, 'MMMM yyyy')}
-          </span>
-          <button 
-            onClick={nextMonth}
-            className="p-1 rounded-full hover:bg-gray-100"
+          <button
+            onClick={() => handleViewChange('timeGridWeek')}
+            className={`px-2.5 py-1.5 text-xs rounded-md flex items-center ${currentView === 'timeGridWeek' ? 'bg-white shadow text-[#586DF7]' : 'text-gray-600'}`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
+            Week
+          </button>
+          <button
+            onClick={() => handleViewChange('listWeek')}
+            className={`px-2.5 py-1.5 text-xs rounded-md flex items-center ${currentView === 'listWeek' ? 'bg-white shadow text-[#586DF7]' : 'text-gray-600'}`}
+          >
+            List
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {weekdays.map((day) => (
-          <div key={day} className="text-center font-medium text-gray-500 py-2 text-xs sm:text-sm border-b-2 border-[#EBEBFF] mb-4">
-            {day}
-          </div>
-        ))}
+      <div className="calendar-container">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+          initialView={currentView}
+          headerToolbar={false}
+          events={events}
+          selectable={true}
+          select={handleDateSelect}
+          eventClick={handleEventClick}
+          eventContent={renderEventContent}
+          height={300}
+          datesSet={(arg) => setCurrentDateTitle(arg.view.title)}
+          eventDisplay="block"
+          nowIndicator={true}
+          dayMaxEvents={3}
+          dayMaxEventRows={3}
+          views={{
+            dayGridMonth: {
+              dayMaxEventRows: 3,
+            },
+            timeGridWeek: {
+              dayHeaderFormat: { weekday: 'short', day: 'numeric' }
+            },
+            listCustom: {
+              type: 'list',
+              duration: { days: 7 }, // Default duration if no events
+              visibleRange: getVisibleRange(), // Custom visible range
+              buttonText: 'List'
+            }
+          }}
+          eventClassNames="cursor-pointer"
+          dayHeaderClassNames="bg-gray-50 font-medium text-gray-700 text-xs"
+        />
+      </div>
 
-        {days.map((day, i) => {
-          const isCurrentMonth = isSameMonth(day, currentMonth);
-          const isBooked = bookings.some(bookingDate => isSameDay(day, bookingDate));
-          const isToday = isSameDay(day, today);
-
-          // Determine styles
-          let bgColor = '';
-          let textColor = '';
-          let borderColor = '';
-
-          if (isToday) {
-            bgColor = 'bg-[#586DF7]';
-            textColor = 'text-[#FFFFFF]';
-            borderColor = 'border-[#586DF7]';
-          } else if (isBooked) {
-            bgColor = 'bg-[#00CC9133]';
-            textColor = 'text-[#00CC91]';
-            borderColor = 'border-[#00CC91]';
-          } else {
-            bgColor = 'bg-white';
-            textColor = isCurrentMonth ? 'text-gray-800' : 'text-gray-400';
-            borderColor = 'border-gray-100';
-          }
-
-          return (
-            <div
-              key={i}
-              className={`p-1 flex justify-center`}
-            >
-              <div className={`p-2 h-7 w-7 sm:h-8 sm:w-8 border text-center rounded-full ${bgColor} ${textColor} ${borderColor}`}>
-                <div className="flex flex-col items-center justify-center h-full">
-                  <span className={`text-xs sm:text-sm ${isCurrentMonth ? 'font-medium' : ''}`}>
-                    {format(day, 'd')}
-                  </span>
+      {/* Modern Modal */}
+      {modalOpen && modalData && (
+        <div className="fixed inset-0 bg-[#00000087] backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-500 ease-in-out" style={{opacity: modalOpen ? 1 : 0}} onClick={() => setModalOpen(false)}>
+          <div className="relative">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all" onClick={(e) => e.stopPropagation()}>
+              <div className={`p-5 ${modalData.isBlock ? 'bg-red-50' : modalData.status === 'active' ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">
+                      {modalData.propertyName}
+                    </h3>
+                    <p className="text-gray-600 text-sm mt-1">
+                      {format(new Date(modalData.start), 'MMM d, yyyy')} - {format(new Date(modalData.end), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <button 
+                    className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                    onClick={() => setModalOpen(false)}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className={`mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                  modalData.isBlock ? 'bg-red-100 text-red-800' : 
+                  modalData.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {modalData.isBlock ? 'Blocked' : modalData.status}
                 </div>
               </div>
+              
+              {!modalData.isBlock && (
+                <div className="p-5 border-t border-gray-100">
+                  <div className="space-y-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <div className="bg-gray-100 rounded-lg p-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</h4>
+                        <p className="text-gray-800">{modalData.source}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <div className="bg-gray-100 rounded-lg p-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Reservation #</h4>
+                        <p className="text-gray-800 font-mono break-words">{modalData.reservationNumber}</p>
+                      </div>
+                    </div>
+                    
+                    {/* {modalData.notes && (
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <div className="bg-gray-100 rounded-lg p-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</h4>
+                          <p className="text-gray-800">{modalData.notes}</p>
+                        </div>
+                      </div>
+                    )} */}
+                  </div>
+                </div>
+              )}
+              
+              {modalData.isBlock && (
+                <div className="p-5 border-t border-gray-100">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <div className="bg-gray-100 rounded-lg p-2">
+                        <Info size={20} className="text-gray-600" />
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</h4>
+                      <p className="text-gray-800">{modalData.title}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        .fc .fc-toolbar-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #374151;
+        }
+        
+        .fc .fc-button {
+          display: none;
+        }
+        
+        .fc .fc-daygrid-day-number {
+          color: #4b5563;
+          font-weight: 500;
+          padding: 4px;
+          font-size: 0.75rem;
+        }
+        
+        .fc .fc-col-header-cell-cushion {
+          padding: 4px;
+          font-size: 0.75rem;
+        }
+        
+        .fc .fc-day-today {
+          background-color: #f0f4ff !important;
+        }
+        
+        .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+          color: #586DF7;
+          font-weight: 700;
+        }
+        
+        .fc-event {
+          border-radius: 6px;
+          border: none;
+          padding: 0;
+          margin: 1px;
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          transition: transform 0.2s, box-shadow 0.2s;
+          display: inline-block;
+        }
+        
+        .fc-event:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          z-index: 10;
+        }
+        
+        .fc-daygrid-event {
+          margin: 1px 2px;
+        }
+        
+        .fc-daygrid-block-event .fc-event-time, 
+        .fc-daygrid-block-event .fc-event-title {
+          padding: 0;
+        }
+        
+        .fc .fc-daygrid-body-natural .fc-daygrid-day-events {
+          margin-bottom: 1px;
+        }
+        
+        .fc .fc-scrollgrid {
+          border-radius: 10px;
+          overflow: hidden;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .fc .fc-scrollgrid-section > * {
+          border-left: 1px solid #e5e7eb;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        .fc .fc-daygrid-day-frame {
+          min-height: 4rem;
+        }
+        
+        .calendar-container {
+          height: 300px;
+        }
+      `}</style>
     </div>
   );
 };

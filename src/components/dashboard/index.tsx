@@ -14,6 +14,8 @@ const RateImage = "/images/rate.png";
 const CustomerImage = "/images/customer.png";
 
 interface Booking {
+
+
   id: number;
   arrival: string;
   departure: string;
@@ -25,7 +27,11 @@ interface Booking {
   currency_code: string;
   platform_reservation_number: string;
   listing_site: string;
-  // Add other booking properties as needed
+  is_block: boolean;
+  notes?: string;
+  amounts?: {
+    total?: number;
+  };
 }
 
 interface ApiResponse {
@@ -34,6 +40,15 @@ interface ApiResponse {
   next_page_url?: string;
   offset: number;
 }
+
+// Currency conversion rates (simplified - use real API in production)
+const CURRENCY_RATES: Record<string, number> = {
+  USD: 1,
+  EUR: 0.93,
+  GBP: 0.79,
+  CAD: 1.36,
+  AUD: 1.51,
+};
 
 export default function Index() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -49,7 +64,19 @@ export default function Index() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch('/api/bookings?since=2025-01-01T00:00:00Z&limit=50');
+        // Get current month dates
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        // Format dates for API
+        const startDate = firstDayOfMonth.toISOString().split('T')[0];
+        const endDate = lastDayOfMonth.toISOString().split('T')[0];
+        
+        // Use default since_utc value of 2025-01-01T00:00:00Z
+        const response = await fetch(
+          `/api/bookings?start_date=${startDate}&end_date=${endDate}&since_utc=2025-01-01T00:00:00Z`
+        );
         
         if (!response.ok) {
           throw new Error(`Failed to fetch bookings: ${response.status}`);
@@ -60,16 +87,18 @@ export default function Index() {
         console.log('Booking data:', data);
 
         // Calculate statistics
-        const activeBookings = data.items.filter(b => b.status === 'active');
-        const totalBookings = activeBookings.length;
-        
-        // In a real app, you would calculate these based on your business logic
-        const occupancyRate = calculateOccupancyRate(activeBookings);
-        const revenueGenerated = calculateRevenue(activeBookings);
+        const { totalBookings, totalRevenue, totalNights } = calculateMonthlyStats(data.items);
+        const propertyCount = parseInt(process.env.NEXT_PUBLIC_PROPERTY_COUNT || '1');
+        const occupancyRate = calculateOccupancyRate(
+          totalNights, 
+          propertyCount, 
+          firstDayOfMonth, 
+          lastDayOfMonth
+        );
 
         setStats({
-          occupancyRate,
-          revenueGenerated,
+          occupancyRate: `${occupancyRate}%`,
+          revenueGenerated: totalRevenue,
           totalBookings,
           totalCustomers: "1,200+" // This would need actual calculation
         });
@@ -85,26 +114,44 @@ export default function Index() {
     fetchBookings();
   }, []);
 
-  // Mock calculation functions - replace with your actual business logic
-  const calculateOccupancyRate = (bookings: Booking[]): string => {
-    // This should be replaced with your actual occupancy calculation
-    const occupiedDays = bookings.reduce((total, booking) => {
+  // Calculate monthly statistics
+  const calculateMonthlyStats = (bookings: Booking[]) => {
+    let totalBookings = 0;
+    let totalRevenue = 0;
+    let totalNights = 0;
+
+    bookings.forEach(booking => {
+      // Calculate booking nights
       const arrival = new Date(booking.arrival);
       const departure = new Date(booking.departure);
-      const days = (departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24);
-      return total + days;
-    }, 0);
-    
-    // Assuming 10 properties available
-    const totalPossibleDays = 10 * 365; // 10 properties * 365 days
-    const rate = (occupiedDays / totalPossibleDays) * 100;
-    return `${Math.round(rate)}%`;
+      const nights = Math.ceil((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Convert currency to USD
+      const rate = CURRENCY_RATES[booking.currency_code] || 1;
+      const revenueUSD = (booking.amounts?.total ?? 0) * rate;
+      
+      totalBookings++;
+      totalRevenue += revenueUSD;
+      totalNights += nights;
+    });
+
+    return { totalBookings, totalRevenue, totalNights };
   };
 
-  const calculateRevenue = (bookings: Booking[]): number => {
-    // This should be replaced with your actual revenue calculation
-    // For now, we'll just return a mock value
-    return bookings.length * 500; // $500 per booking as example
+  // Calculate occupancy rate
+  const calculateOccupancyRate = (
+    bookedNights: number, 
+    propertyCount: number,
+    start: Date,
+    end: Date
+  ) => {
+    if (propertyCount === 0) return 0;
+    
+    // Calculate days in month
+    const daysInMonth = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const totalPossibleNights = propertyCount * daysInMonth;
+    
+    return Math.round((bookedNights / totalPossibleNights) * 100);
   };
 
   return (
@@ -116,19 +163,19 @@ export default function Index() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard 
             title="Total Bookings" 
-            value={loading ? "Loading..." : `${stats.totalBookings}+`} 
+            value={loading ? "Loading..." : `${stats.totalBookings}`} 
             icon={BookingImage} 
             background="#475BE81A" 
           />
           <StatCard 
             title="Revenue Generated" 
-            value={loading ? "Loading..." : `$${stats.revenueGenerated.toLocaleString()}`} 
+            value={loading ? "Loading..." : `$${stats.revenueGenerated.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} 
             icon={RevenueImage} 
             background="#FD85391A" 
           />
           <StatCard 
             title="Occupancy Rate" 
-            value={stats.occupancyRate} 
+            value={loading ? "Loading..." : stats.occupancyRate} 
             icon={RateImage} 
             background="#2ED4801A" 
           />
@@ -159,7 +206,7 @@ export default function Index() {
               <RevenueChart/>
             </div>
             <div className="md:col-span-2 mb-6">
-              <BookingCalendar />
+              <BookingCalendar bookings={bookings} />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6 space-y-6">
