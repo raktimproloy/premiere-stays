@@ -16,9 +16,9 @@ interface Booking {
 }
 
 async function fetchBookings(start: string, end: string): Promise<Booking[]> {
-  const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME;
-  const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN;
-  const v2Url = process.env.NEXT_PUBLIC_OWNERREZ_API_V2;
+  const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME || "info@premierestaysmiami.com";
+  const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN || "pt_1xj6mw0db483n2arxln6rg2zd8xockw2";
+  const v2Url = process.env.NEXT_PUBLIC_OWNERREZ_API_V2 || "https://api.ownerrez.com/v2";
 
   if (!username || !password || !v2Url) {
     throw new Error('API credentials not configured');

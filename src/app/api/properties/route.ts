@@ -62,9 +62,9 @@ export async function GET(request: Request) {
     }
 
     const offset = (page - 1) * pageSize;
-    const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME;
-    const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN;
-    const baseUrl = process.env.NEXT_PUBLIC_OWNERREZ_API_V2;
+    const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME || "info@premierestaysmiami.com";
+    const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN || "pt_1xj6mw0db483n2arxln6rg2zd8xockw2";
+    const baseUrl = process.env.NEXT_PUBLIC_OWNERREZ_API_V2 || "https://api.ownerrez.com/v2";
 
     if (!username || !password) {
       throw new Error('API credentials not configured');

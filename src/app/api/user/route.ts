@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME;
-    const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN;
+    const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME || "info@premierestaysmiami.com";
+    const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN || "pt_1xj6mw0db483n2arxln6rg2zd8xockw2";
+    const api2 = process.env.NEXT_PUBLIC_OWNERREZ_API_V2 || "https://api.ownerrez.com/v2"
 
     if (!username || !password) {
       return NextResponse.json(
@@ -13,7 +14,7 @@ export async function GET() {
       );
     }
 
-    const response = await fetch('https://api.ownerrez.com/v2/users/me', {
+    const response = await fetch(`${api2}/users/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
