@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME;
-    const password = process.env.NEXT_PUBLIC_OQNERREZ_ACCESS_TOKEN;
+    const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN;
 
     if (!username || !password) {
       return NextResponse.json(
