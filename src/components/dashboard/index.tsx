@@ -303,7 +303,7 @@ export default function Index() {
               <BookingSourcesChart bookings={historicalData?.bookings || []} />
             </div>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 md:mt-0 mt-6">
             <OwnerStatementsTable 
                 data={statementsData}
                 isLoading={isLoading && !statementsData}

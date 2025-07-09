@@ -37,11 +37,10 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
   error,
   onPageChange
 }) => {
-  // State for column visibility on mobile
-  const [showColumns, setShowColumns] = useState(false);
-
   // State for loading download key
   const [loadingDownloadKey, setLoadingDownloadKey] = useState<string | null>(null);
+  // State for expanded card in mobile view
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('en-US', {
@@ -145,49 +144,98 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 sm:p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-5">Owner Statements</h2>
-        
-        {/* Column visibility toggle for mobile */}
-        <div className="sm:hidden mb-3">
-          <button
-            onClick={() => setShowColumns(!showColumns)}
-            className="flex items-center text-sm text-purple-600 font-medium"
-          >
-            {showColumns ? 'Hide Columns' : 'Show Columns'}
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform ${showColumns ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        {/* Mobile Card View */}
+        <div className="sm:hidden space-y-4">
+          {data.statements.map((statement) => {
+            const statusInfo = getStatusInfo(statement.Status);
+            const isLoading = loadingDownloadKey === statement.Key;
+            const isExpanded = expandedKey === statement.Key;
+            return (
+              <div key={statement.Key} className="border rounded-lg p-4 shadow-sm bg-[#F9F8FC]">
+                {/* Always visible summary */}
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Statement Date</span>
+                  <span className="text-sm font-medium text-gray-900">{formatDate(statement.StatementDate)}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Total</span>
+                  <span className="text-sm font-medium text-gray-900">{formatCurrency(statement.Total)}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Status</span>
+                  <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.class}`}>{statusInfo.text}</span>
+                </div>
+                <button
+                  className="w-full flex items-center justify-center mt-2 text-purple-600 hover:text-purple-900 font-medium text-sm focus:outline-none"
+                  onClick={() => setExpandedKey(isExpanded ? null : statement.Key)}
+                >
+                  {isExpanded ? 'Hide Details' : 'Show Details'}
+                  <svg
+                    className={`h-4 w-4 ml-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isExpanded && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Id</span>
+                      <span className="text-sm font-medium text-gray-900">{statement.OwnerId}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Paid</span>
+                      <span className="text-sm font-medium text-gray-900">{formatCurrency(statement.Paid)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Unpaid</span>
+                      <span className="text-sm font-medium text-gray-900">{formatCurrency(statement.Unpaid)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Note</span>
+                      <span className="text-sm font-medium text-gray-900">{statement.Note}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Download</span>
+                      <button
+                        onClick={() => handleDownloadClick(statement.Key, statement.downloadUrl)}
+                        disabled={isLoading}
+                        className="text-purple-600 hover:text-purple-900 font-medium flex items-center"
+                      >
+                        {isLoading ? (
+                          <svg className="animate-spin h-5 w-5 mr-1 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        )}
+                        <span>Download</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto rounded-lg">
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto rounded-lg mt-4">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-[#F3F0FF]">
               <tr>
-                <th scope="col" className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                  Id
-                </th>
-                <th scope="col" className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                  Statement Date
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Paid
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unpaid
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Note
-                </th>
-                <th scope="col" className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                  Status
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                  Download
-                </th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Id</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statement Date</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unpaid</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Download</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -196,35 +244,17 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
                 const isLoading = loadingDownloadKey === statement.Key;
                 return (
                   <tr key={statement.Key} className="hover:bg-gray-50">
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {statement.OwnerId}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {formatDate(statement.StatementDate)}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {formatCurrency(statement.Paid)}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {formatCurrency(statement.Unpaid)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {formatCurrency(statement.Total)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {statement.Note}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.class}`}>
-                        {statusInfo.text}
-                      </span>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{statement.OwnerId}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{formatDate(statement.StatementDate)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{formatCurrency(statement.Paid)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{formatCurrency(statement.Unpaid)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{formatCurrency(statement.Total)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{statement.Note}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.class}`}>{statusInfo.text}</span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleDownloadClick(statement.Key, statement.downloadUrl)}
-                        disabled={isLoading}
-                        className="text-purple-600 hover:text-purple-900 font-medium flex items-center"
-                      >
+                      <button onClick={() => handleDownloadClick(statement.Key, statement.downloadUrl)} disabled={isLoading} className="text-purple-600 hover:text-purple-900 font-medium flex items-center">
                         {isLoading ? (
                           <svg className="animate-spin h-5 w-5 mr-1 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4"></circle>
