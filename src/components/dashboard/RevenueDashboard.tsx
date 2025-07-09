@@ -2,53 +2,157 @@
 'use client';
 
 import React from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartOptions } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-import { FaArrowUp } from "react-icons/fa6";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, Filler } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import { FaArrowUp, FaArrowDown } from "react-icons/fa6";
 import { BsThreeDots } from "react-icons/bs";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+
+
+interface RevenueItem {
+  amount: number;
+  month: number;
+  year: number;
+}
 
 interface RevenueData {
   month: string;
-  primaryRevenue: number;
-  secondaryRevenue: number;
-  isLastMonth?: boolean;
-  isCurrentMonth?: boolean;
+  revenue: number;
 }
 
-const RevenueDashboard= () => {
-  // Generate sample data with two revenue streams
-  const generateRevenueData = (): RevenueData[] => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    const currentMonthIndex = new Date().getMonth();
-    const displayedMonths = months.slice(0, Math.min(currentMonthIndex + 1, months.length));
+// const RevenueDashboard = ({ revenueData = [] }: { revenueData: RevenueItem[] }) => {
+const RevenueDashboard = () => {
+  const revenueData = [
+    {
+        "amount": 15034,
+        "month": 8,
+        "year": 2024
+    },
+    {
+        "amount": 16784,
+        "month": 9,
+        "year": 2024
+    },
+    {
+        "amount": 23434,
+        "month": 10,
+        "year": 2024
+    },
+    {
+        "amount": 54644,
+        "month": 11,
+        "year": 2024
+    },
+    {
+        "amount": 35234,
+        "month": 12,
+        "year": 2024
+    },
+    {
+        "amount": 96574,
+        "month": 1,
+        "year": 2025
+    },
+    {
+        "amount": 23453,
+        "month": 2,
+        "year": 2025
+    },
+    {
+        "amount": 43734,
+        "month": 3,
+        "year": 2025
+    },
+    {
+        "amount": 74534,
+        "month": 4,
+        "year": 2025
+    },
+    {
+        "amount": 12543,
+        "month": 5,
+        "year": 2025
+    },
+    {
+        "amount": 32543,
+        "month": 6,
+        "year": 2025
+    },
+    {
+        "amount": 30321,
+        "month": 7,
+        "year": 2025
+    }
+  ]
+  // Ensure we have 12 months of data
+  const ensureFullYearData = (data: RevenueItem[]): RevenueItem[] => {
+    if (data.length === 12) return [...data];
     
-    const primaryRevenue = [789000, 630000, 560000, 440000, 675000, 610000, 499500];
-    const secondaryRevenue = [450410, 300800, 360000, 190000, 575000, 510000, 199500];
+    // Create empty data structure for 12 months
+    const fullYear: RevenueItem[] = Array(12).fill(null).map((_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - 11 + i);
+      return {
+        amount: 0,
+        month: date.getMonth() + 1,
+        year: date.getFullYear()
+      };
+    });
     
-    return displayedMonths.map((month, index) => ({
-      month,
-      primaryRevenue: primaryRevenue[index],
-      secondaryRevenue: secondaryRevenue[index],
-      isLastMonth: index === currentMonthIndex - 1,
-      isCurrentMonth: index === currentMonthIndex
+    // Merge existing data with empty structure
+    return fullYear.map(emptyItem => {
+      const foundItem = data.find(item => 
+        item.month === emptyItem.month && item.year === emptyItem.year);
+      return foundItem || emptyItem;
+    });
+  };
+
+  // Transform data to chart format
+  const transformRevenueData = (data: RevenueItem[]): RevenueData[] => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
+    return data.map(item => ({
+      month: `${months[item.month - 1]} ${item.year.toString().slice(2)}`,
+      revenue: item.amount
     }));
   };
 
-  const revenueData = generateRevenueData();
-  const currentMonthData = revenueData.find(item => item.isCurrentMonth);
-  const lastMonthData = revenueData.find(item => item.isLastMonth);
+  // Get current and previous month data
+  const getCurrentAndPreviousMonth = (data: RevenueData[]) => {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    // Find current month in dataset (July 2025)
+    const currentMonthData = data.find(item => 
+      item.month.startsWith('Jul') && item.month.endsWith('25'));
+    
+    // Find previous month (June 2025)
+    const lastMonthData = data.find(item => 
+      item.month.startsWith('Jun') && item.month.endsWith('25'));
 
+    return { currentMonthData, lastMonthData };
+  };
+
+  // Process data through pipeline
+  const fullYearData = ensureFullYearData(revenueData);
+  const transformedData = transformRevenueData(fullYearData);
+  const { currentMonthData, lastMonthData } = getCurrentAndPreviousMonth(transformedData);
+
+  // Calculate percentage change
   const calculatePercentageChange = (): number => {
     if (!currentMonthData || !lastMonthData) return 0;
-    const currentTotal = currentMonthData.primaryRevenue + currentMonthData.secondaryRevenue;
-    const lastTotal = lastMonthData.primaryRevenue + lastMonthData.secondaryRevenue;
-    return ((currentTotal - lastTotal) / lastTotal) * 100;
+    if (lastMonthData.revenue === 0) return 0;
+    return ((currentMonthData.revenue - lastMonthData.revenue) / lastMonthData.revenue) * 100;
   };
 
   const percentageChange = calculatePercentageChange();
 
+  // Format currency
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -58,32 +162,32 @@ const RevenueDashboard= () => {
     }).format(value);
   };
 
-  // Chart.js data configuration for grouped bars
+  // Chart.js data configuration
   const chartData = {
-    labels: revenueData.map(item => item.month),
+    labels: transformedData.map(item => item.month),
     datasets: [
       {
-        label: 'Primary Revenue',
-        data: revenueData.map(item => item.primaryRevenue),
-        backgroundColor: '#586DF7',
-        borderColor: '#586DF7',
-        borderWidth: 1,
-        borderRadius: 4,
-        hoverBackgroundColor: '#3A56F5',
-      },
-      {
-        label: 'Secondary Revenue',
-        data: revenueData.map(item => item.secondaryRevenue),
-        backgroundColor: '#FFE09E',
-        borderColor: '#FFE09E',
-        borderWidth: 1,
-        borderRadius: 4,
-        hoverBackgroundColor: '#FFD570',
+        label: 'Revenue',
+        data: transformedData.map(item => item.revenue),
+        backgroundColor: 'rgba(88, 109, 247, 0.1)', // Fill color under line
+        borderColor: '#586DF7', // Main line color
+        pointBackgroundColor: transformedData.map((item) => {
+          if (item.month === currentMonthData?.month) return '#586DF7';
+          if (item.month === lastMonthData?.month) return '#FFE09E';
+          return '#E0E7FF';
+        }),
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 6,
+        borderWidth: 3,
+        tension: 0.4, // Creates curved lines
+        fill: true, // Enables area fill
       }
     ]
   };
 
-  const chartOptions: ChartOptions<'bar'> = {
+  const chartOptions: ChartOptions<'line'> = { 
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -96,44 +200,33 @@ const RevenueDashboard= () => {
             const label = context.dataset.label || '';
             const value = context.raw as number;
             return `${label}: ${formatCurrency(value)}`;
-          },
-          afterLabel: (context) => {
-            if (context.datasetIndex === 1) { // Only show total on second dataset
-              const primary = context.chart.data.datasets[0].data[context.dataIndex] as number;
-              const secondary = context.chart.data.datasets[1].data[context.dataIndex] as number;
-              return `Total: ${formatCurrency(primary + secondary)}`;
-            }
-            return '';
           }
         }
       }
     },
-        scales: {
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              color: '#6b7280'
-            },
-            stacked: false, // Side-by-side bars
-          },
-          y: {
-            beginAtZero: true,
-            max: 800000, // Fixed max value for consistent scale
-            grid: {
-              color: '#f3f4f6'
-            },
-            ticks: {
-              color: '#6b7280',
-              stepSize: 200000,
-              callback: (value) => {
-                const numValue = Number(value);
-                return `$${numValue / 1000}K`;
-              }
-            }
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          color: '#6b7280'
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: '#f3f4f6'
+        },
+        ticks: {
+          color: '#6b7280',
+          callback: (value) => {
+            const numValue = Number(value);
+            return `$${numValue / 1000}K`;
           }
         }
+      }
+    }
   };
 
   return (
@@ -142,66 +235,40 @@ const RevenueDashboard= () => {
         <div className='flex justify-between align-middle'>
           <h1 className="text-xl font-bold text-gray-800">Total Revenue</h1>
           <div>
-          <div className='flex align-middle gap-3'>
-            <p className='h-3 text-sm text-[#969FB7] before:inline-block before:w-3 before:h-3 before:rounded-full before:bg-[#586DF7] before:mr-2'>Last Month</p>
-            <p className='h-3 text-sm text-[#969FB7] before:inline-block before:w-3 before:h-3 before:rounded-full before:bg-[#FFE09E] before:mr-2'>Running Month</p>
-            <BsThreeDots className='mt-1 mx-3' />
-          </div>
+            <div className='flex align-middle gap-3'>
+              <p className='h-3 text-sm text-[#969FB7] before:inline-block before:w-3 before:h-3 before:rounded-full before:bg-[#FFE09E] before:mr-2'>Last Month</p>
+              <p className='h-3 text-sm text-[#969FB7] before:inline-block before:w-3 before:h-3 before:rounded-full before:bg-[#586DF7] before:mr-2'>Current Month</p>
+              <BsThreeDots className='mt-1 mx-3' />
+            </div>
           </div>
         </div>
         
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mt-4">
           <div className="mb-4 sm:mb-0 flex gap-5 align-middle">
             <p className="text-2xl font-semibold text-gray-900">
-              {currentMonthData ? formatCurrency(currentMonthData.primaryRevenue + currentMonthData.secondaryRevenue) : '$0'}
+              {transformedData.length > 0 ? formatCurrency(transformedData.reduce((sum, item) => sum + item.revenue, 0)) : '$0'}
             </p>
             <div className={`flex items-center`}>
-              <FaArrowUp className='p-2 rounded-full w-8 h-8 text-white bg-[#586DF7] mr-2' />
+              {percentageChange >= 0 ? (
+                <FaArrowUp className='p-2 rounded-full w-8 h-8 text-white bg-[#586DF7] mr-2' />
+              ) : (
+                <FaArrowDown className='p-2 rounded-full w-8 h-8 text-white bg-red-500 mr-2' />
+              )}
               <div>
-                <p className="text-[#586DF7] font-bold">
-                  0.8%
+                <p className={`font-bold ${percentageChange >= 0 ? 'text-[#586DF7]' : 'text-red-500'}`}>
+                  {Math.abs(percentageChange).toFixed(1)}%
                 </p>
                 <p className="text-xs text-[#969FB7]">Than last Month</p>
               </div>
             </div>
           </div>
-          
-          {/* <div className="flex space-x-6">
-            <div>
-              <p className="text-xs text-gray-500">Last Month</p>
-              <p className="text-sm font-medium text-gray-700">
-                {lastMonthData ? formatCurrency(lastMonthData.primaryRevenue + lastMonthData.secondaryRevenue) : '$0'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Running Month</p>
-              <p className="text-sm font-medium text-gray-700">
-                {currentMonthData ? formatCurrency(currentMonthData.primaryRevenue + currentMonthData.secondaryRevenue) : '$0'}
-              </p>
-            </div>
-          </div> */}
         </div>
       </div>
 
       <div className="h-64 w-full">
-        <Bar 
+        <Line 
           data={chartData} 
           options={chartOptions}
-          plugins={[{
-            id: 'customYAxisLabels',
-            afterDraw: (chart) => {
-              const ctx = chart.ctx;
-              const yAxis = chart.scales.y;
-              const yLabels = ['0K', '200K', '400K', '600K', '800K'];
-              
-              yLabels.forEach((label, i) => {
-                const y = yAxis.getPixelForValue(i * 200000);
-                ctx.fillStyle = '#6b7280';
-                ctx.textAlign = 'right';
-                ctx.fillText(label, yAxis.left - 10, y + 4);
-              });
-            }
-          }]}
         />
       </div>
     </div>

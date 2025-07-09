@@ -22,6 +22,7 @@ interface Booking {
   platform_reservation_number: string;
   is_block: boolean;
   notes?: string;
+  type?: string; // Add type field
 }
 
 interface BookingSourcesChartProps {
@@ -34,6 +35,7 @@ interface CalendarEvent {
   start: string;
   end: string;
   color: string;
+  textColor?: string;
   extendedProps: {
     source: string;
     status: string;
@@ -41,14 +43,36 @@ interface CalendarEvent {
     notes?: string;
     isBlock: boolean;
     propertyName: string;
+    propertyId: number;
+    type?: string;
   };
 }
+
+// Color palette for different properties
+const propertyColors = [
+  '#00CC91', // green
+  '#586DF7', // blue
+  '#FFC107', // yellow
+  '#FF5252', // red
+  '#9C27B0', // purple
+  '#FF9800', // orange
+  '#4CAF50', // dark green
+  '#2196F3', // light blue
+  '#607D8B', // blue gray
+  '#795548', // brown
+];
+
+const getPropertyColor = (propertyId: number) => {
+  // Use modulo to cycle through colors if there are more properties than colors
+  return propertyColors[propertyId % propertyColors.length];
+};
 
 const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
   const [currentView, setCurrentView] = useState<'dayGridMonth' | 'timeGridWeek' | 'listWeek'>('dayGridMonth');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
   const [currentDateTitle, setCurrentDateTitle] = useState('');
+  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const calendarRef = useRef<any>(null);
   
   // Update date title when view changes
@@ -59,8 +83,7 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
     }
   }, [currentView]);
 
-
-    const getVisibleRange = () => {
+  const getVisibleRange = () => {
     if (!events.length) return { start: new Date(), end: new Date() };
     
     const eventStarts = events.map(e => new Date(e.start).getTime());
@@ -80,22 +103,31 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
   };
 
   // Transform bookings data into calendar events
-  const events: CalendarEvent[] = bookings.map((booking) => ({
-    id: `event-${booking.id}`,
-    title: booking.property.name,
-    start: booking.arrival,
-    end: booking.departure,
-    color: booking.is_block ? '#FF5252' : 
-          booking.status === 'active' ? '#00CC91' : '#FFC107',
-    extendedProps: {
-      source: booking.listing_site,
-      status: booking.status,
-      reservationNumber: booking.platform_reservation_number,
-      notes: booking.notes,
-      isBlock: booking.is_block,
-      propertyName: booking.property.name
-    }
-  }));
+  const events: CalendarEvent[] = bookings.map((booking) => {
+    const isBlocked = booking.is_block || booking.type !== 'booking';
+    const baseColor = isBlocked 
+      ? '#FF5252' // red for blocked
+      : getPropertyColor(booking.property.id);
+    
+    return {
+      id: `event-${booking.id}`,
+      title: isBlocked ? 'Blocked' : booking.property.name,
+      start: booking.arrival,
+      end: booking.departure,
+      color: baseColor,
+      textColor: '#ffffff', // white text for better contrast
+      extendedProps: {
+        source: booking.listing_site,
+        status: booking.status,
+        reservationNumber: booking.platform_reservation_number,
+        notes: booking.notes,
+        isBlock: isBlocked,
+        propertyName: booking.property.name,
+        propertyId: booking.property.id,
+        type: booking.type
+      }
+    };
+  });
 
   const handleDateSelect = (selectInfo: any) => {
     const title = prompt('Enter a reason for blocking these dates:');
@@ -104,14 +136,16 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
     if (title) {
       calendarApi.addEvent({
         id: `new-block-${Date.now()}`,
-        title,
+        title: 'Blocked',
         start: selectInfo.startStr,
         end: selectInfo.endStr,
         color: '#FF5252',
+        textColor: '#ffffff',
         allDay: selectInfo.allDay,
         extendedProps: {
           isBlock: true,
-          propertyName: 'Blocked Dates'
+          propertyName: 'Blocked Dates',
+          type: 'blocked'
         }
       });
     }
@@ -156,7 +190,8 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
       reservationNumber: event.extendedProps.reservationNumber,
       notes: event.extendedProps.notes,
       isBlock: event.extendedProps.isBlock,
-      propertyName: event.extendedProps.propertyName
+      propertyName: event.extendedProps.propertyName,
+      type: event.extendedProps.type
     });
     setModalOpen(true);
   };
@@ -164,22 +199,40 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
   const renderEventContent = (eventInfo: any) => {
     const viewType = eventInfo.view?.type || '';
     const title = eventInfo.event.title;
+    const isBlocked = eventInfo.event.extendedProps.isBlock || eventInfo.event.extendedProps.type !== 'booking';
+    const isHovered = hoveredEventId === eventInfo.event.id;
 
     if (viewType.startsWith('list')) {
-      // For list view, show full title and additional info
       return (
-        <div className="flex flex-col" onClick={() => handleEventClick({ event: eventInfo.event })}>
-          <div className="text-sm font-semibold text-gray-900">{title}</div>
-          <div className="text-xs text-gray-600">{eventInfo.event.extendedProps.source}</div>
+        <div 
+          className="flex flex-col" 
+          onClick={() => handleEventClick({ event: eventInfo.event })}
+          onMouseEnter={() => setHoveredEventId(eventInfo.event.id)}
+          onMouseLeave={() => setHoveredEventId(null)}
+        >
+          <div className="text-sm font-semibold text-gray-900">
+            {isBlocked ? 'Blocked' : title}
+          </div>
+          <div className="text-xs text-gray-600">
+            {eventInfo.event.extendedProps.source}
+            {!isBlocked && (
+              <span className="ml-2">
+                {format(new Date(eventInfo.event.start), 'MMM d')} - {format(new Date(eventInfo.event.end), 'MMM d')}
+              </span>
+            )}
+          </div>
         </div>
       );
     } else {
-      // For other views, truncate title
-      const truncatedTitle = title.length > 6 ? `${title.substring(0, 6)}...` : title;
+      const truncatedTitle = isBlocked ? 'Blocked' : title;
       return (
         <div 
-          className="fc-event-main-frame w-full h-full flex items-center justify-center"
+          className={`fc-event-main-frame w-full h-full flex items-center justify-center transition-all duration-200 ${
+            isHovered ? 'transform scale-105' : ''
+          }`}
           onClick={() => handleEventClick({ event: eventInfo.event })}
+          onMouseEnter={() => setHoveredEventId(eventInfo.event.id)}
+          onMouseLeave={() => setHoveredEventId(null)}
         >
           <div className="fc-event-title-container px-1">
             <div className="fc-event-title text-xs font-medium text-center leading-tight">
@@ -190,33 +243,34 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
       );
     }
   };
-
   return (
-    <div className="bg-white rounded-xl shadow-lg p-4 md:p-5">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+    <div className="bg-white rounded-xl shadow p-4 md:p-5">
+      <div className="flex flex-col sm:flex-row justify-start items-center mb-4 gap-6">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
           {/* <Calendar size={20} /> */}
           Booking Calendar
         </h2>
-        <button
-          onClick={handlePrev}
-          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <div className="text-sm font-medium text-gray-700 px-2 min-w-[180px] text-center">
-          {currentDateTitle}
+        <div className='flex'>
+          <button
+            onClick={handlePrev}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="text-sm font-medium text-gray-700 px-2 min-w-[180px] text-center">
+            {currentDateTitle}
+          </div>
+          <button
+            onClick={handleNext}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
-        <button
-          onClick={handleNext}
-          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
       </div>
       <div className="flex items-center gap-2 mt-3 sm:mt-0 mb-4">
         
@@ -257,7 +311,7 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventContent={renderEventContent}
-          height={300}
+          height={350}
           datesSet={(arg) => setCurrentDateTitle(arg.view.title)}
           eventDisplay="block"
           nowIndicator={true}
@@ -383,7 +437,7 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
         </div>
       )}
 
-      <style jsx global>{`
+ <style jsx global>{`
         .fc .fc-toolbar-title {
           font-size: 1rem;
           font-weight: 600;
@@ -421,15 +475,16 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
           padding: 0;
           margin: 1px;
           cursor: pointer;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-          transition: transform 0.2s, box-shadow 0.2s;
-          display: inline-block;
+          box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+          transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+          opacity: 0.9;
         }
         
         .fc-event:hover {
           transform: translateY(-1px);
-          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.15);
           z-index: 10;
+          opacity: 1;
         }
         
         .fc-daygrid-event {
@@ -461,7 +516,13 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
         }
         
         .calendar-container {
-          height: 300px;
+          height: 350px;
+        }
+
+        /* Highlight all days in a booking range when hovering */
+        .fc-event-highlight {
+          background-color: rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
         }
       `}</style>
     </div>

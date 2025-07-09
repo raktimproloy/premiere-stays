@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   try {
     const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME;
     const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN;
+    const v2Url = process.env.NEXT_PUBLIC_OWNERREZ_API_V2;
     const { searchParams } = new URL(request.url);
     
     // Get query parameters
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     // Build API URL with parameters
-    let url = `https://api.ownerrez.com/v2/bookings?since_utc=${encodeURIComponent(since_utc)}`;
+    let url = `${v2Url}/bookings?since_utc=${encodeURIComponent(since_utc)}`;
     
     if (start_date && end_date) {
       url += `&start_date=${start_date}&end_date=${end_date}`;

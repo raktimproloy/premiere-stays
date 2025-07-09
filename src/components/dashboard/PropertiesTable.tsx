@@ -2,36 +2,56 @@
 
 import React, { useState } from 'react';
 
-// Define types
-interface Statement {
-  Key: string;
-  OwnerId: number;
-  StatementDate: string;
-  IncludedBookings: number;
-  Total: number;
-  Paid: number;
-  Unpaid: number;
-  Status: number;
-  Note?: string;
-  downloadUrl: string;
+// Define property type
+interface Property {
+  active: boolean;
+  address: {
+    city: string;
+    country: string;
+    id: number;
+    is_default: boolean;
+    postal_code: string;
+    state: string;
+    street1: string;
+    street2: string;
+  };
+  bathrooms: number;
+  bathrooms_full: number;
+  bathrooms_half: number;
+  bedrooms: number;
+  check_in: string;
+  check_out: string;
+  currency_code: string;
+  id: number;
+  key: string;
+  latitude: number;
+  longitude: number;
+  max_children: number;
+  max_guests: number;
+  max_pets: number;
+  name: string;
+  property_type: string;
+  thumbnail_url: string;
+  thumbnail_url_large: string;
+  thumbnail_url_medium: string;
 }
 
-interface OwnerStatementsData {
+interface PropertiesData {
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
-  statements: Statement[];
+  properties: Property[];
 }
 
-interface OwnerStatementsTableProps {
-  data: OwnerStatementsData | null;
+interface PropertiesTableProps {
+  data: PropertiesData | null;
   isLoading: boolean;
   error: string | null;
   onPageChange: (newPage: number) => void;
 }
 
-const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
+const PropertiesTable: React.FC<PropertiesTableProps> = ({
   data,
   isLoading,
   error,
@@ -39,39 +59,7 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
 }) => {
   // State for column visibility on mobile
   const [showColumns, setShowColumns] = useState(false);
-
-  // State for loading download key
-  const [loadingDownloadKey, setLoadingDownloadKey] = useState<string | null>(null);
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short'
-    });
-  };
-
-  const getStatusInfo = (status: number): { text: string; class: string } => {
-    switch (status) {
-      case 1:
-        return { text: 'Pending', class: 'bg-yellow-100 text-yellow-800' };
-      case 2:
-        return { text: 'Paid', class: 'bg-green-100 text-green-800' };
-      case 3:
-        return { text: 'Overdue', class: 'bg-red-100 text-red-800' };
-      default:
-        return { text: 'Unknown', class: 'bg-gray-100 text-gray-800' };
-    }
-  };
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
@@ -80,17 +68,9 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
     }
   };
 
-  // Handle download click
-  const handleDownloadClick = (key: string, url: string) => {
-    setLoadingDownloadKey(key);
-    // Create a temporary link to trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setLoadingDownloadKey(null);
+  // Toggle row expansion on mobile
+  const toggleRow = (key: string) => {
+    setExpandedRow(expandedRow === key ? null : key);
   };
 
   // Render loading state
@@ -98,7 +78,7 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
     return (
       <div className="bg-white rounded-lg shadow p-6 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 mx-auto"></div>
-        <p className="mt-3 text-gray-600">Loading statements...</p>
+        <p className="mt-3 text-gray-600">Loading properties...</p>
       </div>
     );
   }
@@ -113,7 +93,7 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Unable to load statements</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Unable to load properties</h3>
           <p className="text-gray-600 mb-4">{error}</p>
           <button 
             onClick={() => onPageChange(data?.page || 1)}
@@ -132,10 +112,10 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
       <div className="bg-white rounded-lg shadow p-6">
         <div className="text-center py-8">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No statements available</h3>
-          <p className="mt-1 text-gray-500">You don't have any owner statements yet.</p>
+          <h3 className="mt-4 text-lg font-medium text-gray-900">No properties available</h3>
+          <p className="mt-1 text-gray-500">No properties found in our records.</p>
         </div>
       </div>
     );
@@ -144,7 +124,7 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 sm:p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-5">Owner Statements</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-5">Properties List</h2>
         
         {/* Column visibility toggle for mobile */}
         <div className="sm:hidden mb-3">
@@ -152,7 +132,7 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
             onClick={() => setShowColumns(!showColumns)}
             className="flex items-center text-sm text-purple-600 font-medium"
           >
-            {showColumns ? 'Hide Columns' : 'Show Columns'}
+            {showColumns ? 'Hide Details' : 'Show Details'}
             <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform ${showColumns ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -162,90 +142,149 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
         {/* Table */}
         <div className="overflow-x-auto rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-[#F3F0FF]">
+            <thead className="bg-[#F3F0FF] hidden sm:table-header-group">
               <tr>
-                <th scope="col" className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                  Id
-                </th>
-                <th scope="col" className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                  Statement Date
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
+                  Property
                 </th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Paid
+                  Description
                 </th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unpaid
+                  Amenities
                 </th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Note
-                </th>
-                <th scope="col" className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                  Status
+                  Rates
                 </th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                  Download
+                  Rules
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.statements.map((statement) => {
-                const statusInfo = getStatusInfo(statement.Status);
-                const isLoading = loadingDownloadKey === statement.Key;
-                return (
-                  <tr key={statement.Key} className="hover:bg-gray-50">
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {statement.OwnerId}
+              {data.properties.map((property) => (
+                <React.Fragment key={property.key}>
+                  <tr 
+                    className="hover:bg-gray-50 cursor-pointer sm:cursor-auto"
+                    onClick={() => toggleRow(property.key)}
+                  >
+                    {/* Property Cell - Always visible */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-12 w-12">
+                          {property.thumbnail_url ? (
+                            <img 
+                              className="h-12 w-12 rounded-full object-cover" 
+                              src={property.thumbnail_url} 
+                              alt={property.name} 
+                            />
+                          ) : (
+                            <div className="bg-gray-200 border-2 border-dashed rounded-full w-12 h-12 flex items-center justify-center text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {property.name || 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {property.address.street1 || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            ID: {property.id}
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {formatDate(statement.StatementDate)}
+                    
+                    {/* Description - Hidden on mobile by default */}
+                    <td className={`px-4 py-4 text-sm text-gray-900 hidden sm:table-cell ${showColumns ? '!table-cell' : ''}`}>
+                      <div className="font-medium">{property.property_type || 'N/A'}</div>
+                      <div className="text-gray-500">
+                        {property.bedrooms} bd, {property.bathrooms} ba
+                      </div>
                     </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {formatCurrency(statement.Paid)}
+                    
+                    {/* Amenities - Hidden on mobile by default */}
+                    <td className={`px-4 py-4 text-sm text-gray-500 hidden sm:table-cell ${showColumns ? '!table-cell' : ''}`}>
+                      <div>Guests: {property.max_guests || 'N/A'}</div>
+                      <div>Pets: {property.max_pets || '0'}</div>
+                      <div>Children: {property.max_children || '0'}</div>
                     </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      {formatCurrency(statement.Unpaid)}
+                    
+                    {/* Rates - Hidden on mobile by default */}
+                    <td className={`px-4 py-4 text-sm text-gray-500 hidden sm:table-cell ${showColumns ? '!table-cell' : ''}`}>
+                      <div className="text-gray-900">N/A</div>
+                      <div>Currency: {property.currency_code || 'N/A'}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {formatCurrency(statement.Total)}
+                    
+                    {/* Rules - Hidden on mobile by default */}
+                    <td className={`px-4 py-4 text-sm text-gray-500 hidden sm:table-cell ${showColumns ? '!table-cell' : ''}`}>
+                      <div>Check-in: {property.check_in || 'N/A'}</div>
+                      <div>Check-out: {property.check_out || 'N/A'}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {statement.Note}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap ${showColumns ? 'table-cell' : 'hidden sm:table-cell'}`}>
-                      <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.class}`}>
-                        {statusInfo.text}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    
+                    {/* Mobile expand button */}
+                    <td className="px-4 py-4 text-right text-sm font-medium sm:hidden">
                       <button
-                        onClick={() => handleDownloadClick(statement.Key, statement.downloadUrl)}
-                        disabled={isLoading}
-                        className="text-purple-600 hover:text-purple-900 font-medium flex items-center"
+                        onClick={() => toggleRow(property.key)}
+                        className="text-purple-600 hover:text-purple-900"
                       >
-                        {isLoading ? (
-                          <svg className="animate-spin h-5 w-5 mr-1 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                        )}
-                        <span className="hidden sm:inline">Download</span>
+                        {expandedRow === property.key ? 'Hide' : 'Show'}
                       </button>
                     </td>
                   </tr>
-                );
-              })}
+                  
+                  {/* Expanded row for mobile */}
+                  {expandedRow === property.key && (
+                    <tr className="sm:hidden bg-gray-50">
+                      <td colSpan={5} className="px-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">Description</h4>
+                            <p className="text-sm text-gray-500">
+                              Type: {property.property_type || 'N/A'}<br />
+                              Bedrooms: {property.bedrooms}<br />
+                              Bathrooms: {property.bathrooms}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">Amenities</h4>
+                            <p className="text-sm text-gray-500">
+                              Guests: {property.max_guests || 'N/A'}<br />
+                              Pets: {property.max_pets || '0'}<br />
+                              Children: {property.max_children || '0'}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">Rates</h4>
+                            <p className="text-sm text-gray-500">
+                              N/A<br />
+                              Currency: {property.currency_code || 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">Rules</h4>
+                            <p className="text-sm text-gray-500">
+                              Check-in: {property.check_in || 'N/A'}<br />
+                              Check-out: {property.check_out || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - Same as your example */}
         <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4">
           <div className="flex flex-1 justify-between sm:hidden">
             <button
@@ -277,7 +316,7 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
               <p className="text-sm text-gray-700">
                 Showing <span className="font-medium">{(data.page - 1) * data.pageSize + 1}</span> to{' '}
                 <span className="font-medium">{Math.min(data.page * data.pageSize, data.total)}</span> of{' '}
-                <span className="font-medium">{data.total}</span> results
+                <span className="font-medium">{data.total}</span> properties
               </p>
             </div>
             <div>
@@ -348,4 +387,4 @@ const OwnerStatementsTable: React.FC<OwnerStatementsTableProps> = ({
   );
 };
 
-export default OwnerStatementsTable;
+export default PropertiesTable;

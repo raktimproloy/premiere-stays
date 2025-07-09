@@ -139,9 +139,9 @@ const BookingSourcesChart = ({ bookings }: BookingSourcesChartProps) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow p-6 py-12">
       <h2 className="text-xl font-bold text-gray-800 mb-0">Booking Sources</h2>
-      <div className="h-64 w-full">
+      <div className="h-66 w-full">
         <Doughnut data={chartData} options={chartOptions} />
       </div>
     </div>

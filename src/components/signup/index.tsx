@@ -153,9 +153,6 @@ const SignUpForm = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Form is valid - log data to console
-      console.log('Form submitted:', formData);
-      
       // In a real app, you would send this data to your backend
       alert('Form submitted successfully! Check console for data.');
     }
