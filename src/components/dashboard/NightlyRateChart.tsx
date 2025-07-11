@@ -38,85 +38,85 @@ interface FormattedData {
   rate: number;
 }
 
-const rateData = 
-[
-  {
-    "monthName": "Aug",
-    "year": 2024,
-    "totalNights": 12,
-    "ratePerNight": 125
-  },
-  {
-    "monthName": "Sep",
-    "year": 2024,
-    "totalNights": 18,
-    "ratePerNight": 135
-  },
-  {
-    "monthName": "Oct",
-    "year": 2024,
-    "totalNights": 22,
-    "ratePerNight": 145
-  },
-  {
-    "monthName": "Nov",
-    "year": 2024,
-    "totalNights": 15,
-    "ratePerNight": 160
-  },
-  {
-    "monthName": "Dec",
-    "year": 2024,
-    "totalNights": 28,
-    "ratePerNight": 210
-  },
-  {
-    "monthName": "Jan",
-    "year": 2025,
-    "totalNights": 20,
-    "ratePerNight": 175
-  },
-  {
-    "monthName": "Feb",
-    "year": 2025,
-    "totalNights": 18,
-    "ratePerNight": 165
-  },
-  {
-    "monthName": "Mar",
-    "year": 2025,
-    "totalNights": 25,
-    "ratePerNight": 155
-  },
-  {
-    "monthName": "Apr",
-    "year": 2025,
-    "totalNights": 22,
-    "ratePerNight": 145
-  },
-  {
-    "monthName": "May",
-    "year": 2025,
-    "totalNights": 30,
-    "ratePerNight": 135
-  },
-  {
-    "monthName": "Jun",
-    "year": 2025,
-    "totalNights": 35,
-    "ratePerNight": 150
-  },
-  {
-    "monthName": "Jul",
-    "year": 2025,
-    "totalNights": 49,
-    "ratePerNight": 180
-  }
-];
+// const rateData = 
+// [
+//   {
+//     "monthName": "Aug",
+//     "year": 2024,
+//     "totalNights": 12,
+//     "ratePerNight": 125
+//   },
+//   {
+//     "monthName": "Sep",
+//     "year": 2024,
+//     "totalNights": 18,
+//     "ratePerNight": 135
+//   },
+//   {
+//     "monthName": "Oct",
+//     "year": 2024,
+//     "totalNights": 22,
+//     "ratePerNight": 145
+//   },
+//   {
+//     "monthName": "Nov",
+//     "year": 2024,
+//     "totalNights": 15,
+//     "ratePerNight": 160
+//   },
+//   {
+//     "monthName": "Dec",
+//     "year": 2024,
+//     "totalNights": 28,
+//     "ratePerNight": 210
+//   },
+//   {
+//     "monthName": "Jan",
+//     "year": 2025,
+//     "totalNights": 20,
+//     "ratePerNight": 175
+//   },
+//   {
+//     "monthName": "Feb",
+//     "year": 2025,
+//     "totalNights": 18,
+//     "ratePerNight": 165
+//   },
+//   {
+//     "monthName": "Mar",
+//     "year": 2025,
+//     "totalNights": 25,
+//     "ratePerNight": 155
+//   },
+//   {
+//     "monthName": "Apr",
+//     "year": 2025,
+//     "totalNights": 22,
+//     "ratePerNight": 145
+//   },
+//   {
+//     "monthName": "May",
+//     "year": 2025,
+//     "totalNights": 30,
+//     "ratePerNight": 135
+//   },
+//   {
+//     "monthName": "Jun",
+//     "year": 2025,
+//     "totalNights": 35,
+//     "ratePerNight": 150
+//   },
+//   {
+//     "monthName": "Jul",
+//     "year": 2025,
+//     "totalNights": 49,
+//     "ratePerNight": 180
+//   }
+// ];
 
 
-// const NightlyRateChart = ({ rateData = [] }: { rateData?: any[] }) => {
-const NightlyRateChart = () => {
+const NightlyRateChart = ({ rateData = [] }: { rateData?: any[] }) => {
+// const NightlyRateChart = () => {
   // Convert data to standardized format
   const convertData = (data: any[]): RateDataItem[] => {
     const monthMap: Record<string, number> = {

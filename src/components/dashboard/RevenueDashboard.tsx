@@ -21,70 +21,70 @@ interface RevenueData {
   revenue: number;
 }
 
-// const RevenueDashboard = ({ revenueData = [] }: { revenueData: RevenueItem[] }) => {
-const RevenueDashboard = () => {
-  const revenueData = [
-    {
-        "amount": 15034,
-        "month": 8,
-        "year": 2024
-    },
-    {
-        "amount": 16784,
-        "month": 9,
-        "year": 2024
-    },
-    {
-        "amount": 23434,
-        "month": 10,
-        "year": 2024
-    },
-    {
-        "amount": 54644,
-        "month": 11,
-        "year": 2024
-    },
-    {
-        "amount": 35234,
-        "month": 12,
-        "year": 2024
-    },
-    {
-        "amount": 96574,
-        "month": 1,
-        "year": 2025
-    },
-    {
-        "amount": 23453,
-        "month": 2,
-        "year": 2025
-    },
-    {
-        "amount": 43734,
-        "month": 3,
-        "year": 2025
-    },
-    {
-        "amount": 74534,
-        "month": 4,
-        "year": 2025
-    },
-    {
-        "amount": 12543,
-        "month": 5,
-        "year": 2025
-    },
-    {
-        "amount": 32543,
-        "month": 6,
-        "year": 2025
-    },
-    {
-        "amount": 30321,
-        "month": 7,
-        "year": 2025
-    }
-  ]
+const RevenueDashboard = ({ revenueData = [] }: { revenueData: RevenueItem[] }) => {
+// const RevenueDashboard = () => {
+//   const revenueData = [
+//     {
+//         "amount": 15034,
+//         "month": 8,
+//         "year": 2024
+//     },
+//     {
+//         "amount": 16784,
+//         "month": 9,
+//         "year": 2024
+//     },
+//     {
+//         "amount": 23434,
+//         "month": 10,
+//         "year": 2024
+//     },
+//     {
+//         "amount": 54644,
+//         "month": 11,
+//         "year": 2024
+//     },
+//     {
+//         "amount": 35234,
+//         "month": 12,
+//         "year": 2024
+//     },
+//     {
+//         "amount": 96574,
+//         "month": 1,
+//         "year": 2025
+//     },
+//     {
+//         "amount": 23453,
+//         "month": 2,
+//         "year": 2025
+//     },
+//     {
+//         "amount": 43734,
+//         "month": 3,
+//         "year": 2025
+//     },
+//     {
+//         "amount": 74534,
+//         "month": 4,
+//         "year": 2025
+//     },
+//     {
+//         "amount": 12543,
+//         "month": 5,
+//         "year": 2025
+//     },
+//     {
+//         "amount": 32543,
+//         "month": 6,
+//         "year": 2025
+//     },
+//     {
+//         "amount": 30321,
+//         "month": 7,
+//         "year": 2025
+//     }
+//   ]
   // Ensure we have 12 months of data
   const ensureFullYearData = (data: RevenueItem[]): RevenueItem[] => {
     if (data.length === 12) return [...data];
