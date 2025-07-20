@@ -283,8 +283,8 @@ export default function Index() {
         <div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 space-y-6">
             <div className="md:col-span-2">
-              {/* <RevenueChart revenueData={historicalData?.previousRevenue || []} /> */}
-              <RevenueChart />
+              <RevenueChart revenueData={historicalData?.previousRevenue || []} />
+              {/* <RevenueChart /> */}
             </div>
             <div className="md:col-span-2 mb-6">
               <OccupancyTradesDashboard occupancyData={historicalData?.occupancyTrends || []} />

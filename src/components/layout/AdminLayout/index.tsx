@@ -2,7 +2,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/common/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // Add usePathname
 import Sidebar from './Sidebar';
 import Header from "./Header";
 
@@ -18,6 +18,7 @@ interface UserData {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const currentPath = usePathname(); // Get current path
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -113,8 +114,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
       )}
 
-      {/* Sidebar */}
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      {/* Sidebar with currentPath passed */}
+      <Sidebar 
+        sidebarOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen} 
+        currentPath={currentPath} // Pass current path here
+      />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
