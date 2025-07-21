@@ -41,7 +41,7 @@ export default function Sidebar({
     { title: 'Manage Property', link: '/admin/properties', icon: Property },
     { title: 'Bookings', link: '/admin/bookings', icon: Booking },
     { title: 'Calendar', link: '/admin/calendar', icon: Calendar },
-    { title: 'Analytics', link: '/admin/analytics', icon: Analytics },
+    // { title: 'Analytics', link: '/admin/analytics', icon: Analytics },
     { title: 'Reviews', link: '/admin/reviews', icon: Reviews },
   ];
 

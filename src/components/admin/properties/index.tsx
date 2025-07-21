@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { FiEye, FiPlus, FiChevronLeft, FiChevronRight, FiSearch } from 'react-icons/fi';
-import PropertyDetailModal from './PropertyDetailModal';
+import PropertyDetailModal from '@/components/common/PropertyDetailModal';
 import Link from 'next/link';
 
 interface Property {
@@ -258,31 +258,31 @@ const PropertyRequestList = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-white">
                 <tr className=''>
-                  <th scope="col" className="px-6 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-5 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Property Name
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Type
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Bathroom
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Bed room
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Capacity
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Price
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
                     Listing Date
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-black uppercase tracking-wider">
                     Action
                   </th>
                 </tr>
@@ -292,7 +292,7 @@ const PropertyRequestList = () => {
                   paginatedProperties.map((property) => (
                     <tr key={property.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{property.name}</div>
+                        <div className="text-sm font-medium text-gray-700">{property.name}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-700">{property.type}</div>

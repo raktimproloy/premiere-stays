@@ -1,11 +1,11 @@
 import React from 'react'
-import PropertyPage from "@/components/admin/properties"
 import AdminLayout from '@/components/layout/AdminLayout'
+import Reviews from '@/components/admin/reviews'
 
 export default function page() {
   return (
     <AdminLayout>
-      <PropertyPage/>
+        <Reviews/>
     </AdminLayout>
   )
 }

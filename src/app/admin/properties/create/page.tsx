@@ -1,5 +1,5 @@
 import React from 'react'
-import CreateProperty from '@/components/properties/create'
+import CreateProperty from '@/components/admin/properties/create'
 import AdminLayout from '@/components/layout/AdminLayout'
 
 export default function page() {
