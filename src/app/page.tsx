@@ -19,7 +19,7 @@ export default function Home() {
           Login
         </Link>
         <Link
-          href="/dashboard"
+          href="/admin/dashboard"
           className="text-lg font-medium text-gray-700 hover:text-gray-900"
         >
           Dashboard
