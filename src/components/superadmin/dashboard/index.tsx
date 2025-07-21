@@ -231,7 +231,6 @@ export default function Index() {
   };
 
   return (
-    <AdminLayout>
       <div>
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Owner Dashboard</h1>
   
@@ -322,7 +321,6 @@ export default function Index() {
           </div>
         </div>
       </div>
-    </AdminLayout>
   );
 }
 

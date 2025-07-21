@@ -1,11 +1,11 @@
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout'
-import Profile from '@/components/superadmin/profile'
+import Properties from '@/components/superadmin/properties'
 import React from 'react'
 
 export default function page() {
   return (
     <SuperAdminLayout>
-        <Profile />
+        <Properties />
     </SuperAdminLayout>
   )
 }

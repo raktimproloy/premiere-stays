@@ -25,14 +25,16 @@ export default function LoginPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading, error, isAuthenticated } = useAuth();
+  const { login, loading, error, isAuthenticated, role } = useAuth();
   const router = useRouter();
 
   React.useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/admin/dashboard");
+    if (isAuthenticated && role === 'admin') {
+      router.push('/admin/dashboard');
+    } else if (isAuthenticated && role === 'superadmin') {
+      router.push('/superadmin/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, role, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
