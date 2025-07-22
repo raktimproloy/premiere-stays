@@ -33,6 +33,14 @@ const PropertyRequestList = () => {
     setIsModalOpen(true);
   };
 
+  const handleReject = () => {
+    console.log('Reject clicked');
+  };
+
+  const handleApprove = () => {
+    console.log('Approve clicked');
+  };
+
   // Utility function to format date as YYYY-MM-DD
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -209,45 +217,47 @@ const PropertyRequestList = () => {
             </div>
           </div> */}
           
-          <div className="mt-4 flex gap-3 md:mt-0">
-            <label className="flex items-center cursor-pointer">
-                <input
-                type="radio"
-                name="statusFilter"
-                checked={statusFilter === 'All'}
-                onChange={() => handleStatusFilterChange('All')}
-                className="sr-only"
-                />
-                <span className={`px-5 py-2 rounded-full text-sm font-medium ${
-                statusFilter === 'All' 
-                    ? 'bg-[#40C557] text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}>
-                All Properties
-                </span>
-            </label>
-            
-            <label className="flex items-center cursor-pointer">
-                <input
-                type="radio"
-                name="statusFilter"
-                checked={statusFilter === 'Pending'}
-                onChange={() => handleStatusFilterChange('Pending')}
-                className="sr-only"
-                />
-                <span className={`px-5 py-2 rounded-full text-sm font-medium ${
-                statusFilter === 'Pending' 
-                    ? 'bg-[#F7B730] text-white ' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}>
-                Pending Request
-                </span>
-            </label>
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-3 md:mt-0 w-full md:w-auto">
+            <div className="flex gap-3 w-full md:w-auto">
+              <label className="flex items-center cursor-pointer w-full md:w-auto">
+                  <input
+                  type="radio"
+                  name="statusFilter"
+                  checked={statusFilter === 'All'}
+                  onChange={() => handleStatusFilterChange('All')}
+                  className="sr-only"
+                  />
+                  <span className={`px-5 py-2 rounded-full text-sm font-medium ${
+                  statusFilter === 'All' 
+                      ? 'bg-[#40C557] text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}>
+                  All Properties
+                  </span>
+              </label>
+              
+              <label className="flex items-center cursor-pointer w-full md:w-auto">
+                  <input
+                  type="radio"
+                  name="statusFilter"
+                  checked={statusFilter === 'Pending'}
+                  onChange={() => handleStatusFilterChange('Pending')}
+                  className="sr-only"
+                  />
+                  <span className={`px-5 py-2 rounded-full text-sm font-medium ${
+                  statusFilter === 'Pending' 
+                      ? 'bg-[#F7B730] text-white ' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}>
+                  Pending Request
+                  </span>
+              </label>
+            </div>
             <Link href="/superadmin/properties/create"
-              className="flex items-center justify-center px-6 py-3 bg-[#586DF7] text-white rounded-full hover:bg-[#d99a34] transition-colors shadow-sm"
+              className="flex items-center justify-center px-6 py-3 bg-[#586DF7] text-white rounded-full hover:bg-[#d99a34] transition-colors shadow-sm w-full md:w-auto mt-3 md:mt-0"
             >
+              <FiPlus className="mr-2 border rounded-full font-bol" />
               Create Property
-              <FiPlus className="mr-2 border rounded-full ml-2 font-bol" />
             </Link>
           </div>
         </div>
@@ -353,6 +363,19 @@ const PropertyRequestList = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         property={selectedProperty}
+      />
+      <PropertyDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        property={selectedProperty}
+        editUrl={`/superadmin/properties/edit/${selectedProperty?.id}`}
+        editLabel="Edit Property"
+        editActive={selectedProperty?.status !== 'Pending'}
+        onEditClick={() => { /* custom logic */ }}
+        footerActions={[
+          { label: 'Reject', active: true, color: '#FF4545', onClick: handleReject },
+          { label: 'Approve', active: selectedProperty?.status === 'Pending', color: '#40C557', onClick: handleApprove }
+        ]}
       />
     </div>
   );

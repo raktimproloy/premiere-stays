@@ -150,6 +150,14 @@ const Bookings = () => {
     );
   };
 
+  const handleReject = () => {
+    console.log('Reject clicked');
+  };
+
+  const handleApprove = () => {
+    console.log('Approve clicked');
+  };
+
   // Property Detail Modal for Booking Requests
   const handleOpenModal = (request: BookingRequest) => {
     setSelectedRequest(request);
@@ -282,6 +290,19 @@ const Bookings = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         property={mapBookingToProperty(selectedRequest)}
+      />
+      <PropertyDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        property={mapBookingToProperty(selectedRequest)}
+        editUrl={`/superadmin/properties/edit/${mapBookingToProperty(selectedRequest)?.id}`}
+        editLabel="Edit Property"
+        editActive={mapBookingToProperty(selectedRequest)?.status !== 'Pending'}
+        onEditClick={() => { /* custom logic */ }}
+        footerActions={[
+          { label: 'Reject', active: true, color: '#FF4545', onClick: handleReject },
+          { label: 'Approve', active: mapBookingToProperty(selectedRequest)?.status === 'Pending', color: '#40C557', onClick: handleApprove }
+        ]}
       />
     </div>
   );

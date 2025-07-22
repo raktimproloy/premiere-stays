@@ -97,14 +97,25 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData, currentP
     <>
       <header className="bg-white shadow-sm z-10 w-full">
         <div className="flex items-center justify-between p-4 gap-2 w-full">
-          {/* Sidebar toggle button */}
-          <button
-            className="md:hidden text-gray-500 hover:text-gray-700"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-          </button>
+          {/* Sidebar toggle buttons for mobile */}
+          {!sidebarOpen && (
+            <button
+              className="md:hidden text-gray-500 hover:text-gray-700"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              <FiMenu size={24} />
+            </button>
+          )}
+          {sidebarOpen && (
+            <button
+              className="md:hidden text-gray-500 hover:text-gray-700"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <FiX size={24} />
+            </button>
+          )}
 
           {/* Left: Active nav title */}
           <div className="flex items-center min-w-[150px] max-w-xs font-semibold text-gray-900 text-base md:text-lg whitespace-nowrap">

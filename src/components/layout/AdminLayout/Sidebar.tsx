@@ -3,6 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { FiX } from 'react-icons/fi';
+import { DashboardIcon, PropertyIcon, BookingIcon, CalendarIcon, ReviewsIcon, ProfileIcon, SettingsIcon } from '../../../../public/images/svg';
+import { FiHelpCircle } from 'react-icons/fi';
+import type { IconProps } from '../../../../public/images/svg';
 
 const Logo = "/images/logo.png"
 const Dashboard = "/images/icons/dashboard.svg"
@@ -19,7 +22,7 @@ const Help = '/images/icons/help.svg'
 interface NavItem {
   title: string;
   link: string;
-  icon: string;
+  icon: React.ReactElement<IconProps>;
 }
 
 interface SidebarProps {
@@ -37,19 +40,18 @@ export default function Sidebar({
 
   // Main navigation items
   const mainNavItems: NavItem[] = [
-    { title: 'Dashboard', link: '/admin/dashboard', icon: Dashboard },
-    { title: 'Manage Property', link: '/admin/properties', icon: Property },
-    { title: 'Bookings', link: '/admin/bookings', icon: Booking },
-    { title: 'Calendar', link: '/admin/calendar', icon: Calendar },
-    // { title: 'Analytics', link: '/admin/analytics', icon: Analytics },
-    { title: 'Reviews', link: '/admin/reviews', icon: Reviews },
+    { title: 'Dashboard', link: '/admin/dashboard', icon: <DashboardIcon /> },
+    { title: 'Manage Property', link: '/admin/properties', icon: <PropertyIcon /> },
+    { title: 'Bookings', link: '/admin/bookings', icon: <BookingIcon /> },
+    { title: 'Calendar', link: '/admin/calendar', icon: <CalendarIcon /> },
+    { title: 'Reviews', link: '/admin/reviews', icon: <ReviewsIcon /> },
   ];
 
   // Admin navigation items
   const adminNavItems: NavItem[] = [
-    { title: 'Profile', link: '/admin/profile', icon: Profile },
-    { title: 'Settings', link: '/admin/settings', icon: Settings },
-    { title: 'Help', link: '/admin/help', icon: Help },
+    { title: 'Profile', link: '/admin/profile', icon: <ProfileIcon /> },
+    { title: 'Settings', link: '/admin/settings', icon: <SettingsIcon /> },
+    { title: 'Help', link: '/admin/help', icon: <FiHelpCircle size={22} /> },
   ];
 
   return (
@@ -112,7 +114,7 @@ export default function Sidebar({
 interface NavItemProps {
   title: string;
   link: string;
-  icon: string;
+  icon: React.ReactElement<IconProps>;
   active?: boolean;
 }
 
@@ -120,12 +122,12 @@ interface NavItemProps {
 function NavItem({ title, link, icon, active = false }: NavItemProps) {
   return (
     <li>
-      <Link href={link} className={`flex items-center text-[#1E293B] gap-3 p-3 rounded-lg transition-colors nav-item-after-bar ${
+      <Link href={link} className={`flex items-center gap-3 p-3 rounded-lg transition-colors nav-item-after-bar ${
             active 
-              ? 'bg-[#EBA83A] text-[#ffffff] active' 
+               ? 'bg-[#EBA83A] text-[#ffffff] active' 
               : 'hover:bg-[#EBA83A] hover:text-[#ffffff]'
           }`}>
-          <Image src={icon} alt={title} width={22} height={22} />
+          {React.cloneElement(icon, { color: active ? '#fff' : '#4E5258' })}
           <span>{title}</span>
       </Link>
     </li>

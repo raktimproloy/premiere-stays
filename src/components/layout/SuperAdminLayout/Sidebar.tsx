@@ -129,7 +129,7 @@ function NavItem({ title, link, icon, active = false }: NavItemProps) {
               ? 'bg-[#EBA83A] text-[#ffffff] active' 
               : 'hover:bg-[#EBA83A] hover:text-[#ffffff]'
           }`}>
-          {React.cloneElement(icon, { color: active ? '#000' : '#4E5258' })}
+          {React.cloneElement(icon, { color: active ? '#fff' : '#4E5258' })}
           <span>{title}</span>
       </Link>
     </li>

@@ -23,6 +23,15 @@ const PaymentHistoryTable = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 8;
 
+
+  const handleReject = () => {
+    console.log('Reject clicked');
+  };
+
+  const handleApprove = () => {
+    console.log('Approve clicked');
+  };
+
   useEffect(() => {
     fetch('/data/paymentHistory.json')
       .then((res) => res.json())
@@ -143,15 +152,15 @@ const PaymentHistoryTable = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Booking Request List</h1>
           </div>
-          <div className="mt-4 flex gap-3 md:mt-0">
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-3 md:mt-0 w-full md:w-auto">
             <button
-              className={`px-5 py-2 rounded-full text-sm font-medium ${view === 'your' ? 'bg-[#586DF7] text-white' : 'bg-gray-100 text-gray-400'}`}
+              className={`px-5 py-2 rounded-full text-sm font-medium w-full md:w-auto ${view === 'your' ? 'bg-[#586DF7] text-white' : 'bg-gray-100 text-gray-400'}`}
               onClick={() => setView('your')}
             >
               Your Payment History
             </button>
             <button
-              className={`px-5 py-2 rounded-full text-sm font-medium ${view === 'lister' ? 'bg-[#586DF7] text-white' : 'bg-gray-100 text-gray-400'}`}
+              className={`px-5 py-2 rounded-full text-sm font-medium w-full md:w-auto ${view === 'lister' ? 'bg-[#586DF7] text-white' : 'bg-gray-100 text-gray-400'}`}
               onClick={() => setView('lister')}
             >
               Lister Payment History
@@ -212,10 +221,19 @@ const PaymentHistoryTable = () => {
         </div>
       </div>
       {/* Property Detail Modal */}
+
       <PropertyDetailModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         property={selectedPayment}
+        editUrl={`/superadmin/properties/edit/${selectedPayment?.id}`}
+        editLabel="Edit Property"
+        editActive={selectedPayment?.status !== 'Pending'}
+        onEditClick={() => { /* custom logic */ }}
+        footerActions={[
+          { label: 'Reject', active: true, color: '#FF4545', onClick: handleReject },
+          { label: 'Approve', active: selectedPayment?.status === 'Pending', color: '#40C557', onClick: handleApprove }
+        ]}
       />
     </div>
   );

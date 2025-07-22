@@ -37,6 +37,14 @@ const PropertyRequestTable = () => {
       });
   }, []);
 
+  const handleReject = () => {
+    console.log('Reject clicked');
+  };
+
+  const handleApprove = () => {
+    console.log('Approve clicked');
+  };
+
   useEffect(() => {
     let result = [...properties];
     if (statusFilter !== 'All') {
@@ -150,8 +158,8 @@ const PropertyRequestTable = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">All Property List</h1>
           </div>
-          <div className="mt-4 flex gap-3 md:mt-0">
-            <label className="flex items-center cursor-pointer">
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-3 md:mt-0 w-full md:w-auto">
+            <label className="flex items-center cursor-pointer w-full md:w-auto">
               <input
                 type="radio"
                 name="statusFilter"
@@ -161,7 +169,7 @@ const PropertyRequestTable = () => {
               />
               <span className={`px-5 py-2 rounded-full text-sm font-medium ${statusFilter === 'All' ? 'bg-[#40C557] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>All Property List</span>
             </label>
-            <label className="flex items-center cursor-pointer">
+            <label className="flex items-center cursor-pointer w-full md:w-auto">
               <input
                 type="radio"
                 name="statusFilter"
@@ -235,6 +243,19 @@ const PropertyRequestTable = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         property={selectedProperty}
+      />
+      <PropertyDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        property={selectedProperty}
+        editUrl={`/superadmin/properties/edit/${selectedProperty?.id}`}
+        editLabel="Edit Property"
+        editActive={selectedProperty?.status !== 'Pending'}
+        onEditClick={() => { /* custom logic */ }}
+        footerActions={[
+          { label: 'Reject', active: true, color: '#FF4545', onClick: handleReject },
+          { label: 'Approve', active: selectedProperty?.status === 'Pending', color: '#40C557', onClick: handleApprove }
+        ]}
       />
     </div>
   );

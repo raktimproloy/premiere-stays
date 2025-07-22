@@ -299,18 +299,18 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
       <div className="max-w-7xl mx-auto">
 
         {/* Main Calendar Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 sm:p-4 md:p-6">
           {/* Calendar Controls */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 mb-6">
             {/* Navigation */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 justify-center md:justify-start">
               <button
                 onClick={handlePrev}
                 className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
               >
                 <ChevronLeft size={20} className="text-gray-700" />
               </button>
-              <h2 className="text-xl font-bold text-gray-900 min-w-[200px] text-center">
+              <h2 className="text-xl font-bold text-gray-900 min-w-[120px] sm:min-w-[200px] text-center">
                 {currentDateTitle}
               </h2>
               <button
@@ -322,10 +322,10 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
             </div>
 
             {/* View Selector */}
-            <div className="flex bg-gray-100 p-1 rounded-xl">
+            <div className="flex bg-gray-100 p-1 rounded-xl w-full md:w-auto justify-center md:justify-start">
               <button
                 onClick={() => handleViewChange('dayGridMonth')}
-                className={`px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
                   currentView === 'dayGridMonth' 
                     ? 'bg-white shadow-sm text-blue-600 font-medium' 
                     : 'text-gray-600 hover:text-gray-800'
@@ -336,7 +336,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
               </button>
               <button
                 onClick={() => handleViewChange('timeGridWeek')}
-                className={`px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
                   currentView === 'timeGridWeek' 
                     ? 'bg-white shadow-sm text-blue-600 font-medium' 
                     : 'text-gray-600 hover:text-gray-800'
@@ -347,7 +347,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
               </button>
               <button
                 onClick={() => handleViewChange('listWeek')}
-                className={`px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
                   currentView === 'listWeek' 
                     ? 'bg-white shadow-sm text-blue-600 font-medium' 
                     : 'text-gray-600 hover:text-gray-800'
@@ -362,7 +362,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
           </div>
 
           {/* Calendar */}
-          <div className="calendar-container">
+          <div className="calendar-container overflow-x-auto rounded-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -373,7 +373,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
               select={handleDateSelect}
               eventClick={handleEventClick}
               eventContent={renderEventContent}
-              height={600}
+              height={window.innerWidth < 640 ? 400 : 600}
               datesSet={(arg) => setCurrentDateTitle(arg.view.title)}
               eventDisplay="block"
               nowIndicator={true}
@@ -399,12 +399,12 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
         {/* Booking Details Modal */}
         {modalOpen && modalData && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 transition-opacity duration-300"
             onClick={() => setModalOpen(false)}
           >
-            <div className="relative">
+            <div className="relative w-full max-w-md sm:max-w-lg mx-auto">
               <div 
-                className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all"
+                className="bg-white rounded-2xl shadow-2xl w-full overflow-hidden transform transition-all"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
@@ -441,7 +441,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
                 {!modalData.isBlock && (
                   <div className="p-6">
                     <div className="space-y-6">
-                      <div className="flex items-start gap-4">
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
                         <div className="bg-blue-100 rounded-lg p-3">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-2 0h-6m6 0H9m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4" />
@@ -453,7 +453,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-4">
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
                         <div className="bg-gray-100 rounded-lg p-3">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -466,7 +466,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
                       </div>
                       
                       {modalData.notes && (
-                        <div className="flex items-start gap-4">
+                        <div className="flex flex-col sm:flex-row items-start gap-4">
                           <div className="bg-yellow-100 rounded-lg p-3">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
@@ -484,7 +484,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
                 
                 {modalData.isBlock && (
                   <div className="p-6">
-                    <div className="flex items-start gap-4">
+                    <div className="flex flex-col sm:flex-row items-start gap-4">
                       <div className="bg-red-100 rounded-lg p-3">
                         <Info size={20} className="text-red-600" />
                       </div>
@@ -501,9 +501,9 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
         )}
 
         {/* Booking List */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Booking List</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Booking List</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {events.map((event, index) => (
               <div key={event.id} className="flex items-center gap-3 text-sm">
                 <div 
@@ -620,7 +620,13 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
         }
         
         .calendar-container {
-          height: 600px;
+          min-width: 320px;
+          height: 400px;
+        }
+        @media (min-width: 640px) {
+          .calendar-container {
+            height: 600px;
+          }
         }
 
         .fc .fc-list {

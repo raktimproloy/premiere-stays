@@ -259,7 +259,7 @@ const PropertyReviewsPage = () => {
             <div className="space-y-4">
               <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl">
-                  {selectedReview.reviewerAvatar}
+                  <img src={selectedReview.reviewerAvatar} alt="reviewer" className="w-full h-full object-cover rounded-full" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 text-lg">{selectedReview.reviewerName}</h3>

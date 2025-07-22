@@ -68,9 +68,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      
       // Close sidebar by default on mobile
-      if (mobile && sidebarOpen) {
+      if (mobile) {
         setSidebarOpen(false);
       }
     };
@@ -78,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, [sidebarOpen]);
+  }, []);
 
   if (!isAuthenticated || loading) {
     return (
@@ -111,7 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile sidebar overlay */}
         {sidebarOpen && isMobile && (
           <div 
-            className="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden"
+            className="fixed inset-0 z-20 bg-black/20 backdrop-blur-sm bg-opacity-50 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
