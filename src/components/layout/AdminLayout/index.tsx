@@ -5,6 +5,7 @@ import { useAuth } from '@/components/common/AuthContext';
 import { useRouter, usePathname } from 'next/navigation'; // Add usePathname
 import Sidebar from './Sidebar';
 import Header from "./Header";
+import RoleProtection from '@/components/common/RoleProtection';
 
 interface UserData {
   company_name?: string;
@@ -105,41 +106,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && isMobile && (
-        <div 
-          className="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <RoleProtection requiredRole="admin">
+      <div className="flex h-screen bg-gray-50">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && isMobile && (
+          <div 
+            className="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-      {/* Sidebar with currentPath passed */}
-      <Sidebar 
-        sidebarOpen={sidebarOpen} 
-        setSidebarOpen={setSidebarOpen} 
-        currentPath={currentPath} // Pass current path here
-      />
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header 
-          setSidebarOpen={setSidebarOpen} 
+        {/* Sidebar with currentPath passed */}
+        <Sidebar 
           sidebarOpen={sidebarOpen} 
-          userData={userData || {
-            email_address: 'user@example.com',
-            first_name: 'Loading',
-            last_name: '...'
-          }} 
-          currentPath={currentPath}
+          setSidebarOpen={setSidebarOpen} 
+          currentPath={currentPath} // Pass current path here
         />
 
-        {/* Content area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
-          {children}
-        </main>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <Header 
+            setSidebarOpen={setSidebarOpen} 
+            sidebarOpen={sidebarOpen} 
+            userData={userData || {
+              email_address: 'user@example.com',
+              first_name: 'Loading',
+              last_name: '...'
+            }} 
+            currentPath={currentPath}
+          />
+
+          {/* Content area */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </RoleProtection>
   );
 }
