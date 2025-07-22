@@ -243,7 +243,7 @@ const PropertyRequestList = () => {
                 Pending Request
                 </span>
             </label>
-            <Link href="/admin/properties/create"
+            <Link href="/superadmin/properties/create"
               className="flex items-center justify-center px-6 py-3 bg-[#586DF7] text-white rounded-full hover:bg-[#d99a34] transition-colors shadow-sm"
             >
               Create Property

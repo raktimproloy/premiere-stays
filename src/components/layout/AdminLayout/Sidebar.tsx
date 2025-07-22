@@ -122,8 +122,8 @@ function NavItem({ title, link, icon, active = false }: NavItemProps) {
     <li>
       <Link href={link} className={`flex items-center text-[#1E293B] gap-3 p-3 rounded-lg transition-colors nav-item-after-bar ${
             active 
-              ? 'bg-[#EBA83A] text-[#1E293B] active' 
-              : 'hover:bg-[#EBA83A] hover:text-[#1E293B]'
+              ? 'bg-[#EBA83A] text-[#ffffff] active' 
+              : 'hover:bg-[#EBA83A] hover:text-[#ffffff]'
           }`}>
           <Image src={icon} alt={title} width={22} height={22} />
           <span>{title}</span>

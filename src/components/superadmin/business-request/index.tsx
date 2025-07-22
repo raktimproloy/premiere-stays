@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { FiEye } from 'react-icons/fi';
 import BusinessRequestDetailModal, { BusinessRequestDetail } from './BusinessRequestDetailModal';
+import { SubmittedIcon } from '../../../../public/images/svg';
+import businessRequests from './businessRequests.json';
 
 interface BusinessRequest {
   id: string;
@@ -20,17 +22,15 @@ const BusinessRequestList = () => {
   const [selectedRequest, setSelectedRequest] = useState<BusinessRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // Mock data from image
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+
+  // Load data from JSON file
   useEffect(() => {
-    const mockData: BusinessRequest[] = [
-      { id: '1', personName: 'MD Siam', email: 'mdsiam@gmail.com', phone: '880 1877787843', document: 'Submitted', requestStatus: 'Pending', applyDate: '2025-06-30' },
-      { id: '2', personName: 'MD Rahat', email: 'mdsiam@gmail.com', phone: '880 1877787843', document: '2025-06-30', requestStatus: 'Approved', applyDate: '2025-06-30' },
-      { id: '3', personName: 'Rifat Hassan', email: 'mdsiam@gmail.com', phone: '880 1877787843', document: '2025-07-10', requestStatus: 'Pending', applyDate: '2025-07-10' },
-      { id: '4', personName: 'Hasib ali', email: 'mdsiam@gmail.com', phone: '880 1877787843', document: '2025-07-05', requestStatus: 'Pending', applyDate: '2025-07-05' },
-      { id: '5', personName: 'Sbbir Rahman', email: 'mdsiam@gmail.com', phone: '880 1877787843', document: '2025-06-30', requestStatus: 'Pending', applyDate: '2025-06-30' },
-    ];
-    setRequests(mockData);
-    setFilteredRequests(mockData);
+    setRequests(businessRequests as BusinessRequest[]);
+    setFilteredRequests(businessRequests as BusinessRequest[]);
   }, []);
 
   useEffect(() => {
@@ -40,6 +40,78 @@ const BusinessRequestList = () => {
     }
     setFilteredRequests(result);
   }, [statusFilter, requests]);
+
+  // Paginated requests
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
+
+  // Pagination controls
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, requests]);
+
+  // Render pagination buttons (copied and adapted from properties page)
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => goToPage(i)}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === i
+              ? 'bg-[#EBA83A] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`p-1 rounded-md ${
+            currentPage === 1
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        {pages}
+        <button
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`p-1 rounded-md ${
+            currentPage === totalPages
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <span className="text-sm text-gray-600 ml-2">
+          Showing {filteredRequests.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredRequests.length)} of {filteredRequests.length} requests
+        </span>
+      </div>
+    );
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -114,7 +186,7 @@ const BusinessRequestList = () => {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-white">
+              <thead className="bg-white border-b border-gray-300 border-dashed">
                 <tr>
                   <th className="px-6 py-5 text-left text-xs font-semibold text-black uppercase tracking-wider">Business User Na...</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">Email address</th>
@@ -126,13 +198,16 @@ const BusinessRequestList = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.length > 0 ? (
-                  filteredRequests.map((request) => (
+                {paginatedRequests.length > 0 ? (
+                  paginatedRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{request.personName}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{request.email}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{request.phone}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{request.document === 'Submitted' ? <span className="inline-flex items-center">Submitted <span className="ml-1 text-green-500">&#10003;</span></span> : request.document}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{request.document === 'Submitted' ? <span className="inline-flex items-center">Submitted
+                         {/* <span className="ml-1 text-green-500">&#10003;</span> */}
+                         <SubmittedIcon />
+                         </span> : request.document}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-5 py-2 inline-flex text-md leading-5 font-semibold rounded-full ${getStatusBadge(request.requestStatus)}`}>{request.requestStatus}</span>
                       </td>
@@ -156,6 +231,12 @@ const BusinessRequestList = () => {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          {filteredRequests.length > itemsPerPage && (
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+              {renderPagination()}
+            </div>
+          )}
         </div>
       </div>
       {/* Business Request Detail Modal */}

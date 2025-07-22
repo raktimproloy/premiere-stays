@@ -12,6 +12,8 @@ import { useEffect, useState } from "react";
 import PropertiesTable from "./PropertiesTable";
 
 const BookingImage = "/images/booking.png";
+const UserImage = "/images/users.png";
+const ListingImage = "/images/listing.png";
 const RevenueImage = "/images/revenue.png";
 const RateImage = "/images/rate.png";
 const CustomerImage = "/images/customer.png";
@@ -237,31 +239,53 @@ export default function Index() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard 
-            title="Total Bookings (This Monthly)" 
+            title="Total Users" 
+            // value={isLoading ? "Loading..." : stats.occupancyRate} 
+            value="16k+" 
+            icon={UserImage} 
+            background="#35A7A11A" 
+          />
+          <StatCard 
+            title="Total Customers" 
+            // value={isLoading ? "Loading..." : stats.occupancyRate} 
+            value="12k+" 
+            icon={CustomerImage} 
+            background="#FE6D8E1A" 
+          />
+          <StatCard 
+            title="Total Listings" 
+            // value={isLoading ? "Loading..." : stats.occupancyRate} 
+            value="134+" 
+            icon={ListingImage} 
+            background="#100A551A" 
+          />
+          <StatCard 
+            title="Total Bookings" 
             value={isLoading ? "Loading..." : `${stats.totalBookings}`} 
             icon={BookingImage} 
             background="#475BE81A" 
           />
           <StatCard 
-            title="Revenue Generated (This Monthly)" 
-            value={isLoading ? "Loading..." : `$${stats.revenueGenerated.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} 
-            icon={RevenueImage} 
-            background="#FD85391A" 
-          />
-          <StatCard 
-            title="Occupancy Rate (This Monthly)" 
+            title="Occupancy Rate" 
             value={isLoading ? "Loading..." : stats.occupancyRate} 
             icon={RateImage} 
             background="#2ED4801A" 
           />
           <StatCard 
+            title="Revenue Generated" 
+            value={isLoading ? "Loading..." : `$${stats.revenueGenerated.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} 
+            icon={RevenueImage} 
+            background="#FD85391A" 
+          />
+          
+          {/* <StatCard 
             title="Upcoming Payout (This Monthly)" 
             // value={statementsData?.payout?.amount.toString() || "$0"} 
             value={isLoading ? "Loading..." : `$${statementsData?.payout?.amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
             date={`${statementsData?.payout?.date} ${statementsData?.payout?.monthName} ${statementsData?.payout?.year}`} 
             icon={CustomerImage} 
             background="#FE6D8E1A" 
-          />
+          /> */}
         </div>
 
         {/* Error Display */}
@@ -333,16 +357,7 @@ function StatCard({ title, value, icon, background, date }: {
   background: string 
 }) {
   return (
-    <div className="bg-white rounded-lg shadow p-5 flex justify-between items-center">
-      <div className="">
-        <h3 className="text-[#4E5258] text-sm font-medium mb-3">{title}</h3>
-        <p className="text-2xl font-bold mt-1">{value}</p>
-        {
-          date && 
-          (<p className="text-sm text-blue-400">Payout Date: {date}</p>)
-
-        }
-      </div>
+    <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
       <div 
         className="w-14 h-14 flex items-center justify-center rounded-full" 
         style={{ backgroundColor: background }} 
@@ -356,6 +371,16 @@ function StatCard({ title, value, icon, background, date }: {
           className="object-contain"
         />
       </div>
+      <div className="">
+        <h3 className="text-[#4E5258] text-sm font-medium mb-3">{title}</h3>
+        <p className="text-2xl font-bold mt-1">{value}</p>
+        {
+          date && 
+          (<p className="text-sm text-blue-400">Payout Date: {date}</p>)
+
+        }
+      </div>
+      
     </div>
   );
 }

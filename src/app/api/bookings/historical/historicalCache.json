@@ -1,5 +1,5 @@
 {
-  "timestamp": 1753110424682,
+  "timestamp": 1753157167760,
   "data": {
     "role": "admin",
     "previousRevenue": [
@@ -243,6 +243,7 @@
         "adults": 0,
         "arrival": "2025-09-19",
         "booked_utc": "2025-07-20T19:27:51Z",
+        "canceled_utc": "2025-07-21T18:55:44Z",
         "cancellation_policy_id": 26939,
         "check_in": "15:00",
         "check_out": "11:00",
@@ -264,9 +265,9 @@
           "name": "Wynwood/Design District TH w/heated Pool"
         },
         "property_id": 459940,
-        "status": "active",
+        "status": "canceled",
         "type": "booking",
-        "updated_utc": "2025-07-20T19:27:51Z"
+        "updated_utc": "2025-07-21T18:55:44Z"
       },
       {
         "adults": 0,

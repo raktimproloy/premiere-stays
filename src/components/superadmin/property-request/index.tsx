@@ -23,6 +23,11 @@ const PropertyRequestTable = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+
   useEffect(() => {
     fetch('/data/propertyRequests.json')
       .then((res) => res.json())
@@ -38,7 +43,75 @@ const PropertyRequestTable = () => {
       result = result.filter((property) => property.status === statusFilter);
     }
     setFilteredProperties(result);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [statusFilter, properties]);
+
+  // Paginated properties
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProperties = filteredProperties.slice(startIndex, startIndex + itemsPerPage);
+
+  // Pagination controls
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Render pagination buttons (same as business-request)
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => goToPage(i)}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === i
+              ? 'bg-[#EBA83A] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`p-1 rounded-md ${
+            currentPage === 1
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        {pages}
+        <button
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`p-1 rounded-md ${
+            currentPage === totalPages
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <span className="text-sm text-gray-600 ml-2">
+          Showing {filteredProperties.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredProperties.length)} of {filteredProperties.length} properties
+        </span>
+      </div>
+    );
+  };
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -117,8 +190,8 @@ const PropertyRequestTable = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProperties.length > 0 ? (
-                  filteredProperties.map((property) => (
+                {paginatedProperties.length > 0 ? (
+                  paginatedProperties.map((property) => (
                     <tr key={property.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{property.name || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{property.type || '-'}</td>
@@ -149,6 +222,12 @@ const PropertyRequestTable = () => {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          {filteredProperties.length > itemsPerPage && (
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+              {renderPagination()}
+            </div>
+          )}
         </div>
       </div>
       {/* Property Detail Modal */}

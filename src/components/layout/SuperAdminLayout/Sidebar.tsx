@@ -4,22 +4,24 @@ import Link from 'next/link';
 import React from 'react';
 import { FiX } from 'react-icons/fi';
 
+import { BusinessRequestIcon, DashboardIcon, PropertyIcon, BookingIcon, CalendarIcon, ReviewsIcon, ProfileIcon, SettingsIcon, PaymentHistoryIcon } from '../../../../public/images/svg';
+import type { IconProps } from '../../../../public/images/svg';
+
 const Logo = "/images/logo.png"
-const Dashboard = "/images/icons/dashboard.svg"
-const Property = "/images/icons/property.svg"
-const Booking = "/images/icons/booking.svg"
-const Calendar = "/images/icons/calendar.svg"
-const Analytics = "/images/icons/analytics.svg"
-const Reviews = "/images/icons/reviews.svg"
-const Profile = '/images/icons/user.svg'
-const Settings = '/images/icons/setting.svg'
-const Help = '/images/icons/help.svg'
+// const Dashboard = "/images/icons/dashboard.svg"
+// const Property = "/images/icons/property.svg"
+// const Booking = "/images/icons/booking.svg"
+// const Calendar = "/images/icons/calendar.svg"
+// const Reviews = "/images/icons/reviews.svg"
+// const Profile = '/images/icons/user.svg'
+// const Settings = '/images/icons/setting.svg'
+// const business_request = '/images/icons/business_request.svg'
 
 // Define type for navigation items
 interface NavItem {
   title: string;
   link: string;
-  icon: string;
+  icon: React.ReactElement<IconProps>;
 }
 
 interface SidebarProps {
@@ -37,21 +39,21 @@ export default function Sidebar({
 
   // Main navigation items
   const mainNavItems: NavItem[] = [
-    { title: 'Dashboard', link: '/superadmin/dashboard', icon: Dashboard },
-    { title: 'Business Request', link: '/superadmin/business-request', icon: Property },
-    { title: 'Manage Property', link: '/superadmin/properties', icon: Property },
-    { title: 'Property Request', link: '/superadmin/property-request', icon: Property },
-    { title: 'Bookings', link: '/superadmin/bookings', icon: Booking },
-    { title: 'Payment History', link: '/superadmin/payment-history', icon: Property },
-    { title: 'Calendar', link: '/superadmin/calendar', icon: Calendar },
+    { title: 'Dashboard', link: '/superadmin/dashboard', icon: <DashboardIcon /> },
+    { title: 'Business Request', link: '/superadmin/business-request', icon: <BusinessRequestIcon /> },
+    { title: 'Manage Property', link: '/superadmin/properties', icon: <PropertyIcon /> },
+    { title: 'Property Request', link: '/superadmin/property-request', icon: <PropertyIcon /> },
+    { title: 'Bookings', link: '/superadmin/bookings', icon: <BookingIcon /> },
+    { title: 'Payment History', link: '/superadmin/payment-history', icon: <PaymentHistoryIcon /> },
+    { title: 'Calendar', link: '/superadmin/calendar', icon: <CalendarIcon /> },
     // { title: 'Analytics', link: '/admin/analytics', icon: Analytics },
-    { title: 'Reviews', link: '/superadmin/reviews', icon: Reviews },
+    { title: 'Reviews', link: '/superadmin/reviews', icon: <ReviewsIcon /> },
   ];
 
   // Admin navigation items
   const adminNavItems: NavItem[] = [
-    { title: 'Profile', link: '/superadmin/profile', icon: Profile },
-    { title: 'Settings', link: '/superadmin/settings', icon: Settings },
+    { title: 'Profile', link: '/superadmin/profile', icon: <ProfileIcon /> },
+    { title: 'Settings', link: '/superadmin/settings', icon: <SettingsIcon /> },
   ];
 
   return (
@@ -114,7 +116,7 @@ export default function Sidebar({
 interface NavItemProps {
   title: string;
   link: string;
-  icon: string;
+  icon: React.ReactElement<IconProps>;
   active?: boolean;
 }
 
@@ -124,10 +126,10 @@ function NavItem({ title, link, icon, active = false }: NavItemProps) {
     <li>
       <Link href={link} className={`flex items-center text-[#1E293B] gap-3 p-3 rounded-lg transition-colors nav-item-after-bar ${
             active 
-              ? 'bg-[#EBA83A] text-[#1E293B] active' 
-              : 'hover:bg-[#EBA83A] hover:text-[#1E293B]'
+              ? 'bg-[#EBA83A] text-[#ffffff] active' 
+              : 'hover:bg-[#EBA83A] hover:text-[#ffffff]'
           }`}>
-          <Image src={icon} alt={title} width={22} height={22} />
+          {React.cloneElement(icon, { color: active ? '#000' : '#4E5258' })}
           <span>{title}</span>
       </Link>
     </li>

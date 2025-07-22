@@ -1,8 +1,10 @@
 'use client'
 import { useAuth } from '@/components/common/AuthContext';
 import Image from 'next/image';
+import Link from 'next/link';
 import React, { useState, useRef, useEffect } from 'react';
 import { FiMenu, FiX, FiMessageCircle, FiBell, FiChevronDown, FiLogOut, FiUser, FiSettings } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
 
 const profileImage = "/images/profile.jpg"; // Default profile image
 const searchIcon = "/images/icons/search.svg";
@@ -22,14 +24,28 @@ interface HeaderProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   userData: UserData;
+  currentPath: string;
 }
 
-export default function Header({ sidebarOpen, setSidebarOpen, userData }: HeaderProps) {
+// Copy of nav items from Sidebar for title lookup
+const navItems = [
+  { title: 'Dashboard', link: '/admin/dashboard' },
+  { title: 'Manage Property', link: '/admin/properties' },
+  { title: 'Bookings', link: '/admin/bookings' },
+  { title: 'Calendar', link: '/admin/calendar' },
+  { title: 'Reviews', link: '/admin/reviews' },
+  { title: 'Profile', link: '/admin/profile' },
+  { title: 'Settings', link: '/admin/settings' },
+  { title: 'Help', link: '/admin/help' },
+];
+
+export default function Header({ sidebarOpen, setSidebarOpen, userData, currentPath }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, logout } = useAuth();
+  const router = useRouter();
 
   // Format the user's full name safely
   const formatFullName = () => {
@@ -42,6 +58,10 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
     if (!userData) return '';
     return userData.email_address || '';
   };
+
+  // Find active nav title
+  const activeNav = navItems.find(item => currentPath.startsWith(item.link));
+  const activeTitle = activeNav ? activeNav.title : '';
 
   // Detect mobile view
   useEffect(() => {
@@ -73,8 +93,8 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
 
   return (
     <>
-      <header className="bg-white shadow-sm z-10">
-        <div className="flex items-center justify-between p-4">
+      <header className="bg-white shadow-sm z-10 w-full">
+        <div className="flex items-center justify-between p-4 gap-2 w-full">
           {/* Sidebar toggle button */}
           <button
             className="md:hidden text-gray-500 hover:text-gray-700"
@@ -84,25 +104,38 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
             {sidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
           </button>
 
-          {/* Left: Search input or icon */}
+          {/* Left: Active nav title */}
+          <div className="flex items-center min-w-[150px] max-w-xs font-semibold text-gray-900 text-base md:text-lg whitespace-nowrap">
+            <button
+              onClick={() => router.push('/admin/dashboard')}
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <img src="/images/icons/back.svg" alt="close" className="h-5 w-5" />
+            </button>
+            {activeTitle}
+          </div>
+
+          {/* Center: Search input or icon */}
           {!isMobile ? (
-            <div className="flex-1 max-w-md relative mr-4">
-              <Image 
-                src={searchIcon} 
-                alt="Search" 
-                width={20} 
-                height={20} 
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-              />
-              <input
-                type="text"
-                placeholder="Search here..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#F7B730] focus:border-transparent"
-              />
+            <div className="flex-1 flex justify-center">
+              <div className="w-full max-w-md relative">
+                <Image 
+                  src={searchIcon} 
+                  alt="Search" 
+                  width={20} 
+                  height={20} 
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
+                />
+                <input
+                  type="text"
+                  placeholder="Search here..."
+                  className="w-full pl-10 pr-4 py-2 bg-[#F6F6F6] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F7B730] focus:border-transparent"
+                />
+              </div>
             </div>
           ) : null}
 
-          {/* Right: Icons and profile */}
+          {/* Right: Profile */}
           <div className="flex items-center gap-4">
             {isMobile && (
               <button
@@ -113,18 +146,6 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
                 <Image src={searchIcon} alt="Search" width={24} height={24} />
               </button>
             )}
-            
-            {/* Message icon */}
-            <button className="text-gray-600 hover:text-gray-900" aria-label="Messages">
-              <Image src={chatIcon} alt="Messages" width={24} height={24} />
-            </button>
-
-            {/* Notification icon */}
-            <button className="text-gray-600 hover:text-gray-900" aria-label="Notifications">
-              <Image src={notificationIcon} alt="Notifications" width={24} height={24} />
-            </button>
-
-            {/* Profile section */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -148,13 +169,9 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
                   </span>
                 </div>
                 <FiChevronDown 
-                  className={`text-gray-600 transition-transform duration-200 ${
-                    dropdownOpen ? 'rotate-180' : 'rotate-0'
-                  }`} 
+                  className={`text-gray-600 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : 'rotate-0'}`} 
                 />
               </button>
-
-              {/* Dropdown menu */}
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                   <div className="px-4 py-3 border-b border-gray-100">
@@ -166,20 +183,27 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
                     </p>
                   </div>
                   <nav className="flex flex-col py-1">
-                    <a
-                      href="#"
+                    <Link
+                      href="/admin/profile"
                       className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                     >
                       <FiUser className="text-gray-500" /> 
                       Profile
-                    </a>
-                    <a
-                      href="#"
+                    </Link>
+                    <Link
+                      href="/admin/settings"
                       className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                     >
                       <FiSettings className="text-gray-500" /> 
                       Settings
-                    </a>
+                    </Link>
+                    <Link
+                      href="/admin/help"
+                      className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <FiSettings className="text-gray-500" /> 
+                      Help
+                    </Link>
                     <button
                       onClick={() => {
                         logout();
@@ -197,7 +221,6 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData }: Header
           </div>
         </div>
       </header>
-
       {/* Search input dropdown for mobile */}
       {isMobile && searchDropdownOpen && (
         <div className="bg-white shadow-sm p-4 border-t border-gray-200 z-10">

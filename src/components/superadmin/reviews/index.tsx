@@ -24,21 +24,23 @@ const PropertyReviewsPage = () => {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   
-  const itemsPerPage = viewType === 'list' ? 8 : 8;
+  const itemsPerPage = 8;
   const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
+
+  const reviewImage = "/images/review.png";
 
   // Mock data matching the images
   useEffect(() => {
     const mockData: Review[] = [
-      { id: '1', propertyName: 'Urban Apartment', type: 'Apartment', price: '$85/night', listingDate: '2025-06-30', rating: 4.5, reviewCount: '2.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '2', propertyName: 'Urban Apartment', type: 'Apartment', price: '$85/night', listingDate: '2025-06-30', rating: 2.0, reviewCount: '2.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '3', propertyName: 'Cozy Lakeview Cabin', type: 'Cabin', price: '$70/night', listingDate: '2025-07-10', rating: 4.8, reviewCount: '1.7k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '4', propertyName: 'Luxury Beach Villa', type: 'Villa', price: '$200/night', listingDate: '2025-07-05', rating: 4.0, reviewCount: '15k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '5', propertyName: 'Urban Apartment', type: 'Apartment', price: '$85/night', listingDate: '2025-06-30', rating: 3.5, reviewCount: '1.6k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '6', propertyName: 'Rustic Mountain House', type: 'Duplex House', price: '$120/night', listingDate: '2025-07-01', rating: 3.0, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '7', propertyName: 'Cozy Lakeview Cabin', type: 'Cabin', price: '$70/night', listingDate: '2025-07-10', rating: 3.4, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '8', propertyName: 'Rustic Mountain House', type: 'Duplex House', price: '$120/night', listingDate: '2025-07-01', rating: 5.7, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
-      { id: '9', propertyName: 'Luxury Beach Villa', type: 'Villa', price: '$200/night', listingDate: '2025-07-05', rating: 5.0, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: '🏠' },
+      { id: '1', propertyName: 'Urban Apartment', type: 'Apartment', price: '$85/night', listingDate: '2025-06-30', rating: 4.5, reviewCount: '2.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '2', propertyName: 'Urban Apartment', type: 'Apartment', price: '$85/night', listingDate: '2025-06-30', rating: 2.0, reviewCount: '2.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '3', propertyName: 'Cozy Lakeview Cabin', type: 'Cabin', price: '$70/night', listingDate: '2025-07-10', rating: 4.8, reviewCount: '1.7k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '4', propertyName: 'Luxury Beach Villa', type: 'Villa', price: '$200/night', listingDate: '2025-07-05', rating: 4.0, reviewCount: '15k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '5', propertyName: 'Urban Apartment', type: 'Apartment', price: '$85/night', listingDate: '2025-06-30', rating: 3.5, reviewCount: '1.6k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '6', propertyName: 'Rustic Mountain House', type: 'Duplex House', price: '$120/night', listingDate: '2025-07-01', rating: 3.0, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '7', propertyName: 'Cozy Lakeview Cabin', type: 'Cabin', price: '$70/night', listingDate: '2025-07-10', rating: 3.4, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '8', propertyName: 'Rustic Mountain House', type: 'Duplex House', price: '$120/night', listingDate: '2025-07-01', rating: 5.7, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
+      { id: '9', propertyName: 'Luxury Beach Villa', type: 'Villa', price: '$200/night', listingDate: '2025-07-05', rating: 5.0, reviewCount: '1.3k Reviews', reviewerName: 'Cameron Williamson', reviewDate: 'July, 23 2020', reviewText: 'Our family stayed at the Wynwood Townhome and couldn\'t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.', reviewerAvatar: reviewImage },
     ];
     setReviews(mockData);
     setFilteredReviews(mockData);
@@ -48,7 +50,12 @@ const PropertyReviewsPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedReviews = filteredReviews.slice(startIndex, startIndex + itemsPerPage);
 
-  // Pagination controls
+  // Reset to first page when viewType or reviews change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [viewType, reviews]);
+
+  // Pagination controls (match payment-history style)
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -96,7 +103,7 @@ const PropertyReviewsPage = () => {
           onClick={() => goToPage(i)}
           className={`px-3 py-1 rounded-md ${
             currentPage === i
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#EBA83A] text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -106,7 +113,7 @@ const PropertyReviewsPage = () => {
     }
     
     return (
-      <div className="flex items-center justify-center space-x-2 mt-6">
+      <div className="flex items-center space-x-2 mt-6 justify-center">
         <button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
@@ -116,7 +123,7 @@ const PropertyReviewsPage = () => {
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <FiChevronLeft size={20} />
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
         
         {pages}
@@ -130,8 +137,11 @@ const PropertyReviewsPage = () => {
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <FiChevronRight size={20} />
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
         </button>
+        <span className="text-sm text-gray-600 ml-2">
+          Showing {filteredReviews.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredReviews.length)} of {filteredReviews.length} reviews
+        </span>
       </div>
     );
   };
@@ -207,7 +217,7 @@ const PropertyReviewsPage = () => {
         <div key={review.id} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
           <div className="flex items-start space-x-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-lg">
-              {review.reviewerAvatar}
+              <img src={review.reviewerAvatar} alt="reviewer" className="w-full h-full object-cover rounded-full" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
@@ -335,7 +345,11 @@ const PropertyReviewsPage = () => {
         {viewType === 'list' ? <ListView /> : <GridView />}
 
         {/* Pagination */}
-        {filteredReviews.length > itemsPerPage && renderPagination()}
+        {filteredReviews.length > itemsPerPage && (
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+            {renderPagination()}
+          </div>
+        )}
 
         {/* Modal */}
         <ReviewModal />

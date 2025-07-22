@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { FileIcon } from '../../../../public/images/svg';
 
 export interface BusinessRequestDetail {
   id: string;
@@ -53,7 +54,7 @@ const BusinessRequestDetailModal: React.FC<BusinessRequestDetailModalProps> = ({
         <div className="absolute inset-0 overflow-hidden">
           <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
             <div className={`pointer-events-auto w-screen max-w-xl transform transition ease-in-out duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-              <div className="flex h-full flex-col bg-white rounded-l-2xl shadow-xl">
+              <div className="flex h-full flex-col bg-white rounded-sm shadow-xl">
                 {/* Header */}
                 <div className="flex items-center px-6 py-5 border-b border-gray-200">
                   <button
@@ -86,11 +87,29 @@ const BusinessRequestDetailModal: React.FC<BusinessRequestDetailModalProps> = ({
                     <div className="flex flex-wrap gap-4">
                       {request.documentation.map((doc, idx) => (
                         <div key={idx} className="flex flex-col items-center justify-center w-40 h-24 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-                          <img src="/images/icons/document.svg" alt="doc" className="h-8 w-8 mb-2" />
-                          <span className="text-sm text-gray-700 font-medium">{doc.label}</span>
+                          {/* <img src="/images/icons/document.svg" alt="doc" className="h-8 w-8 mb-2" /> */}
+                          <FileIcon />
+                          <span className="text-sm text-gray-700 font-medium mt-2">{doc.label}</span>
                         </div>
                       ))}
                     </div>
+                  </div>
+                </div>
+                {/* Footer with Action Buttons */}
+                <div className="border-t border-gray-200 px-6 py-4">
+                  <div className="flex justify-between space-x-3">
+                    <button
+                      type="button"
+                      className="flex-1 px-4 py-2 rounded-full text-sm font-medium text-white bg-[#FF4545] hover:bg-[#FF4545]/80 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      className="flex-1 px-4 py-2 rounded-full text-sm font-medium text-white bg-[#40C557] hover:bg-[#40C557]/80 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors cursor-pointer"
+                    >
+                      Approved
+                    </button>
                   </div>
                 </div>
               </div>

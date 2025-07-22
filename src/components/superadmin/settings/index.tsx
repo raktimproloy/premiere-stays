@@ -1,6 +1,7 @@
 'use client'
 import React, { useState } from 'react';
 import { Camera, Edit2 } from 'lucide-react';
+import { CameraIcon } from '../../../../public/images/svg';
 
 const Setting: React.FC = () => {
   const [personalInfo, setPersonalInfo] = useState({
@@ -42,12 +43,13 @@ const Setting: React.FC = () => {
         <div className=" flex-shrink-0">
             <div className="w-28 h-28 relative bg-gray-200 rounded-full flex items-center justify-center ">
               <img 
-                src="/public/images/profile.jpg" 
+                src="/images/profile2.jpg" 
                 alt="Profile" 
                 className="w-full h-full object-cover rounded-full"
               />
-            <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50">
-              <Camera size={16} className="text-gray-600" />
+            <button className="absolute bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50">
+              {/* <Camera size={16} className="text-gray-600" /> */}
+              <CameraIcon />
             </button>
             </div>
           </div>

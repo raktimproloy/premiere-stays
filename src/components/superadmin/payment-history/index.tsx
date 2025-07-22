@@ -19,6 +19,10 @@ const PaymentHistoryTable = () => {
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [view, setView] = useState<'your' | 'lister'>('your');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 8;
+
   useEffect(() => {
     fetch('/data/paymentHistory.json')
       .then((res) => res.json())
@@ -60,6 +64,78 @@ const PaymentHistoryTable = () => {
   // Filtered payments based on view
   const displayedPayments = view === 'lister' ? payments.filter(p => p.status === 'Paid') : payments;
 
+  // Paginated payments
+  const totalPages = Math.ceil(displayedPayments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPayments = displayedPayments.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to first page when view or payments change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [view, payments]);
+
+  // Pagination controls
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => goToPage(i)}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === i
+              ? 'bg-[#EBA83A] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`p-1 rounded-md ${
+            currentPage === 1
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        {pages}
+        <button
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`p-1 rounded-md ${
+            currentPage === totalPages
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <span className="text-sm text-gray-600 ml-2">
+          Showing {displayedPayments.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + itemsPerPage, displayedPayments.length)} of {displayedPayments.length} payments
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -97,8 +173,8 @@ const PaymentHistoryTable = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {displayedPayments.length > 0 ? (
-                  displayedPayments.map((payment) => (
+                {paginatedPayments.length > 0 ? (
+                  paginatedPayments.map((payment) => (
                     <tr key={payment.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{payment.propertyName || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{payment.personName || '-'}</td>
@@ -127,6 +203,12 @@ const PaymentHistoryTable = () => {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          {displayedPayments.length > itemsPerPage && (
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+              {renderPagination()}
+            </div>
+          )}
         </div>
       </div>
       {/* Property Detail Modal */}

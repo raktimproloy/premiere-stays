@@ -1,6 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { Edit2, Camera, User, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
+import { CameraIcon, EditIcon } from '../../../../public/images/svg';
+import Link from 'next/link';
 
 const ProfilePage = () => {
   const [profileData, setProfileData] = useState({
@@ -27,18 +29,23 @@ const ProfilePage = () => {
         <div className="bg-white rounded-lg p-8 gap-10">
             <div className="flex items-center gap-2 mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Profile Details</h1>
-                <Edit2 size={20} className="text-blue-600" />
+                {/* <Edit2 size={20} className="text-blue-600" /> */}
+                <Link href="/superadmin/settings">
+                <EditIcon />
+                
+                </Link>
             </div>
           {/* Profile Image Section */}
           <div className=" flex-shrink-0">
             <div className="w-28 h-28 relative bg-gray-200 rounded-full flex items-center justify-center ">
               <img 
-                src="/public/images/profile.jpg" 
+                src="/images/profile2.jpg" 
                 alt="Profile" 
                 className="w-full h-full object-cover rounded-full"
               />
-            <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50">
-              <Camera size={16} className="text-gray-600" />
+            <button className="absolute bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50">
+              {/* <Camera size={16} className="text-gray-600" /> */}
+              <CameraIcon />
             </button>
             </div>
           </div>

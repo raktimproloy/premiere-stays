@@ -132,6 +132,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             first_name: 'Loading',
             last_name: '...'
           }} 
+          currentPath={currentPath}
         />
 
         {/* Content area */}

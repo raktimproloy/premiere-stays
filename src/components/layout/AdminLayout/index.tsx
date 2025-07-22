@@ -132,6 +132,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             first_name: 'Loading',
             last_name: '...'
           }} 
+          currentPath={currentPath}
         />
 
         {/* Content area */}
