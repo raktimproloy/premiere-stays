@@ -3,6 +3,9 @@
 
 import { useState } from 'react';
 import CreateModal from './createModal';
+import dynamic from 'next/dynamic';
+const RichTextEditor = dynamic(() => import('@/components/common/Editor'), { ssr: false });
+import { useRef } from 'react';
 
 export default function CreatePropertyPage() {
   // State for form fields
@@ -12,10 +15,11 @@ export default function CreatePropertyPage() {
   const [totalBedroom, setTotalBedroom] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [capacity, setCapacity] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [details, setDetails] = useState(''); // was fullName
   const [fileUploaded, setFileUploaded] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
+  const [editorValue, setEditorValue] = useState('');
 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,9 +49,10 @@ export default function CreatePropertyPage() {
       totalBedroom,
       propertyType,
       capacity,
-      fullName,
+      details,
       fileUploaded,
-      uploadedFiles: uploadedFiles.map(file => file.name)
+      uploadedFiles: uploadedFiles.map(file => file.name),
+      editorValue,
     });
     
   };
@@ -267,21 +272,22 @@ export default function CreatePropertyPage() {
           </div>
 
 
-          {/* Full Name */}
-          <div className="bg-white shadow rounded-lg p-6 sm:p-8">
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-              Enter your full name
+          {/* Full Name (now Details) */}
+          {/* <div className="bg-white shadow rounded-lg p-6 sm:p-8">
+            <label htmlFor="details" className="block text-sm font-medium text-gray-700 mb-2">
+              Enter property details
             </label>
             <input
               type="text"
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Type your full name"
+              id="details"
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Type property details"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               required
             />
-          </div>
+          </div> */}
+          <RichTextEditor onChange={setEditorValue} />
 
           
         </form>

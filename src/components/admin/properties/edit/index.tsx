@@ -3,6 +3,8 @@
 
 import { useState } from 'react';
 import EditModal from './editModal';
+import dynamic from 'next/dynamic';
+const RichTextEditor = dynamic(() => import('@/components/common/Editor'), { ssr: false });
 
 export default function EditPropertyPage() {
   // State for form fields
@@ -12,10 +14,11 @@ export default function EditPropertyPage() {
   const [totalBedroom, setTotalBedroom] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [capacity, setCapacity] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [details, setDetails] = useState(''); // was fullName
   const [fileUploaded, setFileUploaded] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
+  const [editorValue, setEditorValue] = useState('');
 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,9 +48,10 @@ export default function EditPropertyPage() {
       totalBedroom,
       propertyType,
       capacity,
-      fullName,
+      details,
       fileUploaded,
-      uploadedFiles: uploadedFiles.map(file => file.name)
+      uploadedFiles: uploadedFiles.map(file => file.name),
+      editorValue,
     });
     
   };
@@ -267,21 +271,8 @@ export default function EditPropertyPage() {
           </div>
 
 
-          {/* Full Name */}
-          <div className="bg-white shadow rounded-lg p-6 sm:p-8">
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-              Enter your full name
-            </label>
-            <input
-              type="text"
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Type your full name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              required
-            />
-          </div>
+          {/* Details (RichTextEditor) */}
+          <RichTextEditor onChange={setEditorValue} />
 
           
         </form>

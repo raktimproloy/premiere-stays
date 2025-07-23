@@ -363,7 +363,7 @@ const PropertyRequestList = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         property={selectedProperty}
-        editUrl={`/superadmin/properties/edit/${selectedProperty?.id}`}
+        editUrl={`/admin/properties/edit/${selectedProperty?.id}`}
         editLabel="Edit Property"
         editActive={selectedProperty?.status !== 'Pending'}
         onEditClick={() => { /* custom logic */ }}

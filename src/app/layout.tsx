@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google"; // ✅ Import Inter Tight
 import "./globals.css";
 import { AuthProvider } from "@/components/common/AuthContext";
+import Script from "next/script";
 
 // ✅ Load the Inter Tight font
 const interTight = Inter_Tight({
@@ -22,6 +23,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.6/quill.snow.css" />
+        <Script
+          src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className={`${interTight.variable} antialiased`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
