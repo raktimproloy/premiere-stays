@@ -7,30 +7,37 @@ import { Navigation, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import Image from 'next/image';
 
 const ReviewsSection = () => {
   const swiperRef = useRef<any>(null);
   const totalReviews = 66;
+  const ReviewImage1 = '/images/review1.png';
+  const ReviewImage2 = '/images/review2.png';
+
 
   const reviews = [
     {
       id: 1,
       name: "Annette Black",
       date: "12 January, 2025",
+      image: ReviewImage1,
       rating: 4,
-      content: "We had a wonderful experience with Premier Stays Miami. The rooms were spacious and well-equipped, and any requests we had were handled promptly. It was the perfect home base for our family trip."
+      content: "We had a wonderful experience with Premier Stays Miami. The rooms were spacious and well-equipped, and any requests we had were. It was the perfect home base for our family trip."
     },
     {
       id: 2,
       name: "Guy Hawkins",
       date: "12 January, 2025",
+      image: ReviewImage2,
       rating: 4,
-      content: "Excellent location and fantastic service! The property was exactly as described—clean, quiet, and close to everything we wanted to see in Miami. The team made sure we felt welcome and taken care of throughout our stay."
+      content: "Excellent location and fantastic service! The property was exactly as described—clean, quiet, and close to Miami. The team made sure we felt welcome and taken our stay."
     },
     {
       id: 3,
       name: "Jane Cooper",
       date: "5 February, 2025",
+      image: ReviewImage1,
       rating: 5,
       content: "Absolutely stunning property with breathtaking views. The attention to detail was impressive, and the amenities exceeded our expectations. We'll definitely be returning next year!"
     },
@@ -38,6 +45,7 @@ const ReviewsSection = () => {
       id: 4,
       name: "Robert Fox",
       date: "28 March, 2025",
+      image: ReviewImage2,
       rating: 4,
       content: "The booking process was seamless, and the property manager was incredibly responsive. The space was perfect for our group, and the location couldn't be beat. Highly recommend!"
     }
@@ -128,7 +136,7 @@ const ReviewsSection = () => {
                   </blockquote>
                   {/* Reviewer Info */}
                   <div className="flex items-center">
-                    <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+                    <Image src={review.image} alt={review.name} width={100} height={100} className='rounded-full w-16 h-16 object-cover' />
                     <div className="ml-4">
                       <h4 className="font-bold text-gray-900 text-lg">{review.name}</h4>
                       <p className="text-gray-500">{review.date}</p>

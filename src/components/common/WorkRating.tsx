@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function WorkRating() {
   return (
-    <div className="p-8 mb-12">
+    <div className="p-8 mb-12 max-w-7xl mx-auto">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
     <div className="text-center border-r-2 border-gray-200 border-dashed">
       <div className=" text-4xl font-bold text-black mb-2">99<span className='text-[#586DF7]'>%</span></div>

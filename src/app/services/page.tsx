@@ -64,7 +64,7 @@ export default function page() {
   ];
   return (
     <DefaultLayout>
-        <Breadcrumb bgImage={"/images/service_breadcrumb.jpg"} path={["Home", "Services"]} title="Services" description="We offer a wide range of services to meet your needs." />
+        <Breadcrumb bgImage={"/images/service_breadcrumb.jpg"} path={["Home", "Services"]} title="Find Your Perfect Stay - Book with Confidence" description="Explore a wide range of rental properties tailored to your needs. Whether it’s short-term or long-term, we make booking easy, secure, and hassle-free." />
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">

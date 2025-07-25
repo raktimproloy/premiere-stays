@@ -1,6 +1,7 @@
 // components/FooterSection.tsx
 import Image from 'next/image';
 import React from 'react';
+import { BlueCallIcon } from '../../../../public/images/svg';
 
 const FooterSection = () => {
     const CTAImage = "/images/cta_image.png"
@@ -36,14 +37,14 @@ const FooterSection = () => {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-8 mb-12">
             {/* Brand */}
-            <div className="lg:col-span-1 text-center">
-              <Image src={Logo} alt="Logo" width={150} height={150} />
+            <div className="lg:col-span-1 flex justify-center items-start">
+              <Image src={Logo} alt="Logo" width={175} height={175} className="text-center" />
             </div>
 
             {/* Company Links */}
-            <div>
+            <div className="border-l-1 col-span-2 border-gray-600 pl-8">
               <h3 className="text-lg font-bold mb-4 uppercase tracking-wider">Company</h3>
               <ul className="space-y-2">
                 {['Home', 'About Us', 'Services', 'FAQs', 'Book Now', 'Contact Us'].map((item) => (
@@ -55,7 +56,7 @@ const FooterSection = () => {
             </div>
 
             {/* For Sale and Rent */}
-            <div>
+            <div className="border-l-1 col-span-2 border-gray-600 pl-8">
               <h3 className="text-lg font-bold mb-4 uppercase tracking-wider">For Sale and Rent</h3>
               <ul className="space-y-2">
                 {['Owner Services', 'Manage Your Rental', 'Grow Your Portfolio', 'Owner Login', 'Privacy Policy', 'Terms and Condition'].map((item) => (
@@ -67,37 +68,63 @@ const FooterSection = () => {
             </div>
 
             {/* Contact Information */}
-            <div>
+            <div className="border-l-1 col-span-2 border-gray-600 pl-8">
               <h3 className="text-lg font-bold mb-4 uppercase tracking-wider">Contact Information</h3>
               <ul className="space-y-3">
                 <li className="flex items-start">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                  </svg>
-                  <span className="text-gray-400">Phone: <span className="text-white">(123) 757-2069</span></span>
+                  <span className='mr-2 bg-[#35A7A124] rounded-full p-3'>
+                    <BlueCallIcon/>
+                  </span>
+                  <span className="text-gray-400">Phone: <br/> <span className="text-white">(123) 757-2069</span></span>
                 </li>
                 <li className="flex items-start">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                  </svg>
+                  <span className='mr-2 bg-[#35A7A124] rounded-full p-3'>
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18.2083 4.146H7.79158C4.66659 4.146 2.58325 5.7085 2.58325 9.35433V16.646C2.58325 20.2918 4.66659 21.8543 7.79158 21.8543H18.2083C21.3333 21.8543 23.4166 20.2918 23.4166 16.646V9.35433C23.4166 5.7085 21.3333 4.146 18.2083 4.146ZM18.6978 10.4897L15.4374 13.0939C14.7499 13.646 13.8749 13.9168 12.9999 13.9168C12.1249 13.9168 11.2395 13.646 10.5624 13.0939L7.302 10.4897C6.96867 10.2189 6.91658 9.71891 7.177 9.38558C7.44783 9.05225 7.93742 8.98975 8.27075 9.26058L11.5312 11.8647C12.3228 12.5002 13.6666 12.5002 14.4583 11.8647L17.7187 9.26058C18.052 8.98975 18.552 9.04183 18.8124 9.38558C19.0833 9.71891 19.0312 10.2189 18.6978 10.4897Z" fill="#38C6F9"/>
+                    </svg>
+                  </span>
                   <span className="text-gray-400">Email: <span className="text-white">info@premierestayamiami.com</span></span>
                 </li>
                 <li className="flex items-start">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-gray-400">#1 Dealing Street, St. Thomas Village,<br />Chagastons, Trinidad & Tobago</span>
+                  <span className='mr-2 bg-[#35A7A124] rounded-full p-3'>
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clipPath="url(#clip0_33596_7361)">
+                    <path d="M21.9791 9.30192C20.8854 4.48942 16.6875 2.32275 13 2.32275C13 2.32275 13 2.32275 12.9896 2.32275C9.31248 2.32275 5.10414 4.479 4.01039 9.2915C2.79164 14.6665 6.08331 19.2186 9.06248 22.0832C10.1666 23.1457 11.5833 23.6769 13 23.6769C14.4166 23.6769 15.8333 23.1457 16.9271 22.0832C19.9062 19.2186 23.1979 14.6769 21.9791 9.30192ZM13 14.5207C11.1875 14.5207 9.71873 13.0519 9.71873 11.2394C9.71873 9.42692 11.1875 7.95817 13 7.95817C14.8125 7.95817 16.2812 9.42692 16.2812 11.2394C16.2812 13.0519 14.8125 14.5207 13 14.5207Z" fill="#38C6F9"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_33596_7361">
+                    <rect width="25" height="25" fill="white" transform="translate(0.5 0.5)"/>
+                    </clipPath>
+                    </defs>
+                    </svg>
+                  </span>
+                  <span className="text-gray-400">#1 Dealing Street, St. Thomas Village, Chagastons, Trinidad & Tobago</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Copyright */}
-          <div className="border-t border-gray-800 pt-8">
-            <p className="text-gray-400 text-center">
-              ©2025. Premierestayakiami. All Rights Reserved.
+        </div>
+        {/* Copyright */}
+        <div className="border-t border-gray-800 pt-8">
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between'>
+            <p className="text-gray-400 text-left">
+              ©2025. PremierestaysMiami. All Rights Reserved.
             </p>
+            <div className="flex gap-4">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3V2z"/></svg>
+              </a>
+              <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white"><path d="M17.53 6.47a.75.75 0 0 0-1.06 0L12 10.94 7.53 6.47a.75.75 0 1 0-1.06 1.06L10.94 12l-4.47 4.47a.75.75 0 1 0 1.06 1.06L12 13.06l4.47 4.47a.75.75 0 0 0 1.06-1.06L13.06 12l4.47-4.47a.75.75 0 0 0 0-1.06z"/></svg>
+              </a>
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><circle cx="17.5" cy="6.5" r="1.5"/></svg>
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M10 15l5.19-3L10 9v6z"/></svg>
+              </a>
+            </div>
           </div>
         </div>
       </footer>

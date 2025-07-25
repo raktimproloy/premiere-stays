@@ -10,11 +10,13 @@ interface BreadcrumbProps {
 
 const Breadcrumb: React.FC<BreadcrumbProps> = ({ bgImage, path, title, description }) => {
   return (
-    <section className="relative w-full h-[220px] flex items-center justify-center">
+    <section className="relative w-full h-[350px] flex items-center justify-center">
       {/* Background image */}
       <div className="absolute inset-0 w-full h-full">
         <Image src={bgImage} alt="breadcrumb background" fill sizes="100vw" className="object-cover w-full h-full" />
       </div>
+      {/* Fade overlay */}
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-black/60 via-black/30 to-transparent pointer-events-none" />
       {/* Content */}
       <div className="relative z-10 text-center w-full px-4">
         <div className="mb-2 text-sm text-gray-200 flex justify-center gap-1">

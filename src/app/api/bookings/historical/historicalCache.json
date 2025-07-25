@@ -1,5 +1,5 @@
 {
-  "timestamp": 1753330394437,
+  "timestamp": 1753447168843,
   "data": {
     "role": "admin",
     "previousRevenue": [
@@ -123,15 +123,15 @@
       {
         "month": "Jul",
         "year": 2025,
-        "value": 20.97
+        "value": 21.94
       }
     ],
     "bookingSources": {
-      "total": 41,
+      "total": 42,
       "sources": [
         {
           "name": "Airbnb",
-          "count": 41
+          "count": 42
         }
       ]
     },
@@ -205,11 +205,41 @@
       {
         "monthName": "Jul",
         "year": 2025,
-        "totalNights": 65,
+        "totalNights": 68,
         "ratePerNight": 0
       }
     ],
     "bookings": [
+      {
+        "adults": 0,
+        "arrival": "2025-07-28",
+        "booked_utc": "2025-07-24T22:53:37Z",
+        "canceled_utc": "2025-07-25T03:43:09Z",
+        "cancellation_policy_id": 26939,
+        "check_in": "15:00",
+        "check_out": "11:00",
+        "children": 0,
+        "created_utc": "2025-07-24T22:53:37Z",
+        "currency_code": "USD",
+        "departure": "2025-08-02",
+        "form_key": "deb8e168420b4ff49072bb09a9dd9adf",
+        "guest_id": 617748113,
+        "id": 14516302,
+        "infants": 0,
+        "is_block": false,
+        "listing_site": "Airbnb",
+        "notes": "Imported on 7/24/2025 22:53:36 EST from:\nhttps://www.airbnb.com/calendar/ical/743455221086012901.ics?s=3a83c45133af52b9014774782870f35f\n\niCal Title:\nReserved\n\niCal Description:\nReservation URL: https://www.airbnb.com/hosting/reservations/details/HMK4HDTDYQ\nPhone Number (Last 4 Digits): 8473",
+        "pets": 0,
+        "platform_reservation_number": "HMK4HDTDYQ",
+        "property": {
+          "id": 459941,
+          "name": "Modern Design District Wynwood TH w/Heated Pool"
+        },
+        "property_id": 459941,
+        "status": "canceled",
+        "type": "booking",
+        "updated_utc": "2025-07-25T03:43:10Z"
+      },
       {
         "adults": 0,
         "arrival": "2025-08-28",
@@ -1171,7 +1201,7 @@
       },
       {
         "adults": 0,
-        "arrival": "2025-08-07",
+        "arrival": "2025-08-21",
         "booked_utc": "2025-07-05T21:28:15Z",
         "cancellation_policy_id": 26939,
         "check_in": "15:00",
@@ -1179,7 +1209,7 @@
         "children": 0,
         "created_utc": "2025-07-05T21:28:15Z",
         "currency_code": "USD",
-        "departure": "2025-08-10",
+        "departure": "2025-08-24",
         "form_key": "37038ffa27d34ee3a1ad78138e049a96",
         "guest_id": 617518953,
         "id": 14318839,
@@ -1196,7 +1226,7 @@
         "property_id": 459939,
         "status": "active",
         "type": "booking",
-        "updated_utc": "2025-07-05T21:28:15Z"
+        "updated_utc": "2025-07-24T23:16:18Z"
       },
       {
         "adults": 0,

@@ -6,11 +6,38 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { FaArrowRight } from "react-icons/fa";
+import { useAuth } from '@/components/common/AuthContext';
+import { FiChevronDown, FiUser, FiSettings, FiLogOut } from 'react-icons/fi';
+import { useRef, useEffect } from 'react';
+
+const profileImage = "/images/profile.jpg";
 
 const Navbar = () => {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const Logo = '/images/logo.png';
+  const { isAuthenticated, logout } = useAuth();
+
+  // Dummy user info (replace with real user data if available)
+  const user = {
+    first_name: 'Zahidul',
+    last_name: 'Islam',
+    email_address: 'zahidulislam@gmail.com',
+  };
+  const formatFullName = () => `${user.first_name} ${user.last_name}`;
+  const formatEmail = () => user.email_address;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -50,21 +77,97 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Auth Buttons */}
+          {/* Auth/Profile Dropdown */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-gray-700 hover:text-orange-500"
-            >
-              Login
-            </Link>
-            {/* <span className="h-5 w-px bg-gray-300"></span> */}
-            <Link
-              href="/register"
-              className="flex items-center text-sm font-medium text-[#586DF7] border border-[#586DF7] px-4 py-2 rounded-full transition-colors duration-200"
-            >
-              Register <span className="ml-1"><FaArrowRight /></span>
-            </Link>
+            {isAuthenticated ? (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center cursor-pointer gap-3 focus:outline-none"
+                  aria-haspopup="true"
+                  aria-expanded={dropdownOpen}
+                >
+                  <Image
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                    width={40}
+                    height={40}
+                  />
+                  <div className="hidden sm:flex flex-col text-left">
+                    <span className="text-gray-900 font-semibold truncate max-w-[160px]">
+                      {formatFullName()}
+                    </span>
+                    <span className="text-gray-500 text-sm truncate max-w-[160px]">
+                      {formatEmail()}
+                    </span>
+                  </div>
+                  <FiChevronDown 
+                    className={`text-gray-600 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : 'rotate-0'}`} 
+                  />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {formatFullName()}
+                      </p>
+                      <p className="text-sm text-gray-500 truncate">
+                        {formatEmail()}
+                      </p>
+                    </div>
+                    <nav className="flex flex-col py-1">
+                      <Link
+                        href="/admin/profile"
+                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <FiUser className="text-gray-500" />
+                        Profile
+                      </Link>
+                      <Link
+                        href="/admin/settings"
+                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <FiSettings className="text-gray-500" />
+                        Settings
+                      </Link>
+                      <Link
+                        href="/admin/help"
+                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <FiSettings className="text-gray-500" />
+                        Help
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <FiLogOut className="text-red-500" />
+                        Logout
+                      </button>
+                    </nav>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-gray-700 hover:text-orange-500"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="flex items-center text-sm font-medium text-[#586DF7] border border-[#586DF7] px-4 py-2 rounded-full transition-colors duration-200"
+                >
+                  Register <span className="ml-1"><FaArrowRight /></span>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
