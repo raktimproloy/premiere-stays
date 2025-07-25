@@ -1,46 +1,28 @@
 import Image from "next/image";
 import Link from "next/link";
-
+import DefaultLayout from "@/components/layout/DefaultLayout";
+import HeroSection from "@/components/home/HeroSection";
+import TrustedPartners from "@/components/home/TrustedPartners";
+import AboutUs from "@/components/home/AboutUs";
+import FeaturesSection from "@/components/home/FeaturesSection";
+import ServicesSection from "@/components/home/ServicesSection";
+import Properties from "@/components/home/Properties";
+import ReviewsSection from "@/components/home/Reviews";
+import FaqSection from "@/components/home/FaqSection";
+import WorkRating from "@/components/common/WorkRating";
+ 
 export default function Home() {
   return (
-    <div className="min-h-screen p-8 pb-20 font-[family-name:var(--font-geist-sans)]">
-      {/* Navbar */}
-      <nav className="flex justify-center gap-8 mb-8 border-b border-gray-300 pb-4">
-        <Link
-          href="/signup"
-          className="text-lg font-medium text-gray-700 hover:text-gray-900"
-        >
-          Signup
-        </Link>
-        <Link
-          href="/login"
-          className="text-lg font-medium text-gray-700 hover:text-gray-900"
-        >
-          Login
-        </Link>
-        <Link
-          href="/admin/dashboard"
-          className="text-lg font-medium text-gray-700 hover:text-gray-900"
-        >
-          Admin Dashboard
-        </Link>
-        <Link
-          href="/superadmin/dashboard"
-          className="text-lg font-medium text-gray-700 hover:text-gray-900"
-        >
-          Super Admin Dashboard
-        </Link>
-      </nav>
-
-      <main className=" text-center font-bold">
-        <h2>Admin Login</h2>
-        <p>Email: admin@example.com</p>
-        <p>Password: password123</p>
-        <br />
-        <h2>Super Admin Login</h2>
-        <p>Email: superadmin@example.com</p>
-        <p>Password: password123</p>
-      </main>
-    </div>
+    <DefaultLayout>
+      <HeroSection />
+      <TrustedPartners />
+      <AboutUs />
+      <FeaturesSection />
+      <ServicesSection />
+      <WorkRating />
+      <Properties />
+      <ReviewsSection />
+      <FaqSection />
+    </DefaultLayout>
   );
 }

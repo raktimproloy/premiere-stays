@@ -62,3 +62,8 @@ body {
 
 
 /* Callender css */
+
+.swiper-button-prev:after,
+.swiper-button-next:after {
+  display: none;
+}

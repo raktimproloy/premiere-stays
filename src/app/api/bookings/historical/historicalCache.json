@@ -1,5 +1,5 @@
 {
-  "timestamp": 1753248487736,
+  "timestamp": 1753330394437,
   "data": {
     "role": "admin",
     "previousRevenue": [
@@ -127,11 +127,11 @@
       }
     ],
     "bookingSources": {
-      "total": 40,
+      "total": 41,
       "sources": [
         {
           "name": "Airbnb",
-          "count": 40
+          "count": 41
         }
       ]
     },
@@ -210,6 +210,35 @@
       }
     ],
     "bookings": [
+      {
+        "adults": 0,
+        "arrival": "2025-08-28",
+        "booked_utc": "2025-07-23T19:03:17Z",
+        "cancellation_policy_id": 26939,
+        "check_in": "15:00",
+        "check_out": "11:00",
+        "children": 0,
+        "created_utc": "2025-07-23T19:03:17Z",
+        "currency_code": "USD",
+        "departure": "2025-08-30",
+        "form_key": "bde80877496d4d1c9446a93aa6f86c32",
+        "guest_id": 617734841,
+        "id": 14504514,
+        "infants": 0,
+        "is_block": false,
+        "listing_site": "Airbnb",
+        "notes": "Imported on 7/23/2025 19:03:17 EST from:\nhttps://www.airbnb.com/calendar/ical/1052156283570567870.ics?s=c25ebc2598ce63eb135fecd431574baf\n\niCal Title:\nReserved\n\niCal Description:\nReservation URL: https://www.airbnb.com/hosting/reservations/details/HM9CTMY9HR\nPhone Number (Last 4 Digits): 4747",
+        "pets": 0,
+        "platform_reservation_number": "HM9CTMY9HR",
+        "property": {
+          "id": 459939,
+          "name": "Design District Guesthouse - 2Bdrms"
+        },
+        "property_id": 459939,
+        "status": "active",
+        "type": "booking",
+        "updated_utc": "2025-07-23T19:03:17Z"
+      },
       {
         "adults": 0,
         "arrival": "2025-07-21",

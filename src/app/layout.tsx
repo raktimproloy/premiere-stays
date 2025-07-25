@@ -31,7 +31,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${interTight.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
