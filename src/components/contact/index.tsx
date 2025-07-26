@@ -43,14 +43,14 @@ export default function Index() {
           {/* Left side - Image */}
           <div className="lg:w-1/2">
             <div className="h-full flex items-center justify-center">
-              <div className="text-white text-center">
-                <Image src={contactImage} alt="contact" width={1500} height={1500} className='w-full h-full object-cover rounded-lg' />
+              <div className="text-white text-center w-full h-full">
+                <Image src={contactImage} alt="contact" width={1500} height={1500} className='w-full h-full object-cover rounded-lg min-h-[600px]' />
               </div>
             </div>
           </div>
 
           {/* Right side - Form */}
-          <div className="lg:w-1/2 px-4 py-6 bg-white rounded-xl shadow-md">
+          <div className="lg:w-1/2 px-4 py-6 bg-white rounded-xl shadow-md min-h-[600px] flex flex-col justify-center">
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                 <div>

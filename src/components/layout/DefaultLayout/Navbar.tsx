@@ -45,7 +45,7 @@ const Navbar = () => {
     { name: 'Services', path: '/services', activePath: ["/services"] },
     { name: 'Book Now', path: '/book-now', activePath: ["/book-now", "/book-now/", "/book-now/index", "/book-now/checkout", "/book-now/checkout/", "/book-now/checkout/index"] },
     { name: 'FAQS', path: '/faqs', activePath: ["/faqs"] },
-    { name: 'ContactUs', path: '/contact', activePath: ["/contact"] },
+    { name: 'Contact Us', path: '/contact', activePath: ["/contact"] },
   ];
 
   // Function to check if a nav item is active
