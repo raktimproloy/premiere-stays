@@ -62,9 +62,9 @@ export default function PropertyCard({property}: {property: any}) {
         </h3>
         <p className="text-gray-600 mb-3 sm:mb-4 flex items-start text-sm sm:text-base border-b border-gray-200 pb-3">
           <span className='mr-2 bg-[#586DF71A] p-1.5 sm:p-2 rounded-full flex-shrink-0'>
-            <div className="w-3 h-3 sm:w-4 sm:h-4">
+            <span className="w-3 h-3 sm:w-4 sm:h-4">
               <LocationFillIcon />
-            </div>
+            </span>
           </span>
           <span className="line-clamp-2">{property.location}</span>
         </p>

@@ -40,13 +40,25 @@ const Navbar = () => {
   }, []);
 
   const navItems = [
-    { name: 'Home', path: '/' },
-    { name: 'About Us', path: '/about' },
-    { name: 'Services', path: '/services' },
-    { name: 'Book Now', path: '/book-now' },
-    { name: 'FAQS', path: '/faqs' },
-    { name: 'ContactUs', path: '/contact' },
+    { name: 'Home', path: '/', activePath: ["/"] },
+    { name: 'About Us', path: '/about', activePath: ["/about"] },
+    { name: 'Services', path: '/services', activePath: ["/services"] },
+    { name: 'Book Now', path: '/book-now', activePath: ["/book-now", "/book-now/", "/book-now/index", "/book-now/checkout", "/book-now/checkout/", "/book-now/checkout/index"] },
+    { name: 'FAQS', path: '/faqs', activePath: ["/faqs"] },
+    { name: 'ContactUs', path: '/contact', activePath: ["/contact"] },
   ];
+
+  // Function to check if a nav item is active
+  const isActive = (activePaths: string[]) => {
+    return activePaths.some(path => {
+      // Handle dynamic routes with IDs (e.g., /book-now/123)
+      if (path.includes('/book-now/') && pathname.startsWith('/book-now/')) {
+        return true;
+      }
+      // Handle exact matches
+      return pathname === path;
+    });
+  };
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -54,7 +66,7 @@ const Navbar = () => {
         <div className="flex justify-between h-22">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Image src={Logo} alt='logo' width={157} height={70} className="w-32 sm:w-36 md:w-40 lg:w-auto" />
+            <Image src={Logo} alt='logo' width={157} height={70} className="w-32 sm:w-36 md:w-40" />
           </div>
 
           {/* Desktop Navigation */}
@@ -64,12 +76,12 @@ const Navbar = () => {
                 key={item.name}
                 href={item.path}
                 className={`flex items-center px-1 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
-                  pathname === item.path
+                  isActive(item.activePath)
                     ? 'text-[#586DF7]'
                     : 'text-gray-700 hover:text-[#586DF7]'
                 }`}
               >
-                {pathname === item.path && (
+                {isActive(item.activePath) && (
                   <span className="mr-2 h-2 w-2 bg-[#586DF7] rounded-full inline-block"></span>
                 )}
                 {item.name}
@@ -147,7 +159,7 @@ const Navbar = () => {
                   Login
                 </Link>
                 <Link
-                  href="/register"
+                  href="/signup"
                   className="flex items-center text-xs xl:text-sm font-medium text-[#586DF7] border border-[#586DF7] px-3 xl:px-4 py-2 rounded-full transition-colors duration-200 whitespace-nowrap"
                 >
                   Register <span className="ml-1"><FaArrowRight /></span>
@@ -198,13 +210,13 @@ const Navbar = () => {
                 key={item.name}
                 href={item.path}
                 className={`flex items-center block px-3 py-2 rounded-md text-base font-medium ${
-                  pathname === item.path
+                  isActive(item.activePath)
                     ? 'text-[#586DF7]'
                     : 'text-gray-700 hover:text-[#586DF7]'
                 }`}
                 onClick={() => setIsMenuOpen(false)}
               >
-                {pathname === item.path && (
+                {isActive(item.activePath) && (
                   <span className="mr-2 h-2 w-2 bg-[#586DF7] rounded-full inline-block"></span>
                 )}
                 {item.name}
@@ -261,7 +273,7 @@ const Navbar = () => {
                     Login
                   </Link>
                   <Link
-                    href="/register"
+                    href="/signup"
                     className="mt-2 block flex items-center w-full text-center px-3 py-2 rounded-full border border-[#586DF7] text-base font-medium text-[#586DF7] "
                     onClick={() => setIsMenuOpen(false)}
                   >

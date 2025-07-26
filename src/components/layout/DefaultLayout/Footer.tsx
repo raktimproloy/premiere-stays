@@ -21,7 +21,7 @@ const FooterSection = () => {
                   <p className="text-sm sm:text-base lg:text-lg text-blue-100 max-w-xl mb-4 sm:mb-6">
                     Browse our available rentals and secure your stay with just a few clicks. Whether you're planning a weekend getaway or a longer stay, we've got the perfect space waiting for you.
                   </p>
-                  <button className="bg-white text-blue-600 hover:bg-blue-50 font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-sm sm:text-base lg:text-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                  <button className="bg-[#F7B730] text-black hover:bg-[#F7B730]/80 font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-sm sm:text-base lg:text-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
                     Book A Property
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />

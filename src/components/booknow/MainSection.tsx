@@ -7,6 +7,7 @@ import 'swiper/css/navigation';
 import { BathroomIcon, BedIcon, CalendarIcon, GuestIcon, HeartIcon, LocationFillIcon, ProfileIcon, PropertyIcon, PropertyIcon2, ShareIcon } from '../../../public/images/svg';
 import DatePicker from 'react-datepicker';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 const images = [
   '/images/booknow/image1.png',
   '/images/booknow/image2.png',
@@ -59,7 +60,22 @@ export default function MainSection({id}: {id: string}) {
     };
     return (
     <section className="max-w-7xl mx-auto p-2 md:p-6 lg:p-8">
-    <div className="flex flex-col lg:flex-row gap-8">
+      {/* Breadcrumb and Print Section */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center text-sm text-gray-600">
+          <Link href="/" className="text-blue-600 hover:text-blue-800">Home</Link>
+          <span className="mx-2 text-gray-400">&gt;</span>
+          <span className="text-gray-600">Property Details</span>
+        </div>
+        <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800 text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          Print this page
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-8">
       {/* Left: Images */}
       <div className="w-full lg:w-3/5 flex flex-col items-center">
         <div className="w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center">

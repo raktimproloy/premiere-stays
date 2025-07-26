@@ -13,7 +13,7 @@ export default async function Page({params}: {params: Promise<{ id: string }>}) 
   const { id } = await params;
   return (
     <DefaultLayout>
-      <Breadcrumb bgImage={"/images/booknow_breadcrumb.jpg"} path={["Home", "Property Details"]} title="Property Details" description="" />
+      {/* <Breadcrumb bgImage={"/images/booknow_breadcrumb.jpg"} path={["Home", "Property Details"]} title="Property Details" description="" /> */}
       <MainSection id={id} />
       <AboutSection />
       <AvailabilitySection/>
