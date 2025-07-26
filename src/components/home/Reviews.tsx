@@ -8,6 +8,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import Image from 'next/image';
+import { QuoteIcon } from '../../../public/images/svg';
 
 const ReviewsSection = () => {
   const swiperRef = useRef<any>(null);
@@ -60,12 +61,11 @@ const ReviewsSection = () => {
           </h2>
         </div>
 
-        <div className="relative pt-14"> {/* Add top padding to make space for arrows */}
-          {/* Custom Navigation Buttons - now styled as circle border with icon */}
-          <div className="absolute w-full top-0 left-0 flex items-center justify-center gap-4 z-10">
+        <div className="relative py-8 mt-4">
+          {/* Custom Navigation Buttons - manually positioned at top center */}
+          <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-4 z-10">
             <button
-              className="swiper-button-prev flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-transparent transition-colors hover:border-gray-500 focus:outline-none p-4"
-              style={{width: '60px', height: '60px'}}
+              className="flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white transition-colors hover:border-gray-500 hover:shadow-lg focus:outline-none"
               onClick={() => swiperRef.current?.slidePrev()}
               aria-label="Previous"
             >
@@ -74,8 +74,7 @@ const ReviewsSection = () => {
               </svg>
             </button>
             <button
-              className="swiper-button-next flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-transparent transition-colors hover:border-gray-500 focus:outline-none p-4"
-              style={{width: '60px', height: '60px'}}
+              className="flex items-center justify-center w-12 h-12 rounded-full border border-gray-300 bg-white transition-colors hover:border-gray-500 hover:shadow-lg focus:outline-none"
               onClick={() => swiperRef.current?.slideNext()}
               aria-label="Next"
             >
@@ -111,11 +110,11 @@ const ReviewsSection = () => {
             onSwiper={(swiper) => {
               swiperRef.current = swiper;
             }}
-            className="mySwiper"
+            className="mySwiper pt-8 pb-8 h-[400px]"
           >
             {reviews.map((review) => (
               <SwiperSlide key={review.id}>
-                <div className="bg-white rounded-2xl shadow-xl p-8 h-full relative">
+                <div className="bg-white rounded-2xl shadow-md p-8 relative">
                   {/* Star Rating */}
                   <div className="flex mb-6">
                     {[...Array(5)].map((_, i) => (
@@ -134,18 +133,17 @@ const ReviewsSection = () => {
                   <blockquote className="text-gray-600 text-lg mb-8 italic">
                     "{review.content}"
                   </blockquote>
-                  {/* Reviewer Info */}
-                  <div className="flex items-center">
-                    <Image src={review.image} alt={review.name} width={100} height={100} className='rounded-full w-16 h-16 object-cover' />
-                    <div className="ml-4">
-                      <h4 className="font-bold text-gray-900 text-lg">{review.name}</h4>
-                      <p className="text-gray-500">{review.date}</p>
+                  <div className='flex items-center justify-between'>
+                    <div className="flex items-center">
+                      <Image src={review.image} alt={review.name} width={100} height={100} className='rounded-full w-16 h-16 object-cover' />
+                      <div className="ml-4">
+                        <h4 className="font-bold text-gray-900 text-lg">{review.name}</h4>
+                        <p className="text-gray-500">{review.date}</p>
+                      </div>
                     </div>
+                    <QuoteIcon/>
                   </div>
-                  {/* Quote Icon in bottom right */}
-                  <span className="absolute bottom-6 right-6 text-4xl text-gray-200 select-none">
-                    &ldquo;&rdquo;
-                  </span>
+                  {/* Reviewer Info */}
                 </div>
               </SwiperSlide>
             ))}

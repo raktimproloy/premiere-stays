@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { FaArrowRight, FaMapMarkerAlt, FaUserFriends } from 'react-icons/fa';
+import { FaArrowRight, FaMapMarkerAlt, FaUserFriends, FaChevronDown } from 'react-icons/fa';
 import { CalendarIcon, LocationIcon, ProfileIcon } from '../../../public/images/svg';
 
 const HeroSection = () => {
@@ -96,32 +96,22 @@ const HeroSection = () => {
     alert(`Searching for ${guests} guests in ${location || 'Miami'} from ${checkInDate?.toLocaleDateString()} to ${checkOutDate?.toLocaleDateString()}`);
   };
 
-  // Close dropdowns when clicking outside
-  // useEffect(() => {
-  //   const handleClickOutside = (e: MouseEvent) => {
-  //     if (formRef.current && !formRef.current.contains(e.target as Node)) {
-  //       if (!suppressClose) setActiveDropdown(null);
-  //     }
-  //   };
-  //   document.addEventListener('mousedown', handleClickOutside);
-  //   return () => document.removeEventListener('mousedown', handleClickOutside);
-  // }, [suppressClose]);
-
   return (
     <div className="relative h-[90vh] w-full">
-      {/* Background image with overlay */}
-      <div className="absolute inset-0 bg-black/50 z-0"></div>
+      {/* Background image */}
       <div 
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${HeroImage})` }}
       ></div>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/70 z-10"></div>
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col justify-center px-4 sm:px-6 lg:px-8">
+      <div className="relative z-20 h-full flex flex-col justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="hidden md:block text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-6 animate-fade-in">
-            Experience 5-Star Vacation Living
+          <h1 className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 sm:mb-6 animate-fade-in">
+          Experience 5-Star Vacation Living <br /> with Premier Stays Miami
           </h1>
-          <p className="hidden md:block text-white text-lg mb-8 max-w-2xl mx-auto animate-fade-in delay-200">
+          <p className="text-white text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto animate-fade-in delay-200">
             Unlock the full potential of your property with our expert management services. 
             We prioritize your success and satisfaction, ensuring a seamless experience every step of the way.
           </p>
@@ -129,12 +119,12 @@ const HeroSection = () => {
           <form 
             ref={formRef}
             onSubmit={handleSearch}
-            className="bg-white rounded-xl shadow-2xl p-4 md:p-6 max-w-full mx-auto animate-fade-in delay-300"
+            className="bg-white rounded-xl shadow-2xl p-3 sm:p-4 md:p-6 max-w-full mx-auto animate-fade-in delay-300"
           >
-            <div className="flex flex-col md:flex-row gap-2 md:gap-2 items-stretch rounded-xl">
+            <div className="flex flex-col lg:flex-row gap-2 md:gap-2 items-stretch rounded-xl">
               {/* Location Search */}
-              <div className="relative w-62 min-w-[120px]">
-                <div className="flex px-4 items-center border rounded-lg border-gray-300 bg-white h-full">
+              <div className="relative w-full lg:w-48 xl:w-62 min-w-[120px]">
+                <div className="flex px-3 sm:px-4 items-center border rounded-lg border-gray-300 bg-white h-full">
                   <LocationIcon  />
                   <input
                     type="text"
@@ -142,27 +132,27 @@ const HeroSection = () => {
                     onChange={(e) => setLocation(e.target.value)}
                     onFocus={() => handleDropdown('location')}
                     placeholder="Search by location"
-                    className="w-full px-2 py-3 bg-transparent focus:outline-none"
+                    className="w-full px-2 py-2 sm:py-3 bg-transparent focus:outline-none text-sm sm:text-base"
                   />
                 </div>
                 {activeDropdown === 'location' && (
-                  <div className="absolute z-20 mt-1 w-[140%] bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
+                  <div className="absolute z-20 mt-1 w-full lg:w-[140%] bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
                     {filteredLocations.map((loc) => (
                       <div
                         key={loc.id}
                         onClick={() => handleLocationSelect(loc.name)}
-                        className="px-4 py-3 hover:bg-gray-100 cursor-pointer flex justify-between"
+                        className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-100 cursor-pointer flex justify-between text-sm sm:text-base"
                       >
                         <span>{loc.name}</span>
-                        <span className="text-gray-500 text-sm">{loc.properties} properties</span>
+                        <span className="text-gray-500 text-xs sm:text-sm">{loc.properties} properties</span>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
               {/* Date Range Picker */}
-              <div className="flex flex-row flex-[2] min-w-[320px] border rounded-lg border-gray-300">
-                <div className="flex-1 relative flex items-center px-4">
+              <div className="flex flex-row flex-[2] min-w-[280px] sm:min-w-[320px] lg:min-w-[280px] xl:min-w-[320px] border rounded-lg border-gray-300">
+                <div className="flex-1 relative flex items-center px-2 sm:px-4">
                   <CalendarIcon />
                   <DatePicker
                     ref={checkInRef}
@@ -173,7 +163,7 @@ const HeroSection = () => {
                     endDate={checkOutDate}
                     minDate={new Date()}
                     placeholderText="Check-in"
-                    className="w-full px-4 py-3 bg-transparent focus:outline-none"
+                    className="w-full px-2 sm:px-4 py-2 sm:py-3 bg-transparent focus:outline-none text-sm sm:text-base"
                     onFocus={() => handleDropdown('checkin')}
                     popperPlacement="bottom"
                     popperClassName="z-30"
@@ -181,8 +171,8 @@ const HeroSection = () => {
                     onClickOutside={() => { if (!suppressClose) setActiveDropdown(null); }}
                   />
                 </div>
-                <div className="flex items-center px-2 text-gray-300 select-none">|</div>
-                <div className="flex-1 relative flex items-center px-4">
+                <div className="flex items-center px-1 sm:px-2 text-gray-300 select-none">|</div>
+                <div className="flex-1 relative flex items-center px-2 sm:px-4">
                   <CalendarIcon />
                   <DatePicker
                     ref={checkOutRef}
@@ -193,7 +183,7 @@ const HeroSection = () => {
                     endDate={checkOutDate}
                     minDate={checkInDate || new Date()}
                     placeholderText="Check-out"
-                    className="w-full px-4 py-3 bg-transparent focus:outline-none"
+                    className="w-full px-2 sm:px-4 py-2 sm:py-3 bg-transparent focus:outline-none text-sm sm:text-base"
                     onFocus={() => handleDropdown('checkout')}
                     popperPlacement="bottom"
                     popperClassName="z-30"
@@ -203,17 +193,18 @@ const HeroSection = () => {
                 </div>
               </div>
               {/* Guests */}
-              <div className="relative w-64 min-w-[90px]">
+              <div className="relative w-full lg:w-48 xl:w-64 min-w-[90px]">
                 <div
-                  className="flex px-4 items-center border-1 border-gray-300 rounded-lg bg-white h-full cursor-pointer"
+                  className="flex px-3 sm:px-4 items-center border-1 border-gray-300 rounded-lg bg-white h-full cursor-pointer"
                   onClick={() => handleDropdown('guests')}
                   tabIndex={0}
                   ref={guestsRef}
                 >
                   <ProfileIcon />
-                  <span className="w-full px-2 py-3 text-left select-none">
+                  <span className="w-full px-2 py-2 sm:py-3 text-left select-none text-sm sm:text-base">
                     {guests} {guests === 1 ? 'Guest' : 'Guests'}
                   </span>
+                  <FaChevronDown className={`text-gray-400 transition-transform duration-200 ${activeDropdown === 'guests' ? 'rotate-180' : ''}`} />
                 </div>
                 {activeDropdown === 'guests' && (
                   <div className="absolute z-20 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
@@ -224,7 +215,7 @@ const HeroSection = () => {
                           setGuests(num);
                           setActiveDropdown(null);
                         }}
-                        className={`px-4 py-3 hover:bg-gray-100 cursor-pointer ${guests === num ? 'bg-blue-50' : ''}`}
+                        className={`px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-100 cursor-pointer text-sm sm:text-base ${guests === num ? 'bg-blue-50' : ''}`}
                       >
                         {num} {num === 1 ? 'Guest' : 'Guests'}
                       </div>
@@ -236,10 +227,10 @@ const HeroSection = () => {
               <div className="flex items-stretch">
                 <button
                   type="submit"
-                  className="h-full w-full bg-gradient-to-r from-[#F7B730] to-[#F7B730] hover:from-[#F7B730] hover:to-[#F7B730] text-black font-semibold py-3 px-4 rounded-full transition-all duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center cursor-pointer"
+                  className="h-full w-full bg-gradient-to-r from-[#F7B730] to-[#F7B730] hover:from-[#F7B730] hover:to-[#F7B730] text-black font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-full transition-all duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center cursor-pointer"
                 >
-                  <span className="hidden md:inline">Search Properties</span>
-                  <FaArrowRight className='ml-2' />
+                  <span className="hidden lg:inline text-sm sm:text-base">Search Properties</span>
+                  <FaArrowRight className='ml-1 sm:ml-2 text-sm sm:text-base' />
                   {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:ml-1" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                   </svg> */}

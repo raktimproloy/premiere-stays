@@ -108,7 +108,7 @@ export default function Properties() {
           ))}
         </div>
         {/* Pagination bar */}
-        <div className="flex items-center justify-center gap-2 mt-10">
+        <div className="flex items-center justify-center gap-2 my-10">
           <button
             onClick={handlePrev}
             disabled={page === 1}

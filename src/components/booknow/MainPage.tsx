@@ -176,38 +176,201 @@ export default function MainPage() {
       setSelectedFacilities([]);
       setPriceRange([0, 400]);
     };
+
+    // Close filter on mobile when clicking outside
+    const handleFilterClose = () => {
+      if (window.innerWidth < 768) {
+        setShowFilters(false);
+      }
+    };
+
   return (
     <>
     {/* Properties Header Section */}
-    <div className="flex flex-col max-w-6xl mx-auto md:flex-row justify-between items-center mt-8 mb-6 gap-4">
-        <div className="text-lg font-medium text-gray-800">
+    <div className="flex flex-col max-w-6xl mx-auto lg:flex-row justify-between items-center mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="text-sm sm:text-base lg:text-lg font-medium text-gray-800 text-center lg:text-left">
           <span className="font-semibold">{(currentPage - 1) * PROPERTIES_PER_PAGE + 1}</span> - <span className="font-semibold">{Math.min(currentPage * PROPERTIES_PER_PAGE, filteredProperties.length)}</span> of <span className="font-semibold">{filteredProperties.length}</span> Properties
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-gray-500 text-sm">Sort By:</span>
-          {/* <select className="border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
-            <option>Newest</option>
-            <option>Price (Low to High)</option>
-            <option>Price (High to Low)</option>
-          </select> */}
+          <span className="text-gray-500 text-xs sm:text-sm">Sort By:</span>
           <button
-            className="ml-2 border border-gray-300 rounded-full px-6 py-2 text-sm text-gray-700 hover:bg-gray-100 transition flex items-center"
+            className="ml-2 border border-gray-300 rounded-full px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition flex items-center"
             onClick={() => setShowFilters(!showFilters)}
           >
             More Filters
-            <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            <svg className="ml-1 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex">
-        {/* Sidebar Filter Panel */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row">
+        {/* Mobile Filter Modal Overlay */}
         {showFilters && (
-          <div className="w-full sm:w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-6 mr-8 relative z-20">
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 lg:hidden" onClick={handleFilterClose}></div>
+        )}
+
+        {/* Mobile Filter Modal */}
+        {showFilters && (
+          <div className="fixed inset-0 z-50 lg:hidden flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-in-out">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 rounded-t-xl">
+                <div className="flex justify-between items-center">
+                  <div className="font-semibold text-lg">Filter by</div>
+                  <div className="flex items-center gap-2">
+                    <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
+                    <button className="text-gray-400 hover:text-gray-600 text-2xl" onClick={() => setShowFilters(false)}>&times;</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {/* Room Type */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Room Type</div>
+                  {ROOM_TYPES.map((type) => (
+                    <div key={type} className="flex items-center mb-1">
+                      <input type="checkbox" checked={selectedRoomTypes.includes(type)} onChange={handleCheckbox(setSelectedRoomTypes, type)} className="mr-2" />
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Beds */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Beds</div>
+                  {BED_TYPES.map((type) => (
+                    <div key={type} className="flex items-center mb-1">
+                      <input type="checkbox" checked={selectedBeds.includes(type)} onChange={handleCheckbox(setSelectedBeds, type)} className="mr-2" />
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Bathrooms */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Bathrooms</div>
+                  {BATHROOMS.map((type) => (
+                    <div key={type} className="flex items-center mb-1">
+                      <input type="checkbox" checked={selectedBathrooms.includes(type)} onChange={handleCheckbox(setSelectedBathrooms, type)} className="mr-2" />
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Guest */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Guest</div>
+                  {GUESTS.map((type) => (
+                    <div key={type} className="flex items-center mb-1">
+                      <input type="checkbox" checked={selectedGuests.includes(type)} onChange={handleCheckbox(setSelectedGuests, type)} className="mr-2" />
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Persons */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Persons</div>
+                  {PERSONS.map((type) => (
+                    <div key={type} className="flex items-center mb-1">
+                      <input type="checkbox" checked={selectedPersons.includes(type)} onChange={handleCheckbox(setSelectedPersons, type)} className="mr-2" />
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Facilities */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Facilities</div>
+                  {FACILITIES.map((type) => (
+                    <div key={type} className="flex items-center mb-1">
+                      <input type="checkbox" checked={selectedFacilities.includes(type)} onChange={handleCheckbox(setSelectedFacilities, type)} className="mr-2" />
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Price Range */}
+                <div>
+                  <div className="font-semibold text-sm mb-2">Price range</div>
+                  <div className="flex flex-col sm:flex-row items-center justify-between mb-2 gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Min</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={priceRange[1]}
+                        value={priceRange[0]}
+                        onChange={e => {
+                          const val = Math.min(Number(e.target.value), priceRange[1]);
+                          setPriceRange([val, priceRange[1]]);
+                        }}
+                        className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                      />
+                    </div>
+                    <span className="mx-2 text-gray-400 hidden sm:inline">—</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Max</span>
+                      <input
+                        type="number"
+                        min={priceRange[0]}
+                        max={400}
+                        value={priceRange[1]}
+                        onChange={e => {
+                          const val = Math.max(Number(e.target.value), priceRange[0]);
+                          setPriceRange([priceRange[0], val]);
+                        }}
+                        className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                      />
+                    </div>
+                  </div>
+                  <div className="relative flex items-center">
+                    {/* Min slider */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={priceRange[1]}
+                      value={priceRange[0]}
+                      onChange={e => {
+                        const val = Math.min(Number(e.target.value), priceRange[1]);
+                        setPriceRange([val, priceRange[1]]);
+                      }}
+                      className="w-full accent-yellow-400"
+                      style={{ zIndex: priceRange[0] > 0 ? 2 : 1 }}
+                    />
+                    {/* Max slider */}
+                    <input
+                      type="range"
+                      min={priceRange[0]}
+                      max={400}
+                      value={priceRange[1]}
+                      onChange={e => {
+                        const val = Math.max(Number(e.target.value), priceRange[0]);
+                        setPriceRange([priceRange[0], val]);
+                      }}
+                      className="w-full accent-yellow-400 absolute left-0 top-0"
+                      style={{ zIndex: 1 }}
+                      tabIndex={-1}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>$0</span>
+                    <span>$400</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop Sidebar Filter Panel */}
+        {showFilters && (
+          <div className="hidden lg:block lg:relative lg:w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-6 mr-8 relative z-20">
             <div className="flex justify-between items-center mb-4">
               <div className="font-semibold text-lg">Filter by</div>
               <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
             </div>
+            
             {/* Room Type */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Room Type</div>
@@ -218,6 +381,7 @@ export default function MainPage() {
                 </div>
               ))}
             </div>
+            
             {/* Beds */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Beds</div>
@@ -228,6 +392,7 @@ export default function MainPage() {
                 </div>
               ))}
             </div>
+            
             {/* Bathrooms */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Bathrooms</div>
@@ -238,6 +403,7 @@ export default function MainPage() {
                 </div>
               ))}
             </div>
+            
             {/* Guest */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Guest</div>
@@ -248,6 +414,7 @@ export default function MainPage() {
                 </div>
               ))}
             </div>
+            
             {/* Persons */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Persons</div>
@@ -258,6 +425,7 @@ export default function MainPage() {
                 </div>
               ))}
             </div>
+            
             {/* Facilities */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Facilities</div>
@@ -268,6 +436,7 @@ export default function MainPage() {
                 </div>
               ))}
             </div>
+            
             {/* Price Range */}
             <div className="mb-4">
               <div className="font-semibold text-sm mb-2">Price range</div>
@@ -336,24 +505,25 @@ export default function MainPage() {
                 <span>$400</span>
               </div>
             </div>
-            <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-2xl" onClick={() => setShowFilters(false)}>&times;</button>
           </div>
         )}
+
         {/* Property Grid */}
-        <div className={`flex-1 transition-all duration-300 ${showFilters ? 'md:w-2/3' : 'md:w-full'}`}>
-          <div className={`grid grid-cols-1 ${showFilters ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6`}>
+        <div className={`flex-1 transition-all duration-300 ${showFilters ? 'lg:w-2/3' : 'w-full'}`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 ${showFilters ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
             {paginatedProperties.map((property) => (
               <PropertyCard key={property.id} property={property} />
             ))}
           </div>
         </div>
       </div>
+
       {/* Pagination */}
-      <div className="flex justify-center my-20">
-        <nav className="flex items-center gap-4">
+      <div className="flex justify-center my-16 mb-20 sm:my-16 lg:my-20 px-4 sm:px-6 lg:px-8">
+        <nav className="flex items-center gap-2 sm:gap-4">
           {/* Left Arrow */}
           <button
-            className={`w-10 h-10 rounded-full border ${currentPage === 1 ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
+            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border text-sm sm:text-base ${currentPage === 1 ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
@@ -363,7 +533,7 @@ export default function MainPage() {
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
-              className={`w-10 h-10 rounded-full border border-blue-100 text-blue-500 font-semibold ${currentPage === page ? 'bg-yellow-400 text-white' : 'bg-white hover:bg-blue-50'}`}
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-blue-100 text-blue-500 font-semibold text-xs sm:text-sm ${currentPage === page ? 'bg-yellow-400 text-white' : 'bg-white hover:bg-blue-50'}`}
               onClick={() => setCurrentPage(page)}
             >
               {page.toString().padStart(2, '0')}
@@ -371,7 +541,7 @@ export default function MainPage() {
           ))}
           {/* Right Arrow */}
           <button
-            className={`w-10 h-10 rounded-full border ${currentPage === totalPages ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
+            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border text-sm sm:text-base ${currentPage === totalPages ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >

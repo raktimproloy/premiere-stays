@@ -6,7 +6,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import { BathroomIcon, BedIcon, CalendarIcon, GuestIcon, HeartIcon, LocationFillIcon, ProfileIcon, PropertyIcon, PropertyIcon2, ShareIcon } from '../../../public/images/svg';
 import DatePicker from 'react-datepicker';
-
+import { useRouter } from 'next/navigation';
 const images = [
   '/images/booknow/image1.png',
   '/images/booknow/image2.png',
@@ -15,7 +15,8 @@ const images = [
   '/images/booknow/image5.png',
 ];
 
-export default function MainSection() {
+export default function MainSection({id}: {id: string}) {
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
@@ -215,7 +216,7 @@ export default function MainSection() {
             <span className="text-gray-400 text-xs">(You won't be charged yet!)</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <button className="w-3/5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors duration-300 flex items-center justify-center mb-2">
+            <button className="w-3/5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors duration-300 flex items-center justify-center mb-2" onClick={() => router.push(`/book-now/checkout/${id}`)}>
                 Book Now
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />

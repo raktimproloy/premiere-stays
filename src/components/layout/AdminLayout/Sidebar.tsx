@@ -1,3 +1,4 @@
+'use client'
 import { useAuth } from '@/components/common/AuthContext';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -6,6 +7,7 @@ import { FiX } from 'react-icons/fi';
 import { DashboardIcon, PropertyIcon, BookingIcon, CalendarIcon, ReviewsIcon, ProfileIcon, SettingsIcon } from '../../../../public/images/svg';
 import { FiHelpCircle } from 'react-icons/fi';
 import type { IconProps } from '../../../../public/images/svg';
+import { useRouter } from 'next/navigation';
 
 const Logo = "/images/logo.png"
 const Dashboard = "/images/icons/dashboard.svg"
@@ -37,7 +39,7 @@ export default function Sidebar({
   currentPath 
 }: SidebarProps) {
   const { isAuthenticated, logout } = useAuth();
-
+  const router = useRouter();
   // Main navigation items
   const mainNavItems: NavItem[] = [
     { title: 'Dashboard', link: '/admin/dashboard', icon: <DashboardIcon /> },
@@ -60,7 +62,7 @@ export default function Sidebar({
     >
       <div className="flex flex-col h-screen overflow-y-auto">
         <div className="p-4 flex items-center justify-between">
-          <Image src={Logo} alt='logo' width={157} height={70} />
+          <Image src={Logo} alt='logo' width={157} height={70} objectFit="contain" onClick={() => router.push('/')} />
           <button 
             onClick={() => setSidebarOpen(false)} 
             className="md:hidden text-gray-600 hover:text-gray-900 focus:outline-none"

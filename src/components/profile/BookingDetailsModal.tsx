@@ -33,7 +33,29 @@ const dummyProperty = {
 
 const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, property }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const data = property || dummyProperty;
+  
+  // Map the actual booking data structure to the expected format
+  const data = property ? {
+    name: property.title || property.name,
+    location: property.location,
+    bedrooms: property.bedroom || property.bedrooms,
+    bathrooms: property.bathroom || property.bathrooms,
+    type: property.type,
+    capacity: property.capacity,
+    payment: property.payment || 'Credit Card',
+    services: property.services || [],
+    price: property.price,
+    rating: property.rating || 4.5,
+    reviews: property.reviews || 3400,
+    applyDate: property.applyDate || '10-08-2025',
+    images: property.images || [
+      property.image || '/images/property.png',
+      property.image || '/images/property.png',
+      property.image || '/images/property.png',
+      property.image || '/images/property.png',
+    ],
+    description: property.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem in velit sed enim pharetra aliquet. Etiam euismod, urna eu tincidunt consectetur, nisi nisl aliquam enim, nec dictum ex enim euismod enim. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Integer euismod, urna eu tincidunt consectetur, nisi nisl aliquam enim, nec dictum ex enim euismod enim.',
+  } : dummyProperty;
 
   // Close on Esc
   useEffect(() => {

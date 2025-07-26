@@ -10,13 +10,17 @@ const ReviewsSection = () => {
     rating: 5,
     content: 'This property is...'
   });
-
+ 
+  const profileImage1 = '/images/profile.jpg'
+  const profileImage2 = '/images/profile2.jpg'
+  
   // Mock reviews data
   const reviews = [
     {
       id: 1,
       name: 'Cameron Williamson',
       date: 'July, 23 2020',
+      profileImage: profileImage1,
       content: 'Our family stayed at the Wynwood Townhome and couldn’t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.',
       rating: 5
     },
@@ -24,6 +28,7 @@ const ReviewsSection = () => {
       id: 2,
       name: 'Floyd Miles',
       date: 'July, 23 2020',
+      profileImage: profileImage2,
       content: 'Our family stayed at the Wynwood Townhome and couldn’t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.',
       rating: 5
     },
@@ -31,6 +36,7 @@ const ReviewsSection = () => {
       id: 3,
       name: 'Kathryn Murphy',
       date: 'July, 23 2020',
+      profileImage: profileImage1,
       content: 'Our family stayed at the Wynwood Townhome and couldn’t have been happier. The heated pool was a hit with the kids, and the spacious, modern interior had everything we needed.',
       rating: 5
     },
@@ -38,6 +44,7 @@ const ReviewsSection = () => {
       id: 4,
       name: 'Jenny Wilson',
       date: 'June, 15 2020',
+      profileImage: profileImage2,
       content: 'The location was perfect for exploring Miami. The heated pool was amazing and the property was even better than the photos. Would definitely stay again!',
       rating: 4
     },
@@ -45,6 +52,7 @@ const ReviewsSection = () => {
       id: 5,
       name: 'Robert Fox',
       date: 'May, 30 2020',
+      profileImage: profileImage1,
       content: 'We had a wonderful time at the townhome. The management was very responsive and the property was clean and well-maintained. Highly recommend!',
       rating: 5
     },
@@ -52,6 +60,7 @@ const ReviewsSection = () => {
       id: 6,
       name: 'Dianne Russell',
       date: 'May, 12 2020',
+      profileImage: profileImage2,
       content: 'Perfect for our large family gathering. Plenty of space for everyone and the pool area was fantastic. The design district location was very convenient.',
       rating: 5
     }
@@ -154,7 +163,7 @@ const ReviewsSection = () => {
               {sortedReviews.slice(0, reviewsToShow).map((review) => (
                 <div key={review.id} className="bg-white rounded-xl p-6 shadow-sm">
                   <div className="flex items-center mb-4">
-                    <div className="bg-gray-200 border-2 border-dashed rounded-full w-12 h-12 mr-4" />
+                    <div className="bg-gray-200 rounded-full w-14 h-14 mr-4" style={{backgroundImage: `url(${review.profileImage})`, backgroundSize: 'cover', backgroundPosition: 'center'}} />
                     <div>
                       <h3 className="font-bold text-gray-900">{review.name}</h3>
                       <p className="text-gray-500 text-sm">{review.date}</p>
@@ -246,24 +255,19 @@ const ReviewsSection = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Choose rating
                   </label>
-                  <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => handleRatingChange(star)}
-                        className={`p-1 rounded-full ${
-                          reviewForm.rating >= star 
-                            ? 'text-yellow-400' 
-                            : 'text-gray-300'
-                        }`}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
+                  <select
+                    name="rating"
+                    value={reviewForm.rating}
+                    onChange={(e) => handleRatingChange(Number(e.target.value))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="">Select a rating</option>
+                    <option value="5">⭐ 5 stars</option>
+                    <option value="4">⭐ 4 stars</option>
+                    <option value="3">⭐ 3 stars</option>
+                    <option value="2">⭐ 2 stars</option>
+                    <option value="1">⭐ 1 star</option>
+                  </select>
                 </div>
                 
                 <div className="mb-6">
