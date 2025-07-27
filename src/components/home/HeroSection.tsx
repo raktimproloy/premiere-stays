@@ -6,6 +6,13 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { FaArrowRight, FaMapMarkerAlt, FaUserFriends, FaChevronDown } from 'react-icons/fa';
 import { CalendarIcon, LocationIcon, ProfileIcon } from '../../../public/images/svg';
+import { saveSearchSession } from '@/utils/cookies';
+
+interface Location {
+  city: string;
+  country: string;
+  propertyIds: number[];
+}
 
 const HeroSection = () => {
 
@@ -20,6 +27,9 @@ const HeroSection = () => {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showGuestsDropdown, setShowGuestsDropdown] = useState(false);
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
+  const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // State for which dropdown is open
   const [activeDropdown, setActiveDropdown] = useState<null | 'location' | 'guests' | 'checkin' | 'checkout'>(null);
@@ -32,31 +42,52 @@ const HeroSection = () => {
   const guestsRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Dummy location data
-  const locations: Location[] = [
-    { id: 1, name: 'Miami Beach', properties: 124 },
-    { id: 2, name: 'South Beach', properties: 98 },
-    { id: 3, name: 'Key Biscayne', properties: 45 },
-    { id: 4, name: 'Downtown Miami', properties: 87 },
-    { id: 5, name: 'Coconut Grove', properties: 56 },
-    { id: 6, name: 'Coral Gables', properties: 72 },
-    { id: 7, name: 'Brickell', properties: 103 },
-    { id: 8, name: 'Bal Harbour', properties: 38 },
-    { id: 9, name: 'Sunny Isles', properties: 65 },
-  ];
+  // Fetch locations from API
+  useEffect(() => {
+    const fetchLocations = async () => {
+      setIsLoadingLocations(true);
+      try {
+        // First, ensure properties are cached
+        const cacheResponse = await fetch('/api/properties/cache');
+        if (!cacheResponse.ok) {
+          console.error('Failed to cache properties');
+          return;
+        }
+
+        // Then fetch locations
+        const response = await fetch('/api/properties/locations');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.locations) {
+            setAllLocations(data.locations);
+            setFilteredLocations(data.locations);
+          }
+        } else {
+          console.error('Failed to fetch locations');
+        }
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+      } finally {
+        setIsLoadingLocations(false);
+      }
+    };
+
+    fetchLocations();
+  }, []);
 
   // Filter locations based on search input
   useEffect(() => {
     if (location.trim() === '') {
-      setFilteredLocations(locations);
+      setFilteredLocations(allLocations);
     } else {
       setFilteredLocations(
-        locations.filter(loc => 
-          loc.name.toLowerCase().includes(location.toLowerCase())
+        allLocations.filter(loc => 
+          loc.city.toLowerCase().includes(location.toLowerCase()) ||
+          loc.country.toLowerCase().includes(location.toLowerCase())
         )
       );
     }
-  }, [location]);
+  }, [location, allLocations]);
 
   // Update dropdown open/close logic
   const handleDropdown = (dropdown: typeof activeDropdown) => {
@@ -85,15 +116,42 @@ const HeroSection = () => {
   };
 
   // Handle form submission
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Search Parameters:', {
-      location,
-      checkInDate,
-      checkOutDate,
-      guests
-    });
-    alert(`Searching for ${guests} guests in ${location || 'Miami'} from ${checkInDate?.toLocaleDateString()} to ${checkOutDate?.toLocaleDateString()}`);
+    setIsSubmitting(true);
+
+    try {
+      // Find the selected location and get its property IDs
+      let propertyIds: number[] = [];
+      if (location) {
+        const selectedLocation = allLocations.find(loc => 
+          `${loc.city}, ${loc.country}` === location
+        );
+        if (selectedLocation) {
+          propertyIds = selectedLocation.propertyIds;
+        }
+      }
+
+      // Save search session to cookie
+      const searchData = {
+        location: location || 'Any Location',
+        checkInDate: checkInDate ? checkInDate.toISOString().split('T')[0] : '',
+        checkOutDate: checkOutDate ? checkOutDate.toISOString().split('T')[0] : '',
+        guests,
+        propertyIds
+      };
+
+      const uniqueId = saveSearchSession(searchData);
+
+      // Navigate to search results page with unique ID
+      window.location.href = `/book-now?id=${uniqueId}`;
+
+    } catch (error) {
+      console.error('Error saving search session:', error);
+      alert('An error occurred while processing your search. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -131,22 +189,33 @@ const HeroSection = () => {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     onFocus={() => handleDropdown('location')}
-                    placeholder="Search by location"
+                    placeholder={isLoadingLocations ? "Loading locations..." : "Search by location"}
                     className="w-full px-2 py-2 sm:py-3 bg-transparent focus:outline-none text-sm sm:text-base"
+                    disabled={isLoadingLocations || isSubmitting}
                   />
                 </div>
                 {activeDropdown === 'location' && (
                   <div className="absolute z-20 mt-1 w-full lg:w-[140%] bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-                    {filteredLocations.map((loc) => (
-                      <div
-                        key={loc.id}
-                        onClick={() => handleLocationSelect(loc.name)}
-                        className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-100 cursor-pointer flex justify-between text-sm sm:text-base"
-                      >
-                        <span>{loc.name}</span>
-                        <span className="text-gray-500 text-xs sm:text-sm">{loc.properties} properties</span>
+                    {isLoadingLocations ? (
+                      <div className="px-3 sm:px-4 py-2 sm:py-3 text-gray-500 text-sm sm:text-base">
+                        Loading locations...
                       </div>
-                    ))}
+                    ) : filteredLocations.length > 0 ? (
+                      filteredLocations.map((loc, index) => (
+                        <div
+                          key={`${loc.city}-${loc.country}-${index}`}
+                          onClick={() => handleLocationSelect(`${loc.city}, ${loc.country}`)}
+                          className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-100 cursor-pointer flex justify-between text-sm sm:text-base"
+                        >
+                          <span>{loc.city}, {loc.country}</span>
+                          <span className="text-gray-500 text-xs sm:text-sm">{loc.propertyIds.length} properties</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 sm:px-4 py-2 sm:py-3 text-gray-500 text-sm sm:text-base">
+                        No locations found
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -169,6 +238,7 @@ const HeroSection = () => {
                     popperClassName="z-30"
                     open={activeDropdown === 'checkin'}
                     onClickOutside={() => { if (!suppressClose) setActiveDropdown(null); }}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="flex items-center px-1 sm:px-2 text-gray-300 select-none">|</div>
@@ -189,6 +259,7 @@ const HeroSection = () => {
                     popperClassName="z-30"
                     open={activeDropdown === 'checkout'}
                     onClickOutside={() => { if (!suppressClose) setActiveDropdown(null); }}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -196,7 +267,7 @@ const HeroSection = () => {
               <div className="relative w-full lg:w-48 xl:w-64 min-w-[90px]">
                 <div
                   className="flex px-3 sm:px-4 items-center border-1 border-gray-300 rounded-lg bg-white h-full cursor-pointer"
-                  onClick={() => handleDropdown('guests')}
+                  onClick={() => !isSubmitting && handleDropdown('guests')}
                   tabIndex={0}
                   ref={guestsRef}
                 >
@@ -231,9 +302,6 @@ const HeroSection = () => {
                 >
                   <span className="hidden lg:inline text-sm sm:text-base">Search Properties</span>
                   <FaArrowRight className='ml-1 sm:ml-2 text-sm sm:text-base' />
-                  {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:ml-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                  </svg> */}
                 </button>
               </div>
             </div>
@@ -243,12 +311,5 @@ const HeroSection = () => {
     </div>
   );
 };
-
-// Type definition for location data
-interface Location {
-  id: number;
-  name: string;
-  properties: number;
-}
 
 export default HeroSection;
