@@ -20,12 +20,20 @@ const Navbar = () => {
   const Logo = '/images/logo.png';
   const { isAuthenticated, logout } = useAuth();
 
-  // Dummy user info (replace with real user data if available)
-  const user = {
+  // Get user data from auth context
+  const { user: authUser } = useAuth();
+  
+  // Use auth user data if available, otherwise use dummy data
+  const user = authUser ? {
+    first_name: authUser.fullName.split(' ')[0] || 'User',
+    last_name: authUser.fullName.split(' ').slice(1).join(' ') || '',
+    email_address: authUser.email,
+  } : {
     first_name: 'Zahidul',
     last_name: 'Islam',
     email_address: 'zahidulislam@gmail.com',
   };
+  
   const formatFullName = () => `${user.first_name} ${user.last_name}`;
   const formatEmail = () => user.email_address;
 

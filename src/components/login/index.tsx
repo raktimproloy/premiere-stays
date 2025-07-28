@@ -29,10 +29,14 @@ export default function LoginPage() {
   const router = useRouter();
 
   React.useEffect(() => {
-    if (isAuthenticated && role === 'admin') {
-      router.push('/admin/dashboard');
-    } else if (isAuthenticated && role === 'superadmin') {
-      router.push('/superadmin/dashboard');
+    if (isAuthenticated) {
+      if (role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (role === 'superadmin') {
+        router.push('/superadmin/dashboard');
+      } else if (role === 'user') {
+        router.push('/');
+      }
     }
   }, [isAuthenticated, role, router]);
 
