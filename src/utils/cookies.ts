@@ -9,6 +9,17 @@ export interface SearchSession {
   createdAt: string;
 }
 
+export interface BookingPath {
+  path: string;
+  propertyId: string;
+  searchId?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  email?: string;
+  createdAt: string;
+}
+
 export const setCookie = (name: string, value: string, minutes: number = 20) => {
   const expires = new Date();
   expires.setTime(expires.getTime() + (minutes * 60 * 1000));
@@ -71,4 +82,41 @@ export const getSearchSession = (id: string): SearchSession | null => {
 
 export const clearSearchSession = (id: string) => {
   deleteCookie(`search_${id}`);
+};
+
+// Booking path functions
+export const saveBookingPath = (bookingData: Omit<BookingPath, 'createdAt'>) => {
+  const bookingPath: BookingPath = {
+    ...bookingData,
+    createdAt: new Date().toISOString()
+  };
+  
+  setCookie('bookingPath', JSON.stringify(bookingPath), 60); // 60 minutes expiry
+};
+
+export const getBookingPath = (): BookingPath | null => {
+  const cookieValue = getCookie('bookingPath');
+  if (!cookieValue) return null;
+  
+  try {
+    const bookingPath = JSON.parse(cookieValue);
+    // Check if session is expired (60 minutes)
+    const createdAt = new Date(bookingPath.createdAt);
+    const now = new Date();
+    const diffInMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+    
+    if (diffInMinutes > 60) {
+      deleteCookie('bookingPath');
+      return null;
+    }
+    
+    return bookingPath;
+  } catch (error) {
+    console.error('Error parsing booking path:', error);
+    return null;
+  }
+};
+
+export const clearBookingPath = () => {
+  deleteCookie('bookingPath');
 }; 

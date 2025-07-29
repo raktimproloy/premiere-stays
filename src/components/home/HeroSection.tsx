@@ -14,6 +14,12 @@ interface Location {
   propertyIds: number[];
 }
 
+function formatLocalDate(date: Date) {
+  return date.getFullYear() + '-' +
+    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+    String(date.getDate()).padStart(2, '0');
+}
+
 const HeroSection = () => {
 
   const HeroImage = "/images/hero_section.png"
@@ -135,8 +141,8 @@ const HeroSection = () => {
       // Save search session to cookie
       const searchData = {
         location: location || 'Any Location',
-        checkInDate: checkInDate ? checkInDate.toISOString().split('T')[0] : '',
-        checkOutDate: checkOutDate ? checkOutDate.toISOString().split('T')[0] : '',
+        checkInDate: checkInDate ? formatLocalDate(checkInDate) : '',
+        checkOutDate: checkOutDate ? formatLocalDate(checkOutDate) : '',
         guests,
         propertyIds
       };

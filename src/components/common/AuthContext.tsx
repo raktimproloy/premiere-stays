@@ -1,6 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { getBookingPath, clearBookingPath } from '@/utils/cookies';
 
 interface User {
   _id: string;
@@ -103,6 +104,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const handleSuccessfulAuth = (userData: User) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    setRole(userData.role);
+    setLoading(false);
+
+    // Check for booking path redirect
+    const bookingPath = getBookingPath();
+    if (bookingPath && userData.role === 'user') {
+      // Clear the booking path cookie
+      clearBookingPath();
+      // Redirect to the saved booking path with searchId if available
+      const redirectPath = bookingPath.searchId 
+        ? `${bookingPath.path}?id=${bookingPath.searchId}`
+        : bookingPath.path;
+      router.push(redirectPath);
+    } else {
+      // Default redirect based on role
+      if (userData.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (userData.role === 'superadmin') {
+        router.push('/superadmin/dashboard');
+      } else {
+        router.push('/');
+      }
+    }
+  };
+
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -119,26 +148,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
           phone: '',
           dob: '',
-          role: dummyUser.role,
+          role: dummyUser.role as 'admin' | 'user' | 'superadmin',
           createdAt: new Date(),
           emailVerified: true
         };
         
-        setUser(userData);
-        setIsAuthenticated(true);
-        setRole(userData.role);
+        handleSuccessfulAuth(userData);
         localStorage.setItem('authToken', 'dummy-token');
         localStorage.setItem('user', JSON.stringify(userData));
-        setLoading(false);
-        
-        // Redirect based on role
-        if (userData.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (userData.role === 'superadmin') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/');
-        }
         
         return true;
       }
@@ -155,20 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setUser(data.user);
-        setIsAuthenticated(true);
-        setRole(data.user.role);
-        setLoading(false);
-        
-        // Redirect based on role
-        if (data.user.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (data.user.role === 'superadmin') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/');
-        }
-        
+        handleSuccessfulAuth(data.user);
         return true;
       } else {
         setError(data.message || 'Login failed');
@@ -199,20 +203,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setUser(data.user);
-        setIsAuthenticated(true);
-        setRole(data.user.role);
-        setLoading(false);
-        
-        // Redirect based on role (default is user)
-        if (data.user.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (data.user.role === 'superadmin') {
-          router.push('/superadmin/dashboard');
-        } else {
-          router.push('/');
-        }
-        
+        handleSuccessfulAuth(data.user);
         return true;
       } else {
         setError(data.message || 'Signup failed');

@@ -14,9 +14,11 @@ export interface User {
   role: 'user' | 'admin' | 'superadmin';
   isActive: boolean;
   emailVerified: boolean;
+  guestId?: number; // Add guest ID from OwnerRez
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
+  bookingIds?: string[]; // Add this line for booking IDs
 }
 
 export interface AuthResponse {
@@ -35,6 +37,7 @@ export const authService = {
     dob: string;
     password: string;
     profileImage?: string;
+    guestId?: number; // Add guest ID parameter
   }): Promise<AuthResponse> {
     try {
       const client = await clientPromise;
@@ -67,6 +70,7 @@ export const authService = {
         role: "user" as const,
         isActive: true,
         emailVerified: false,
+        guestId: userData.guestId, // Store the guest ID
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLogin: new Date(),

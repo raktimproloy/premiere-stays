@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth';
 
+async function createGuestInOwnerRez(fullName: string, email: string, phone: string) {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/guests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fullName,
+        email,
+        phone
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Guest creation failed: ${error.message || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    return result.guest;
+  } catch (error) {
+    console.error('Guest creation error:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { fullName, email, phone, dob, password, profileImage } = await request.json();
@@ -30,13 +57,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // First, create guest in OwnerRez
+    let guestData;
+    try {
+      guestData = await createGuestInOwnerRez(fullName, email, phone);
+    } catch (error) {
+      console.error('Failed to create guest in OwnerRez:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to create guest profile. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    // Then create user in our database with the guest ID
     const result = await authService.signup({
       fullName,
       email,
       phone,
       dob,
       password,
-      profileImage
+      profileImage,
+      guestId: guestData.id // Add guest ID to the signup data
     });
 
     if (result.success) {

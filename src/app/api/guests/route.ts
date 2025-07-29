@@ -237,6 +237,16 @@ export async function GET(request: NextRequest) {
 
     const data: OwnerRezGuestsResponse = await response.json();
 
+    // Fix: If items is not an array, return not found
+    if (!Array.isArray(data.items)) {
+      return NextResponse.json({
+        success: true,
+        guest: null,
+        found: false,
+        message: 'No guest found with the specified email address'
+      });
+    }
+
     // Filter for the exact email match
     const exactMatch = data.items.find(guest => 
       guest.email_addresses.some(emailAddr => 

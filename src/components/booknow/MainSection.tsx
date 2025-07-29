@@ -6,9 +6,11 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import { BathroomIcon, BedIcon, CalendarIcon, GuestIcon, HeartIcon, LocationFillIcon, ProfileIcon, PropertyIcon, PropertyIcon2, ShareIcon } from '../../../public/images/svg';
 import DatePicker from 'react-datepicker';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getSearchSession } from '@/utils/cookies';
+import { getSearchSession, saveBookingPath } from '@/utils/cookies';
+import { useAuth } from '@/components/common/AuthContext';
+
 const images = [
   '/images/booknow/image1.png',
   '/images/booknow/image2.png',
@@ -17,8 +19,18 @@ const images = [
   '/images/booknow/image5.png',
 ];
 
-export default function MainSection({id, searchId}: {id: string, searchId?: string}) {
+interface MainSectionProps {
+  id?: string;
+  searchId?: string;
+}
+
+export default function MainSection(props: MainSectionProps) {
     const router = useRouter();
+    const params = useParams();
+    const searchParams = useSearchParams();
+    const id = props.id || (params?.id as string);
+    const searchId = props.searchId || (searchParams.get('id') || undefined);
+    const { isAuthenticated, user } = useAuth();
     const [email, setEmail] = useState('');
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
@@ -87,6 +99,12 @@ export default function MainSection({id, searchId}: {id: string, searchId?: stri
         });
       return () => { isMounted = false; };
     }, [id]);
+    // If user is logged in, set email to user.email
+    useEffect(() => {
+      if (isAuthenticated && user?.email) {
+        setEmail(user.email);
+      }
+    }, [isAuthenticated, user]);
     // Use property images if available, otherwise fallback
     const propertyImages = property?.images && Array.isArray(property.images) && property.images.length > 0
       ? property.images.map((img: any) => img.url || img)
@@ -125,6 +143,30 @@ export default function MainSection({id, searchId}: {id: string, searchId?: stri
       setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
       setSuppressClose(true);
     };
+
+    const handleBookNow = () => {
+      if (!isAuthenticated) {
+        // Save booking path in cookies and redirect to login
+        saveBookingPath({
+          path: `/book-now/checkout/${id}` + (searchId ? `?id=${searchId}` : ''),
+          propertyId: id,
+          searchId: searchId,
+          checkIn: checkIn,
+          checkOut: checkOut,
+          guests: guests,
+          email: email
+        });
+        router.push('/login');
+      } else {
+        // User is logged in, proceed to checkout
+        if (searchId) {
+          router.push(`/book-now/checkout/${id}?id=${searchId}`);
+        } else {
+          router.push(`/book-now/checkout/${id}`);
+        }
+      }
+    };
+
     if (loading) {
       return (
         <div className="flex justify-center items-center min-h-[400px]">
@@ -218,6 +260,7 @@ export default function MainSection({id, searchId}: {id: string, searchId?: stri
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={!!(isAuthenticated && user?.email)}
           />
             <div className="flex flex-row flex-[2] min-w-[320px] border rounded-lg border-gray-300 mb-3">
                 <div className="flex-1 relative flex items-center px-4">
@@ -311,7 +354,7 @@ export default function MainSection({id, searchId}: {id: string, searchId?: stri
             <span className="text-gray-400 text-xs">(You won't be charged yet!)</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <button className="w-3/5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors duration-300 flex items-center justify-center mb-2" onClick={() => router.push(`/book-now/checkout/${id}`)}>
+            <button className="w-3/5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors duration-300 flex items-center justify-center mb-2" onClick={handleBookNow}>
                 Book Now
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />

@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     if (result.valid && result.user) {
       // Remove password from user object
       const { password, ...userWithoutPassword } = result.user;
-      
+      // Ensure bookingIds is always present as an array
+      if (!userWithoutPassword.bookingIds) userWithoutPassword.bookingIds = [];
       return NextResponse.json({
         success: true,
         user: userWithoutPassword

@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LocationFillIcon } from '../../../public/images/svg';
 import { CalendarIcon } from 'lucide-react';
 import DatePicker from 'react-datepicker';
@@ -8,8 +8,34 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ProfileIcon } from '../../../public/images/svg';
 import { useRef } from 'react';
 import { FaArrowRight } from 'react-icons/fa';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { getSearchSession } from '@/utils/cookies';
+import { useAuth } from '@/components/common/AuthContext';
+
+// Add GuestEntry type
+interface GuestEntry {
+  id?: number;
+  name: string;
+  email: string;
+  phone: string;
+  guestObj?: any; // full guest object from API
+  isSelf?: boolean;
+}
+
+function formatLocalDate(date: Date) {
+  return date.getFullYear() + '-' +
+    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+    String(date.getDate()).padStart(2, '0');
+}
+
 const propertyImage1 = '/images/property.png';
 const MainSection = () => {
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const id = params?.id as string;
+  const searchId = searchParams.get('id') || undefined;
+  const { user, isAuthenticated } = useAuth();
   const [selectedAddress, setSelectedAddress] = useState('zahidul');
   const [newAddress, setNewAddress] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,18 +53,183 @@ const MainSection = () => {
   const checkOutRef = useRef<DatePicker>(null);
   const guestsRef = useRef<HTMLDivElement>(null);
 
-  
+  // Property state
+  const [property, setProperty] = useState<any>(null);
+  const [propertyLoading, setPropertyLoading] = useState(true);
+  const [propertyError, setPropertyError] = useState<string | null>(null);
+
+  // Guest search/create state
+  const [guest, setGuest] = useState<any>(null);
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
+
+  // Dynamic guest list state
+  const [addedGuests, setAddedGuests] = useState<GuestEntry[]>([]);
+
+  // Booking state
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingResults, setBookingResults] = useState<any[]>([]);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
+  // Fetch property data
+  useEffect(() => {
+    if (!id) return;
+    setPropertyLoading(true);
+    setPropertyError(null);
+    fetch(`/api/properties/${id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch property');
+        const data = await res.json();
+        if (data.success && data.property) {
+          setProperty(data.property);
+        } else {
+          setProperty(null);
+          setPropertyError('Property not found');
+        }
+      })
+      .catch(() => {
+        setProperty(null);
+        setPropertyError('Failed to fetch property');
+      })
+      .finally(() => setPropertyLoading(false));
+  }, [id]);
+
+  // Prefill right side from search session
+  useEffect(() => {
+    if (searchId) {
+      const session = getSearchSession(searchId);
+      if (!session) {
+        router.push('/');
+        return;
+      }
+      if (session.checkInDate) setCheckInDate(new Date(session.checkInDate));
+      if (session.checkOutDate) setCheckOutDate(new Date(session.checkOutDate));
+      if (session.guests) setGuests(session.guests);
+    }
+  }, [searchId, router]);
+
+  // Optionally, prefill email with logged-in user
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      setEmail(user.email);
+    }
+  }, [isAuthenticated, user]);
+
+  // Guest form handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Helper: check if user is already added
+  const isUserAdded = isAuthenticated && user && addedGuests.some(g => g.email === user.email);
+  // Helper: check if max guests reached
+  const maxGuestsReached = addedGuests.length >= guests;
+
+  // Add Myself handler
+  const handleAddMyself = async () => {
+    if (!user || isUserAdded || maxGuestsReached) return;
+    // Search for guest by user.email
+    setGuestLoading(true);
+    setGuestError(null);
+    try {
+      const searchRes = await fetch(`/api/guests?email=${encodeURIComponent(user.email)}`);
+      const searchData = await searchRes.json();
+      let guestObj = null;
+      if (searchRes.ok && searchData.found && searchData.guest) {
+        guestObj = searchData.guest;
+      } else {
+        // Create guest if not found
+        const createRes = await fetch('/api/guests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: user.fullName,
+            email: user.email,
+            phone: user.phone
+          })
+        });
+        const createData = await createRes.json();
+        if (createRes.ok && createData.guest) {
+          guestObj = createData.guest;
+        } else {
+          setGuestError(createData.message || 'Failed to create guest');
+          setGuestLoading(false);
+          return;
+        }
+      }
+      setAddedGuests(prev => [...prev, {
+        id: guestObj?.id,
+        name: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        guestObj,
+        isSelf: true
+      }]);
+    } catch (err: any) {
+      setGuestError('Error searching or creating guest');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
+  // Add New Guest handler (form)
+  const handleGuestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (maxGuestsReached) return;
+    setGuestError(null);
+    setGuestLoading(true);
+    try {
+      // 1. Search guest by email
+      const searchRes = await fetch(`/api/guests?email=${encodeURIComponent(formData.email)}`);
+      const searchData = await searchRes.json();
+      let guestObj = null;
+      if (searchRes.ok && searchData.found && searchData.guest) {
+        guestObj = searchData.guest;
+      } else {
+        // 2. If not found, create guest
+        const createRes = await fetch('/api/guests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: formData.name,
+            email: formData.email,
+            phone: formData.phone
+          })
+        });
+        const createData = await createRes.json();
+        if (createRes.ok && createData.guest) {
+          guestObj = createData.guest;
+        } else {
+          setGuestError(createData.message || 'Failed to create guest');
+          setGuestLoading(false);
+          return;
+        }
+      }
+      setAddedGuests(prev => [...prev, {
+        id: guestObj?.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        guestObj,
+        isSelf: false
+      }]);
+      // Reset form
+      setFormData({ name: '', email: '', phone: '' });
+    } catch (err: any) {
+      setGuestError('Error searching or creating guest');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
+  // Remove guest handler
+  const handleRemoveGuest = (email: string) => {
+    setAddedGuests(prev => prev.filter(g => g.email !== email));
+  };
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedAddress(e.target.value);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,6 +261,52 @@ const MainSection = () => {
     { id: 'googlepay', label: 'Google Pay', image: '/images/gpay.png' },
   ];
 
+  // Booking handler
+  const handleCheckout = async () => {
+    setBookingLoading(true);
+    setBookingResults([]);
+    setBookingError(null);
+    if (!property || !checkInDate || !checkOutDate || addedGuests.length !== guests) {
+      setBookingError('Please add all guests and select dates.');
+      setBookingLoading(false);
+      return;
+    }
+    const arrival = formatLocalDate(checkInDate);
+    const departure = formatLocalDate(checkOutDate);
+    const property_id = property.id;
+    const is_block = false;
+    try {
+      const results: any[] = [];
+      for (const g of addedGuests) {
+        const guest_id = g.guestObj?.id;
+        if (!guest_id) {
+          results.push({ success: false, guest: g, error: 'Missing guest ID' });
+          continue;
+        }
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ arrival, departure, property_id, is_block, guest_id })
+        });
+        const data = await res.json();
+        results.push({ ...data, guest: g });
+        // Save booking ID to user if booking was successful
+        if (data.success && data.booking && data.booking.id) {
+          await fetch('/api/user/add-booking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: data.booking.id })
+          });
+        }
+      }
+      setBookingResults(results);
+    } catch (err: any) {
+      setBookingError('Booking failed. Please try again.');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -95,109 +332,145 @@ const MainSection = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8">
-          {/* Left Column - Guest Information */}
+          {/* Left Column - User Info */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Guest Information</h2>
               <div className="mb-6 sm:mb-8">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Attached address</h3>
-                {/* Address Info - always visible */}
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Your Profile</h3>
                 <div className="space-y-1 mb-6 sm:mb-8 pl-1">
-                  <p className="flex items-center font-medium text-gray-700 text-sm sm:text-base">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Zahidul Islam
-                  </p>
-                  <p className="flex items-center text-gray-600 text-sm sm:text-base">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    zahidulsiams66@gmail.com
-                  </p>
-                  <p className="flex items-center text-gray-600 text-sm sm:text-base">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    1231 456-7890
-                  </p>
-                  <p className="flex items-center text-gray-600 text-sm sm:text-base">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    2021 Royalty Boulevard Portland, OR 96199
-                  </p>
+                  {isAuthenticated && user ? (
+                    <>
+                      <p className="flex items-center font-medium text-gray-700 text-sm sm:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {user.fullName}
+                      </p>
+                      <p className="flex items-center text-gray-600 text-sm sm:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {user.email}
+                      </p>
+                      <p className="flex items-center text-gray-600 text-sm sm:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        {user.phone}
+                      </p>
+                      {!isUserAdded && !maxGuestsReached && (
+                        <button
+                          type="button"
+                          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                          onClick={handleAddMyself}
+                          disabled={guestLoading}
+                        >
+                          {guestLoading ? 'Adding...' : 'Add Myself as Guest'}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-gray-500">You are not logged in.</p>
+                  )}
                 </div>
-                {/* Add New Address Form - always visible */}
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Add New Address</h3>
-                <form onSubmit={handleSubmit} className="border-t border-gray-200 pt-4 sm:pt-6">
-                  <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Enter your Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        id="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className="block w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                        placeholder="Enter your Name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Enter your Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        id="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="block w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                        placeholder="Enter your Email"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Enter your Phone</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        id="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="block w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                        placeholder="Enter your Phone"
-                        required
-                      />
-                    </div>
-                    <div className='flex justify-end'>
+                {/* Dynamic Guest List */}
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Guests ({addedGuests.length}/{guests})</h3>
+                <ul className="mb-4">
+                  {addedGuests.map(g => (
+                    <li key={g.email} className="flex items-center justify-between border-b py-2">
+                      <span>
+                        <b>{g.name}</b> ({g.email}) {g.isSelf && <span className="text-xs text-blue-500">(You)</span>}
+                      </span>
                       <button
-                        type="submit"
-                        className="bg-[#586DF7] text-white py-2 sm:py-3 px-6 sm:px-10 rounded-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-end gap-2 text-sm sm:text-base"
+                        type="button"
+                        className="text-red-500 text-xs ml-2"
+                        onClick={() => handleRemoveGuest(g.email)}
+                        disabled={guestLoading}
                       >
-                        Save
-                        <FaArrowRight className="w-3 h-3 sm:w-4 sm:h-4"/>
+                        Remove
                       </button>
+                    </li>
+                  ))}
+                </ul>
+                {/* Add New Guest Form (only if not at max) */}
+                {!maxGuestsReached && (
+                  <form onSubmit={handleGuestSubmit} className="border-t border-gray-200 pt-4 sm:pt-6">
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                      <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          id="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          className="block w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                          placeholder="Enter full name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input
+                          type="email"
+                          name="email"
+                          id="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          className="block w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                          placeholder="Enter email"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          id="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          className="block w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                          placeholder="Enter phone"
+                          required
+                        />
+                      </div>
+                      <div className='flex justify-end'>
+                        <button
+                          type="submit"
+                          className="bg-[#586DF7] text-white py-2 sm:py-3 px-6 sm:px-10 rounded-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-end gap-2 text-sm sm:text-base"
+                          disabled={guestLoading}
+                        >
+                          {guestLoading ? 'Saving...' : 'Add Guest'}
+                          <FaArrowRight className="w-3 h-3 sm:w-4 sm:h-4"/>
+                        </button>
+                      </div>
+                      {guestError && <p className="text-red-500 text-sm mt-2">{guestError}</p>}
                     </div>
-                  </div>
-                </form>
+                  </form>
+                )}
               </div>
             </div>
           </div>
-          
-          {/* Right Column - Booking Summary */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 sticky top-4 sm:top-8">
+
+          {/* Right Column - Booking Card */}
+          <div className="lg:col-span-2 flex flex-col">
+            <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
               {/* Property Info */}
-              <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <Image src={propertyImage1} alt="property" width={200} height={200} className='w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover' />
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm sm:text-base">Design District Guesthouse – 2Bdrms</h3>
-                  <p className="text-gray-600 text-xs sm:text-sm flex items-start gap-1"><span className='bg-[#586DF71A] p-1 sm:p-2 rounded-full'><LocationFillIcon /></span> Miami, Miami Dade County, Florida, United States</p>
-                </div>
-              </div>
+              {propertyLoading ? (
+                <div className="text-gray-500">Loading property...</div>
+              ) : propertyError ? (
+                <div className="text-red-500">{propertyError}</div>
+              ) : property ? (
+                <>
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{property.name}</h1>
+                  <div className="flex items-center text-gray-500 text-sm mb-4">
+                    <span className='mr-2 bg-[#586DF71A] p-2 rounded-full'><LocationFillIcon /></span>
+                    {property.address ? `${property.address.city}, ${property.address.state}, ${property.address.country}` : ''}
+                  </div>
+                </>
+              ) : null}
               {/* Booking Details */}
               <div className="border-t border-gray-200 pt-4 sm:pt-6 mb-4 sm:mb-6">
                 <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -309,9 +582,29 @@ const MainSection = () => {
                     <span className="font-bold text-blue-800">$6,129.90</span>
                   </div>
                 </div>
-                <button className="w-full bg-[#F7B730] text-black py-2 sm:py-3 px-4 rounded-full shadow-sm hover:bg-[#e4c278] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm sm:text-base">
-                  Continue →
+                <button
+                  className="w-full bg-[#F7B730] text-black py-2 sm:py-3 px-4 rounded-full shadow-sm hover:bg-[#e4c278] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm sm:text-base"
+                  onClick={handleCheckout}
+                  disabled={bookingLoading || addedGuests.length !== guests || !checkInDate || !checkOutDate || !property}
+                >
+                  {bookingLoading ? 'Processing...' : 'Continue →'}
                 </button>
+                {/* Booking feedback */}
+                {bookingError && <div className="text-red-500 text-sm mt-2">{bookingError}</div>}
+                {bookingResults.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Booking Results:</h4>
+                    <ul>
+                      {bookingResults.map((r, i) => (
+                        <li key={i} className={r.success ? 'text-green-600' : 'text-red-600'}>
+                          {r.success
+                            ? `Success: Booking for ${r.guest.name} (${r.guest.email}) - Booking ID: ${r.booking?.id}`
+                            : `Failed: ${r.guest.name} (${r.guest.email}) - ${r.message || r.error}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="mt-3 sm:mt-4 text-center">
                   <a href="#" className="text-xs sm:text-sm font-medium text-black hover:text-blue-800">
                     Back to Listing Detail

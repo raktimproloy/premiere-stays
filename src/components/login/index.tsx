@@ -3,7 +3,6 @@ import React, { useState } from 'react'
 import AuthLayout from "@/components/layout/AuthLayout"
 import Link from 'next/link';
 import { useAuth } from "@/components/common/AuthContext";
-import { useRouter } from "next/navigation";
 
 type FormData = {
   email: string;
@@ -25,20 +24,7 @@ export default function LoginPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading, error, isAuthenticated, role } = useAuth();
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      if (role === 'admin') {
-        router.push('/admin/dashboard');
-      } else if (role === 'superadmin') {
-        router.push('/superadmin/dashboard');
-      } else if (role === 'user') {
-        router.push('/');
-      }
-    }
-  }, [isAuthenticated, role, router]);
+  const { login, loading, error } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -76,10 +62,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        // router.push handled by useEffect
-      }
+      await login(formData.email, formData.password);
     }
   };
 

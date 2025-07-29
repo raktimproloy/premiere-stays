@@ -4,11 +4,7 @@ import PropertyCard from '@/components/common/card/PropertyCard';
 import DefaultLayout from '@/components/layout/DefaultLayout'
 import React, { useState, useEffect } from 'react'
 import { getSearchSession, SearchSession } from '@/utils/cookies';
-import { useRouter } from 'next/navigation';
-
-interface MainPageProps {
-  searchId?: string | null;
-}
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const propertyImage1 = '/images/property.png';
 
@@ -39,8 +35,10 @@ const FACILITIES = ['Wi-Fi', 'Pet-Friendly', 'AC', 'Laundry', 'Kitchen Access', 
 
 const PROPERTIES_PER_PAGE = 3;
 
-export default function MainPage({ searchId }: MainPageProps) {
+export default function MainPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const searchId = searchParams.get('id');
     const [properties, setProperties] = useState<Property[]>([]);
     const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
     const [searchSession, setSearchSession] = useState<SearchSession | null>(null);

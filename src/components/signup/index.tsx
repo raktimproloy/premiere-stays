@@ -7,7 +7,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AuthLayout from '../layout/AuthLayout';
 import { useAuth } from '@/components/common/AuthContext';
-import { useRouter } from 'next/navigation';
 // import Logo from "/images/logo.png"
 const Logo = "/images/logo.png"
 const SideImage = "/images/signup.png"
@@ -54,7 +53,6 @@ const SignUpForm = () => {
 
   // Auth context
   const { signup, loading, error } = useAuth();
-  const router = useRouter();
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,17 +155,13 @@ const SignUpForm = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      const success = await signup({
+      await signup({
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         dob: formData.dob,
         password: formData.password
       });
-
-      if (success) {
-        router.push('/');
-      }
     }
   };
 
