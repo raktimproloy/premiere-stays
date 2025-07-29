@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
-import { getToken } from 'next-auth/jwt';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,51 +12,37 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get NextAuth token
-  const token = await getToken({ req: request, secret: process.env.NEXT_PUBLIC_NEXTAUTH_SECRET });
+  // Get JWT token from cookie
+  const token = request.cookies.get('authToken')?.value;
 
-  // Admin routes
+  // Admin routes - allow admin and superadmin
   if (pathname.startsWith('/admin/')) {
-    // Check for NextAuth token first
-    if (token && token.role === 'admin') {
-      return NextResponse.next();
-    }
-
-    // Fallback to JWT token for dummy users
-    const jwtToken = request.cookies.get('authToken')?.value || 
-                    request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!jwtToken) {
+    if (!token) {
+      console.log('Middleware: No token found for admin route:', pathname);
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     try {
-      const decoded = verifyToken(jwtToken);
-      if (decoded.role !== 'admin') {
+      const decoded = verifyToken(token);
+      console.log('Middleware: Token decoded for admin route:', { pathname, role: decoded.role });
+      if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
+        console.log('Middleware: Insufficient role for admin route:', { pathname, role: decoded.role });
         return NextResponse.redirect(new URL('/login', request.url));
       }
     } catch (error) {
+      console.log('Middleware: Token verification failed for admin route:', { pathname, error: error instanceof Error ? error.message : 'Unknown error' });
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
-  // Superadmin routes
+  // Superadmin routes - only allow superadmin
   if (pathname.startsWith('/superadmin/')) {
-    // Check for NextAuth token first
-    if (token && token.role === 'superadmin') {
-      return NextResponse.next();
-    }
-
-    // Fallback to JWT token for dummy users
-    const jwtToken = request.cookies.get('authToken')?.value || 
-                    request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!jwtToken) {
+    if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     try {
-      const decoded = verifyToken(jwtToken);
+      const decoded = verifyToken(token);
       if (decoded.role !== 'superadmin') {
         return NextResponse.redirect(new URL('/login', request.url));
       }
@@ -66,26 +51,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // User routes (like profile, bookings, etc.)
+  // User routes (like profile, bookings, etc.) - allow all authenticated users
   if (pathname.startsWith('/profile/') || pathname.startsWith('/bookings/')) {
-    // Check for NextAuth token first
-    if (token && token.role === 'user') {
-      return NextResponse.next();
-    }
-
-    // Fallback to JWT token for dummy users
-    const jwtToken = request.cookies.get('authToken')?.value || 
-                    request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!jwtToken) {
+    if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     try {
-      const decoded = verifyToken(jwtToken);
-      if (decoded.role !== 'user') {
-        return NextResponse.redirect(new URL('/login', request.url));
-      }
+      const decoded = verifyToken(token);
+      // Allow all authenticated users (user, admin, superadmin) to access profile and bookings
     } catch (error) {
       return NextResponse.redirect(new URL('/login', request.url));
     }

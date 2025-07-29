@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google"; // ✅ Import Inter Tight
 import "./globals.css";
 import { AuthProvider } from "@/components/common/AuthContext";
-import SessionProvider from "@/components/providers/SessionProvider";
 import Script from "next/script";
 
 // ✅ Load the Inter Tight font
@@ -32,11 +31,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${interTight.variable} antialiased`}>
-        <SessionProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </SessionProvider>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

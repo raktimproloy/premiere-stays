@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import clientPromise from '@/lib/mongodb';
-import { generateToken } from '@/lib/jwt';
+import { authService } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +8,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!fullName || !email || !phone || !dob || !password) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { success: false, message: 'All fields are required' },
         { status: 400 }
       );
     }
@@ -19,93 +17,48 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { success: false, message: 'Invalid email format' },
         { status: 400 }
       );
     }
 
     // Validate password strength
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(password)) {
+    if (password.length < 6) {
       return NextResponse.json(
-        { error: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' },
+        { success: false, message: 'Password must be at least 6 characters long' },
         { status: 400 }
       );
     }
 
-    // Connect to MongoDB
-    const client = await clientPromise;
-    const db = client.db('premiere-stays');
-    const usersCollection = db.collection('users');
-
-    // Check if user already exists
-    const existingUser = await usersCollection.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 409 }
-      );
-    }
-
-    // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Create user object
-    const user = {
+    const result = await authService.signup({
       fullName,
-      email: email.toLowerCase(),
+      email,
       phone,
-      dob: new Date(dob),
-      password: hashedPassword,
-      profileImage: profileImage || null,
-      role: 'user' as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true,
-      emailVerified: false,
-      registerType: 'manual', // <-- add this line
-      socialLogin: {
-        google: false,
-        facebook: false,
-        apple: false
-      }
-    };
-
-    // Insert user into database
-    const result = await usersCollection.insertOne(user);
-
-    // Generate JWT token
-    const token = generateToken({
-      userId: result.insertedId.toString(),
-      email: user.email,
-      role: user.role
+      dob,
+      password,
+      profileImage
     });
 
-    // Return user data (without password) and token
-    const userResponse = {
-      id: result.insertedId.toString(),
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone,
-      dob: user.dob,
-      profileImage: user.profileImage,
-      role: user.role,
-      createdAt: user.createdAt,
-      emailVerified: user.emailVerified
-    };
+    if (result.success) {
+      const response = NextResponse.json(result, { status: 201 });
+      
+      // Set HTTP-only cookie with the token
+      response.cookies.set('authToken', result.token!, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/'
+      });
 
-    return NextResponse.json({
-      success: true,
-      message: 'User registered successfully',
-      user: userResponse,
-      token
-    }, { status: 201 });
-
+      return response;
+    } else {
+      return NextResponse.json(result, { status: 400 });
+    }
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Signup API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     );
   }

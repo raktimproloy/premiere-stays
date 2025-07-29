@@ -12,26 +12,29 @@ const notificationIcon = "/images/icons/notification.svg";
 const chatIcon = "/images/icons/chat.svg";
 
 interface UserData {
-  company_name?: string;
-  email_address: string;
-  first_name: string;
-  last_name: string;
-  time_zone?: string;
-  id?: number;
+  _id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  dob: string;
+  profileImage?: string;
+  role: 'user' | 'admin' | 'superadmin';
+  createdAt: Date;
+  emailVerified: boolean;
+  lastLogin?: Date;
 }
 
 // Copy of nav items from Sidebar for title lookup
 const navItems = [
   { title: 'Dashboard', link: '/superadmin/dashboard' },
-  { title: 'Business Request', link: '/superadmin/business-request' },
   { title: 'Manage Property', link: '/superadmin/properties' },
-  { title: 'Property Request', link: '/superadmin/property-request' },
   { title: 'Bookings', link: '/superadmin/bookings' },
-  { title: 'Payment History', link: '/superadmin/payment-history' },
   { title: 'Calendar', link: '/superadmin/calendar' },
   { title: 'Reviews', link: '/superadmin/reviews' },
+  { title: 'Users', link: '/superadmin/users' },
   { title: 'Profile', link: '/superadmin/profile' },
   { title: 'Settings', link: '/superadmin/settings' },
+  { title: 'Help', link: '/superadmin/help' },
 ];
 
 interface HeaderProps {
@@ -47,20 +50,20 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData, currentP
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, logout } = useAuth();
+  const router = useRouter();
 
   // Format the user's full name safely
   const formatFullName = () => {
     if (!userData) return 'User';
-    return `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User';
+    return userData.fullName || 'User';
   };
 
   // Format the email address safely
   const formatEmail = () => {
     if (!userData) return '';
-    return userData.email_address || '';
+    return userData.email || '';
   };
 
-  const router = useRouter();
   // Find active nav title
   const activeNav = navItems.find(item => currentPath.startsWith(item.link));
   const activeTitle = activeNav ? activeNav.title : '';

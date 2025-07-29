@@ -5,11 +5,11 @@ import { BathroomIcon, GuestIcon, LocationFillIcon } from '../../../../public/im
 import { BedIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-export default function PropertyCard({property}: {property: any}) {
+export default function PropertyCard({property, searchId}: {property: any, searchId?: string | null}) {
   const router = useRouter();
   return (
     <div 
-      onClick={() => router.push(`/book-now/${property.id}`)}
+      onClick={() => router.push(`/book-now/${property.id}${searchId ? `?id=${searchId}` : ''}`)}
       key={property.id}
       className="bg-white rounded-xl shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
     >

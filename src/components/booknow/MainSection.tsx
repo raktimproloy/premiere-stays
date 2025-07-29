@@ -1,5 +1,5 @@
 'use client'
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
 import 'swiper/css';
@@ -8,6 +8,7 @@ import { BathroomIcon, BedIcon, CalendarIcon, GuestIcon, HeartIcon, LocationFill
 import DatePicker from 'react-datepicker';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getSearchSession } from '@/utils/cookies';
 const images = [
   '/images/booknow/image1.png',
   '/images/booknow/image2.png',
@@ -16,7 +17,7 @@ const images = [
   '/images/booknow/image5.png',
 ];
 
-export default function MainSection({id}: {id: string}) {
+export default function MainSection({id, searchId}: {id: string, searchId?: string}) {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [checkIn, setCheckIn] = useState('');
@@ -27,7 +28,73 @@ export default function MainSection({id}: {id: string}) {
       lunch: false,
       driver: false
     });
-    const [mainImage, setMainImage] = useState(images[0]);
+    // Fetch property data
+    const [property, setProperty] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    // Get search session if searchId is provided
+    const [searchSession, setSearchSession] = useState<any>(null);
+    
+    useEffect(() => {
+      if (searchId) {
+        const session = getSearchSession(searchId);
+        setSearchSession(session);
+        
+        // Pre-fill form fields with search session data
+        if (session) {
+          if (session.checkInDate) {
+            const checkInDate = new Date(session.checkInDate);
+            setCheckInDate(checkInDate);
+            setCheckIn(session.checkInDate);
+          }
+          if (session.checkOutDate) {
+            const checkOutDate = new Date(session.checkOutDate);
+            setCheckOutDate(checkOutDate);
+            setCheckOut(session.checkOutDate);
+          }
+          if (session.guests) {
+            setGuests(session.guests);
+          }
+        }
+      }
+    }, [searchId]);
+    console.log(searchSession)
+    useEffect(() => {
+      let isMounted = true;
+      setLoading(true);
+      setError(null);
+      fetch(`/api/properties/${id}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Failed to fetch property');
+          const data = await res.json();
+          if (isMounted) {
+            if (data.success && data.property) {
+              setProperty(data.property);
+            } else {
+              setProperty(null);
+              setError('Property not found');
+            }
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setProperty(null);
+            setError('Failed to fetch property');
+          }
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+      return () => { isMounted = false; };
+    }, [id]);
+    // Use property images if available, otherwise fallback
+    const propertyImages = property?.images && Array.isArray(property.images) && property.images.length > 0
+      ? property.images.map((img: any) => img.url || img)
+      : images;
+    const [mainImage, setMainImage] = useState(propertyImages[0]);
+    useEffect(() => {
+      setMainImage(propertyImages[0]);
+    }, [propertyImages]);
     const [checkInDate, setCheckInDate] = useState<Date | null>(null);
     const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -58,6 +125,18 @@ export default function MainSection({id}: {id: string}) {
       setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
       setSuppressClose(true);
     };
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-400"></div>
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className="flex justify-center items-center min-h-[400px] text-red-500 font-semibold">{error}</div>
+      );
+    }
     return (
     <section className="max-w-7xl mx-auto p-2 md:p-6 lg:p-8">
       {/* Breadcrumb and Print Section */}
@@ -111,7 +190,7 @@ export default function MainSection({id}: {id: string}) {
               1024: { slidesPerView: 4 },
             }}
           >
-            {images.map((img, idx) => (
+            {propertyImages.map((img: string, idx: number) => (
               <SwiperSlide key={img}>
                 <button
                   className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${mainImage === img ? 'border-yellow-400' : 'border-transparent'}`}
@@ -128,10 +207,10 @@ export default function MainSection({id}: {id: string}) {
       {/* Right: Booking Card */}
       <div className="w-full lg:w-2/5 flex flex-col">
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Wynwood Townhomes w/ Heated Pools</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{property?.name || 'Wynwood Townhomes w/ Heated Pools'}</h1>
           <div className="flex items-center text-gray-500 text-sm mb-4">
           <span className='mr-2 bg-[#586DF71A] p-2 rounded-full'><LocationFillIcon /></span>
-            Miami, Miami-Dade County, Florida, United States
+            {property?.address ? `${property.address.city}, ${property.address.state}, ${property.address.country}` : 'Miami, Miami-Dade County, Florida, United States'}
           </div>
           <input
             type="email"

@@ -9,12 +9,13 @@ import MapSection from '@/components/booknow/MapSection'
 import ReviewsSection from '@/components/booknow/ReviewsSection'
 import Properties from '@/components/booknow/Properties'
 
-export default async function Page({params}: {params: Promise<{ id: string }>}) {
-  const { id } = await params;
+export default function Page({ params, searchParams }: { params: { id: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
+  const { id } = params;
+  const searchId = searchParams?.id as string | undefined;
+  
   return (
     <DefaultLayout>
-      {/* <Breadcrumb bgImage={"/images/booknow_breadcrumb.jpg"} path={["Home", "Property Details"]} title="Property Details" description="" /> */}
-      <MainSection id={id} />
+      <MainSection id={id} searchId={searchId} />
       <AboutSection />
       <AvailabilitySection/>
       <MapSection/>

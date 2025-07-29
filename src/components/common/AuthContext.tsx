@@ -1,14 +1,13 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession, signIn, signOut } from 'next-auth/react';
 
 interface User {
-  id: string;
+  _id: string;
   fullName: string;
   email: string;
-  phone?: string;
-  dob?: Date;
+  phone: string;
+  dob: string;
   profileImage?: string;
   role: 'user' | 'admin' | 'superadmin';
   createdAt: Date;
@@ -21,7 +20,6 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (userData: SignupData) => Promise<boolean>;
-  socialLogin: (provider: 'google' | 'facebook' | 'apple') => Promise<boolean>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -53,60 +51,57 @@ function isValidRole(role: string | null): role is 'user' | 'admin' | 'superadmi
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<'user' | 'admin' | 'superadmin' | null>(null);
   const router = useRouter();
-  const { data: session, status } = useSession();
 
+  // Check authentication status on mount
   useEffect(() => {
-    // Handle NextAuth session
-    if (status === 'loading') {
-      setLoading(true);
-      return;
-    }
+    checkAuthStatus();
+  }, []);
 
-    if (session?.user) {
-      // Convert NextAuth session to our User format
-      const userData: User = {
-        id: session.user.id || '',
-        fullName: session.user.name || '',
-        email: session.user.email || '',
-        profileImage: session.user.image || '',
-        role: (session.user.role as 'user' | 'admin' | 'superadmin') || 'user',
-        createdAt: new Date(),
-        emailVerified: true,
-      };
-      
-      setUser(userData);
-      setIsAuthenticated(true);
-      setRole(userData.role);
-      setLoading(false);
-    } else {
-      // Check localStorage for dummy admin/superadmin users
-      const token = localStorage.getItem('authToken');
-      const storedUser = localStorage.getItem('user');
-      
-      if (token && storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
-          setRole(userData.role);
-        } catch (error) {
-          console.error('Error parsing stored user data:', error);
-          // Clear invalid data
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-        }
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setRole(data.user.role);
       } else {
-        setIsAuthenticated(false);
-        setUser(null);
-        setRole(null);
+        // Check localStorage for dummy admin/superadmin users
+        const token = localStorage.getItem('authToken');
+        const storedUser = localStorage.getItem('user');
+        
+        if (token && storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+            setIsAuthenticated(true);
+            setRole(userData.role);
+          } catch (error) {
+            console.error('Error parsing stored user data:', error);
+            // Clear invalid data
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+          }
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+          setRole(null);
+        }
       }
+    } catch (error) {
+      console.error('Auth status check error:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+      setRole(null);
+    } finally {
       setLoading(false);
     }
-  }, [session, status]);
+  };
 
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -119,9 +114,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (dummyUser) {
         // Handle dummy admin/superadmin login
         const userData: User = {
-          id: 'dummy-' + Date.now(),
+          _id: 'dummy-' + Date.now(),
           fullName: email.split('@')[0],
           email: email,
+          phone: '',
+          dob: '',
           role: dummyUser.role,
           createdAt: new Date(),
           emailVerified: true
@@ -130,28 +127,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userData);
         setIsAuthenticated(true);
         setRole(userData.role);
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('role', userData.role);
+        localStorage.setItem('authToken', 'dummy-token');
         localStorage.setItem('user', JSON.stringify(userData));
         setLoading(false);
+        
+        // Redirect based on role
+        if (userData.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else if (userData.role === 'superadmin') {
+          router.push('/superadmin/dashboard');
+        } else {
+          router.push('/');
+        }
+        
         return true;
       }
 
-      // Handle regular user login with NextAuth
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+      // Handle regular user login
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (result?.error) {
-        setError(result.error);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setRole(data.user.role);
+        setLoading(false);
+        
+        // Redirect based on role
+        if (data.user.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else if (data.user.role === 'superadmin') {
+          router.push('/superadmin/dashboard');
+        } else {
+          router.push('/');
+        }
+        
+        return true;
+      } else {
+        setError(data.message || 'Login failed');
         setLoading(false);
         return false;
       }
-
-      setLoading(false);
-      return true;
     } catch (error) {
       console.error('Login error:', error);
       setError('Network error. Please try again.');
@@ -179,12 +202,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(data.user);
         setIsAuthenticated(true);
         setRole(data.user.role);
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
         setLoading(false);
+        
+        // Redirect based on role (default is user)
+        if (data.user.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else if (data.user.role === 'superadmin') {
+          router.push('/superadmin/dashboard');
+        } else {
+          router.push('/');
+        }
+        
         return true;
       } else {
-        setError(data.error || 'Signup failed');
+        setError(data.message || 'Signup failed');
         setLoading(false);
         return false;
       }
@@ -196,35 +227,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const socialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
-    setLoading(true);
-    setError(null);
-    
+  const logout = async () => {
     try {
-      const result = await signIn(provider, { 
-        callbackUrl: '/',
-        redirect: false 
+      // Call logout API to clear server-side session
+      await fetch('/api/auth/logout', {
+        method: 'POST',
       });
-
-      if (result?.error) {
-        setError(result.error);
-        setLoading(false);
-        return false;
-      }
-
-      setLoading(false);
-      return true;
     } catch (error) {
-      console.error(`${provider} login error:`, error);
-      setError('Network error. Please try again.');
-      setLoading(false);
-      return false;
+      console.error('Logout API error:', error);
     }
-  };
-
-  const logout = () => {
-    // Sign out from NextAuth
-    signOut({ callbackUrl: '/' });
     
     // Clear local state and localStorage
     setIsAuthenticated(false);
@@ -232,8 +243,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRole(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('role');
+    
+    // Redirect to home page
+    router.push('/');
   };
 
   return (
@@ -242,7 +254,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       login, 
       signup,
-      socialLogin,
       logout, 
       loading, 
       error, 

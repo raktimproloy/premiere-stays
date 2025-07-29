@@ -209,26 +209,108 @@ export default function MainPage({ searchId }: MainPageProps) {
 
     // Apply filters to properties
     useEffect(() => {
-        const filtered = properties.filter((property) => {
-            // Room Type
-            if (selectedRoomTypes.length && !selectedRoomTypes.includes(property.roomType)) return false;
-            // Beds (1 or 2)
-            if (selectedBeds.length && !selectedBeds.includes(property.beds === 1 ? 'Single Bed' : 'Double Bed')) return false;
-            // Bathrooms (1 or 2)
-            if (selectedBathrooms.length && !selectedBathrooms.includes(property.bathrooms === 1 ? 'Single Bathroom' : 'Double Bathroom')) return false;
-            // Guest
-            if (selectedGuests.length && !selectedGuests.includes(property.guestType)) return false;
-            // Persons
-            if (selectedPersons.length && !selectedPersons.includes(property.persons === 1 ? 'One Person' : property.persons === 2 ? 'Two Person' : 'Four Person')) return false;
-            // Facilities
-            if (selectedFacilities.length && !selectedFacilities.every(fac => property.facilities.includes(fac))) return false;
-            // Price
-            if (property.price < priceRange[0] || property.price > priceRange[1]) return false;
-            return true;
-        });
-        setFilteredProperties(filtered);
+        // Build search parameters for API
+        const fetchFilteredProperties = async () => {
+            setIsLoading(true);
+            try {
+                const searchParams = new URLSearchParams();
+                // Room Type
+                if (selectedRoomTypes.length > 0) {
+                    searchParams.append('property_type', selectedRoomTypes.join(','));
+                }
+                // Beds
+                if (selectedBeds.length > 0) {
+                    // Map to numbers
+                    const beds = selectedBeds.map(b => b === 'Single Bed' ? 1 : 2);
+                    searchParams.append('bedroomsFrom', Math.min(...beds).toString());
+                    searchParams.append('bedroomsTo', Math.max(...beds).toString());
+                }
+                // Bathrooms
+                if (selectedBathrooms.length > 0) {
+                    const baths = selectedBathrooms.map(b => b === 'Single Bathroom' ? 1 : 2);
+                    searchParams.append('bathroomsFullFrom', Math.min(...baths).toString());
+                    searchParams.append('bathroomsFullTo', Math.max(...baths).toString());
+                }
+                // Guests
+                if (selectedGuests.length > 0) {
+                    // Not clear how to map guestType, so skip unless API supports
+                }
+                // Persons (max_guests)
+                if (selectedPersons.length > 0) {
+                    const persons = selectedPersons.map(p => {
+                        if (p === 'One Person') return 1;
+                        if (p === 'Two Person') return 2;
+                        if (p === 'Four Person') return 4;
+                        return 1;
+                    });
+                    searchParams.append('guestsFrom', Math.min(...persons).toString());
+                    searchParams.append('guestsTo', Math.max(...persons).toString());
+                }
+                // Facilities (if API supports tags)
+                // if (selectedFacilities.length > 0) {
+                //     searchParams.append('includedTagIds', selectedFacilities.join(','));
+                // }
+                // Price Range
+                if (priceRange[0] > 0) {
+                    searchParams.append('rateFrom', priceRange[0].toString());
+                }
+                if (priceRange[1] < 400) {
+                    searchParams.append('rateTo', priceRange[1].toString());
+                }
+                // Always include propertyIds from searchSession if available
+                if (searchSession && searchSession.propertyIds.length > 0) {
+                    searchParams.append('ids', searchSession.propertyIds.join(','));
+                }
+                // Dates
+                if (searchSession && searchSession.checkInDate) {
+                    searchParams.append('availabilityFrom', searchSession.checkInDate);
+                }
+                if (searchSession && searchSession.checkOutDate) {
+                    searchParams.append('availabilityTo', searchSession.checkOutDate);
+                }
+                // Guests
+                if (searchSession && searchSession.guests) {
+                    searchParams.append('guestsFrom', searchSession.guests.toString());
+                    searchParams.append('guestsTo', searchSession.guests.toString());
+                }
+                // Fetch from API
+                const response = await fetch(`/api/properties/search?${searchParams.toString()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data.properties) {
+                        const transformedProperties = data.data.properties.map((prop: any) => ({
+                            id: prop.id,
+                            title: prop.name,
+                            location: `${prop.address?.city}, ${prop.address?.state}, ${prop.address?.country}`,
+                            image: prop.thumbnail_url_medium || propertyImage1,
+                            beds: prop.bedrooms || 1,
+                            bathrooms: prop.bathrooms || 1,
+                            guestType: 'Adult', // Default value
+                            persons: prop.max_guests || 2,
+                            roomType: prop.property_type || 'Entire Unit',
+                            facilities: ['Wi-Fi', 'Parking'], // Default facilities
+                            price: 200, // Default price - you might want to get this from API
+                            discountPrice: 180,
+                            badge: "FOR RENT",
+                            rating: 4.8,
+                            reviews: 28
+                        }));
+                        setFilteredProperties(transformedProperties);
+                    } else {
+                        setFilteredProperties([]);
+                    }
+                } else {
+                    setFilteredProperties([]);
+                }
+            } catch (error) {
+                setFilteredProperties([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchFilteredProperties();
         setCurrentPage(1); // Reset to first page when filters change
-    }, [properties, selectedRoomTypes, selectedBeds, selectedBathrooms, selectedGuests, selectedPersons, selectedFacilities, priceRange]);
+    }, [selectedRoomTypes, selectedBeds, selectedBathrooms, selectedGuests, selectedPersons, selectedFacilities, priceRange, searchSession]);
 
     const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
     const paginatedProperties = filteredProperties.slice(
@@ -621,11 +703,17 @@ export default function MainPage({ searchId }: MainPageProps) {
 
                 {/* Property Grid */}
                 <div className={`flex-1 transition-all duration-300 ${showFilters ? 'lg:w-2/3' : 'w-full'}`}>
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 ${showFilters ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
-                        {paginatedProperties.map((property) => (
-                            <PropertyCard key={property.id} property={property} />
-                        ))}
+                  {filteredProperties.length === 0 && !isLoading ? (
+                    <div className="w-full text-center text-gray-500 py-16 text-lg font-semibold">
+                      No property available.
                     </div>
+                  ) : (
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 ${showFilters ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
+                      {paginatedProperties.map((property) => (
+                        <PropertyCard key={property.id} property={property} searchId={searchId} />
+                      ))}
+                    </div>
+                  )}
                 </div>
             </div>
 

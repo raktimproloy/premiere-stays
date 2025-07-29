@@ -47,6 +47,7 @@ export default function Sidebar({
     { title: 'Bookings', link: '/admin/bookings', icon: <BookingIcon /> },
     { title: 'Calendar', link: '/admin/calendar', icon: <CalendarIcon /> },
     { title: 'Reviews', link: '/admin/reviews', icon: <ReviewsIcon /> },
+    { title: 'Users', link: '/admin/users', icon: <ProfileIcon /> },
   ];
 
   // Admin navigation items

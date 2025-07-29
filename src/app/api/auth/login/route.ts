@@ -1,89 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import clientPromise from '@/lib/mongodb';
-import { generateToken } from '@/lib/jwt';
+import { authService } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    // Validate required fields
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { success: false, message: 'Email and password are required' },
         { status: 400 }
       );
     }
 
-    // Connect to MongoDB
-    const client = await clientPromise;
-    const db = client.db('premiere-stays');
-    const usersCollection = db.collection('users');
+    const result = await authService.login(email, password);
 
-    // Find user by email
-    const user = await usersCollection.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
+    if (result.success) {
+      const response = NextResponse.json(result, { status: 200 });
+      
+      // Set HTTP-only cookie with the token
+      response.cookies.set('authToken', result.token!, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/'
+      });
+
+      return response;
+    } else {
+      return NextResponse.json(result, { status: 401 });
     }
-
-    // Check if user is active
-    if (!user.isActive) {
-      return NextResponse.json(
-        { error: 'Account is deactivated' },
-        { status: 401 }
-      );
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
-
-    // Generate JWT token
-    const token = generateToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role
-    });
-
-    // Update last login
-    await usersCollection.updateOne(
-      { _id: user._id },
-      { $set: { lastLogin: new Date(), updatedAt: new Date() } }
-    );
-
-    // Return user data (without password) and token
-    const userResponse = {
-      id: user._id.toString(),
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone,
-      dob: user.dob,
-      profileImage: user.profileImage,
-      role: user.role,
-      createdAt: user.createdAt,
-      emailVerified: user.emailVerified,
-      lastLogin: new Date()
-    };
-
-    return NextResponse.json({
-      success: true,
-      message: 'Login successful',
-      user: userResponse,
-      token
-    });
-
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     );
   }

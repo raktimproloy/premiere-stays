@@ -12,12 +12,16 @@ const notificationIcon = "/images/icons/notification.svg";
 const chatIcon = "/images/icons/chat.svg";
 
 interface UserData {
-  company_name?: string;
-  email_address: string;
-  first_name: string;
-  last_name: string;
-  time_zone?: string;
-  id?: number;
+  _id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  dob: string;
+  profileImage?: string;
+  role: 'user' | 'admin' | 'superadmin';
+  createdAt: Date;
+  emailVerified: boolean;
+  lastLogin?: Date;
 }
 
 interface HeaderProps {
@@ -34,6 +38,7 @@ const navItems = [
   { title: 'Bookings', link: '/admin/bookings' },
   { title: 'Calendar', link: '/admin/calendar' },
   { title: 'Reviews', link: '/admin/reviews' },
+  { title: 'Users', link: '/admin/users' },
   { title: 'Profile', link: '/admin/profile' },
   { title: 'Settings', link: '/admin/settings' },
   { title: 'Help', link: '/admin/help' },
@@ -50,13 +55,13 @@ export default function Header({ sidebarOpen, setSidebarOpen, userData, currentP
   // Format the user's full name safely
   const formatFullName = () => {
     if (!userData) return 'User';
-    return `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User';
+    return userData.fullName || 'User';
   };
 
   // Format the email address safely
   const formatEmail = () => {
     if (!userData) return '';
-    return userData.email_address || '';
+    return userData.email || '';
   };
 
   // Find active nav title

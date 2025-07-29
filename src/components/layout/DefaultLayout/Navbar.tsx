@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { FaArrowRight } from "react-icons/fa";
 import { useAuth } from '@/components/common/AuthContext';
-import { FiChevronDown, FiUser, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiChevronDown, FiUser, FiSettings, FiLogOut, FiGrid } from 'react-icons/fi';
 import { useRef, useEffect } from 'react';
 
 const profileImage = "/images/profile.jpg";
@@ -21,7 +21,7 @@ const Navbar = () => {
   const { isAuthenticated, logout } = useAuth();
 
   // Get user data from auth context
-  const { user: authUser } = useAuth();
+  const { user: authUser, role } = useAuth();
   
   // Use auth user data if available, otherwise use dummy data
   const user = authUser ? {
@@ -137,6 +137,17 @@ const Navbar = () => {
                       </p>
                     </div>
                     <nav className="flex flex-col py-1">
+                      {/* Dashboard link for admin and superadmin users */}
+                      {(role === 'admin' || role === 'superadmin') && (
+                        <Link
+                          href={role === 'admin' ? '/admin/dashboard' : '/superadmin/dashboard'}
+                          className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <FiGrid className="text-gray-500" />
+                          Dashboard
+                        </Link>
+                      )}
                       <Link
                         href="/profile/1"
                         className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -251,6 +262,17 @@ const Navbar = () => {
                     </div>
                   </div>
                   <div className="space-y-1">
+                    {/* Dashboard link for admin and superadmin users */}
+                    {(role === 'admin' || role === 'superadmin') && (
+                      <Link
+                        href={role === 'admin' ? '/admin/dashboard' : '/superadmin/dashboard'}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:text-[#586DF7] hover:bg-gray-50"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <FiGrid className="text-gray-500" />
+                        Dashboard
+                      </Link>
+                    )}
                     <Link
                       href="/profile/1"
                       className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:text-[#586DF7] hover:bg-gray-50"

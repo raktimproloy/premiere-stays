@@ -1,185 +1,209 @@
-import { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import FacebookProvider from "next-auth/providers/facebook";
-import AppleProvider from "next-auth/providers/apple";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import clientPromise from "./mongodb";
 import bcrypt from "bcryptjs";
-import { generateToken } from "./jwt";
+import { generateToken, verifyToken, JWTPayload } from "./jwt";
+import clientPromise from "./mongodb";
+import { ObjectId } from "mongodb";
 
-export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise, { databaseName: "premiere-stays" }),
-  providers: [
-    GoogleProvider({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      },
-      profile(profile) {
+export interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  dob: string;
+  password: string;
+  profileImage?: string;
+  role: 'user' | 'admin' | 'superadmin';
+  isActive: boolean;
+  emailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLogin?: Date;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  user?: User;
+  token?: string;
+  error?: string;
+}
+
+export const authService = {
+  async signup(userData: {
+    fullName: string;
+    email: string;
+    phone: string;
+    dob: string;
+    password: string;
+    profileImage?: string;
+  }): Promise<AuthResponse> {
+    try {
+      const client = await clientPromise;
+      const db = client.db("premiere-stays");
+
+      // Check if user already exists
+      const existingUser = await db.collection("users").findOne({
+        email: userData.email.toLowerCase()
+      });
+
+      if (existingUser) {
         return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          role: "user",
+          success: false,
+          message: "User already exists with this email",
+          error: "EMAIL_EXISTS"
         };
-      },
-    }),
-    FacebookProvider({
-      clientId: process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_SECRET!,
-      profile(profile) {
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+
+      // Create new user
+      const newUser = {
+        fullName: userData.fullName,
+        email: userData.email.toLowerCase(),
+        phone: userData.phone,
+        dob: userData.dob,
+        password: hashedPassword,
+        profileImage: userData.profileImage || "",
+        role: "user" as const,
+        isActive: true,
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: new Date(),
+      };
+
+      const result = await db.collection("users").insertOne(newUser);
+      const userId = result.insertedId.toString();
+
+      // Generate JWT token
+      const token = generateToken({
+        userId: userId,
+        email: newUser.email,
+        role: newUser.role
+      });
+
+      return {
+        success: true,
+        message: "User registered successfully",
+        user: { ...newUser, _id: userId },
+        token
+      };
+    } catch (error) {
+      console.error("Signup error:", error);
+      return {
+        success: false,
+        message: "Registration failed",
+        error: "REGISTRATION_FAILED"
+      };
+    }
+  },
+
+  async login(email: string, password: string): Promise<AuthResponse> {
+    try {
+      const client = await clientPromise;
+      const db = client.db("premiere-stays");
+
+      // Find user by email
+      const user = await db.collection("users").findOne({
+        email: email.toLowerCase()
+      });
+
+      if (!user) {
         return {
-          id: profile.id,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture?.data?.url,
-          role: "user",
+          success: false,
+          message: "Invalid email or password",
+          error: "INVALID_CREDENTIALS"
         };
-      },
-    }),
-    AppleProvider({
-      clientId: process.env.APPLE_CLIENT_ID!,
-      clientSecret: process.env.APPLE_CLIENT_SECRET!,
-      profile(profile) {
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
         return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: undefined,
-          role: "user",
+          success: false,
+          message: "Account is deactivated",
+          error: "ACCOUNT_DEACTIVATED"
         };
-      },
-    }),
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        try {
-          const client = await clientPromise;
-          const db = client.db();
-          const user = await db.collection("users").findOne({ 
-            email: credentials.email.toLowerCase() 
-          });
-
-          if (!user) {
-            return null;
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            return null;
-          }
-
-          return {
-            id: user._id.toString(),
-            name: user.fullName,
-            email: user.email,
-            role: user.role || "user",
-          };
-        } catch (error) {
-          console.error("Credentials auth error:", error);
-          return null;
-        }
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.role = user.role;
-        token.id = user.id;
       }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.role = token.role;
-        session.user.id = token.id;
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return {
+          success: false,
+          message: "Invalid email or password",
+          error: "INVALID_CREDENTIALS"
+        };
       }
-      return session;
-    },
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google" || account?.provider === "facebook" || account?.provider === "apple") {
-        try {
-          const client = await clientPromise;
-          const db = client.db("premiere-stays");
-          const registerType = account.provider; // "google", "facebook", "apple"
 
-          // Check if user already exists
-          const existingUser = await db.collection("users").findOne({
-            email: user.email?.toLowerCase()
-          });
+      // Update last login
+      await db.collection("users").updateOne(
+        { _id: user._id },
+        { $set: { lastLogin: new Date(), updatedAt: new Date() } }
+      );
 
-          if (!existingUser) {
-            // Create new user
-            const newUser = {
-              fullName: user.name || "",
-              email: user.email?.toLowerCase() || "",
-              phone: "",
-              dob: "",
-              password: "", // No password for social login
-              profileImage: user.image || "",
-              role: "user",
-              isActive: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              lastLogin: new Date(),
-              registerType, // <-- set registerType
-              socialLogin: {
-                provider: account.provider,
-                providerId: user.id,
-              },
-            };
+      // Generate JWT token
+      const token = generateToken({
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role
+      });
 
-            await db.collection("users").insertOne(newUser);
-          } else {
-            // Update existing user's social login info and registerType if missing
-            await db.collection("users").updateOne(
-              { email: user.email?.toLowerCase() },
-              {
-                $set: {
-                  lastLogin: new Date(),
-                  updatedAt: new Date(),
-                  socialLogin: {
-                    provider: account.provider,
-                    providerId: user.id,
-                  },
-                  registerType: existingUser.registerType || registerType, // don't overwrite if already set
-                },
-              }
-            );
-          }
-        } catch (error) {
-          console.error("Social sign in error:", error);
-          return false;
-        }
+      return {
+        success: true,
+        message: "Login successful",
+        user: user as unknown as User,
+        token
+      };
+    } catch (error) {
+      console.error("Login error:", error);
+      return {
+        success: false,
+        message: "Login failed",
+        error: "LOGIN_FAILED"
+      };
+    }
+  },
+
+  async verifyToken(token: string): Promise<{ valid: boolean; user?: User; error?: string }> {
+    try {
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return { valid: false, error: "INVALID_TOKEN" };
       }
-      return true;
-    },
+
+      const client = await clientPromise;
+      const db = client.db("premiere-stays");
+
+      const user = await db.collection("users").findOne({
+        _id: new ObjectId(decoded.userId),
+        isActive: true
+      });
+
+      if (!user) {
+        return { valid: false, error: "USER_NOT_FOUND" };
+      }
+
+      return { valid: true, user: user as unknown as User };
+    } catch (error) {
+      console.error("Token verification error:", error);
+      return { valid: false, error: "TOKEN_VERIFICATION_FAILED" };
+    }
   },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.NEXT_PUBLIC_NEXTAUTH_SECRET,
+
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      const client = await clientPromise;
+      const db = client.db("premiere-stays");
+
+      const user = await db.collection("users").findOne({
+        _id: new ObjectId(userId),
+        isActive: true
+      });
+
+      return user as User | null;
+    } catch (error) {
+      console.error("Get user error:", error);
+      return null;
+    }
+  }
 }; 
