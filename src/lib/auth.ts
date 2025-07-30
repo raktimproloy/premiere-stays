@@ -15,6 +15,7 @@ export interface User {
   isActive: boolean;
   emailVerified: boolean;
   guestId?: number; // Add guest ID from OwnerRez
+  registerType?: 'manual' | 'google'; // Add register type
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
@@ -38,6 +39,7 @@ export const authService = {
     password: string;
     profileImage?: string;
     guestId?: number; // Add guest ID parameter
+    registerType?: 'manual' | 'google'; // Add register type
   }): Promise<AuthResponse> {
     try {
       const client = await clientPromise;
@@ -56,8 +58,8 @@ export const authService = {
         };
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      // Hash password only if it's not empty (for Google users)
+      const hashedPassword = userData.password ? await bcrypt.hash(userData.password, 12) : '';
 
       // Create new user
       const newUser = {
@@ -69,8 +71,9 @@ export const authService = {
         profileImage: userData.profileImage || "",
         role: "user" as const,
         isActive: true,
-        emailVerified: false,
+        emailVerified: userData.registerType === 'google' ? true : false, // Google accounts are verified
         guestId: userData.guestId, // Store the guest ID
+        registerType: userData.registerType || 'manual', // Store register type
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLogin: new Date(),
@@ -129,14 +132,19 @@ export const authService = {
         };
       }
 
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        return {
-          success: false,
-          message: "Invalid email or password",
-          error: "INVALID_CREDENTIALS"
-        };
+      // For Google users, skip password verification
+      if (user.registerType === 'google') {
+        console.log('Google user login - skipping password verification');
+      } else {
+        // Verify password for non-Google users
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+          return {
+            success: false,
+            message: "Invalid email or password",
+            error: "INVALID_CREDENTIALS"
+          };
+        }
       }
 
       // Update last login

@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import AuthLayout from "@/components/layout/AuthLayout"
 import Link from 'next/link';
 import { useAuth } from "@/components/common/AuthContext";
+import GoogleLoginButton from '@/components/common/GoogleLoginButton';
 
 type FormData = {
   email: string;
@@ -24,6 +25,7 @@ export default function LoginPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [googleAccountError, setGoogleAccountError] = useState<string | null>(null);
   const { login, loading, error } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,11 +35,17 @@ export default function LoginPage() {
       [name]: type === 'checkbox' ? checked : value,
     });
     
+    // Clear errors when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors({
         ...errors,
         [name]: undefined,
       });
+    }
+    
+    // Clear Google account error when user types
+    if (googleAccountError) {
+      setGoogleAccountError(null);
     }
   };
 
@@ -61,8 +69,40 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGoogleAccountError(null); // Clear any previous Google account error
+    
     if (validateForm()) {
-      await login(formData.email, formData.password);
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Use the existing login function to handle successful login
+          await login(formData.email, formData.password);
+        } else {
+          // Check if it's a Google account error
+          if (data.error === 'GOOGLE_ACCOUNT') {
+            setGoogleAccountError(data.message);
+          } else {
+            // Handle other errors through the existing auth context
+            await login(formData.email, formData.password);
+          }
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        // Fallback to existing login function for error handling
+        await login(formData.email, formData.password);
+      }
     }
   };
 
@@ -178,7 +218,37 @@ export default function LoginPage() {
             </svg>
           )}
         </button>
-        {error && (
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          </div>
+        </div>
+
+        {/* Google Login Button */}
+        <GoogleLoginButton />
+
+        {/* Error Messages */}
+        {googleAccountError && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">{googleAccountError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && !googleAccountError && (
           <p className="mt-2 text-center text-sm text-red-600">{error}</p>
         )}
       </form>

@@ -1,6 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { getBookingPath, clearBookingPath } from '@/utils/cookies';
 
 interface User {
@@ -20,6 +21,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: (userData: User, token: string) => Promise<boolean>;
   signup: (userData: SignupData) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
@@ -187,6 +189,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loginWithGoogle = async (userData: User, token: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Google login successful, updating auth context:', userData);
+      
+      // Store token in localStorage for consistency
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      handleSuccessfulAuth(userData);
+      return true;
+    } catch (error) {
+      console.error('Google login error:', error);
+      setError('Google authentication failed');
+      setLoading(false);
+      return false;
+    }
+  };
+
   const signup = async (userData: SignupData) => {
     setLoading(true);
     setError(null);
@@ -228,6 +251,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Logout API error:', error);
     }
     
+    // Clear NextAuth session (Google session) - using the direct function as requested
+    try {
+      await signOut({ redirect: false });
+    } catch (error) {
+      console.error('NextAuth signOut error:', error);
+    }
+    
     // Clear local state and localStorage
     setIsAuthenticated(false);
     setUser(null);
@@ -244,6 +274,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated, 
       user,
       login, 
+      loginWithGoogle,
       signup,
       logout, 
       loading, 

@@ -30,14 +30,28 @@ async function createGuestInOwnerRez(fullName: string, email: string, phone: str
 
 export async function POST(request: NextRequest) {
   try {
-    const { fullName, email, phone, dob, password, profileImage } = await request.json();
+    const { fullName, email, phone, dob, password, profileImage, registerType } = await request.json();
 
-    // Validate required fields
-    if (!fullName || !email || !phone || !dob || !password) {
-      return NextResponse.json(
-        { success: false, message: 'All fields are required' },
-        { status: 400 }
-      );
+    // Check if this is a Google user
+    const isGoogleUser = registerType === 'google';
+
+    // Validate required fields (different for Google users)
+    if (isGoogleUser) {
+      // For Google users, only email and fullName are required
+      if (!fullName || !email) {
+        return NextResponse.json(
+          { success: false, message: 'Full name and email are required' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // For regular users, all fields are required
+      if (!fullName || !email || !phone || !dob || !password) {
+        return NextResponse.json(
+          { success: false, message: 'All fields are required' },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate email format
@@ -49,8 +63,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate password strength
-    if (password.length < 6) {
+    // Validate password strength (only for non-Google users)
+    if (!isGoogleUser && password && password.length < 6) {
       return NextResponse.json(
         { success: false, message: 'Password must be at least 6 characters long' },
         { status: 400 }
@@ -60,7 +74,11 @@ export async function POST(request: NextRequest) {
     // First, create guest in OwnerRez
     let guestData;
     try {
-      guestData = await createGuestInOwnerRez(fullName, email, phone);
+      // For Google users, use a valid phone number format
+      const guestPhone = isGoogleUser ? '555-000-0000' : phone;
+      console.log('Creating guest with phone:', guestPhone);
+      guestData = await createGuestInOwnerRez(fullName, email, guestPhone);
+      console.log('Guest created successfully:', guestData);
     } catch (error) {
       console.error('Failed to create guest in OwnerRez:', error);
       return NextResponse.json(
@@ -70,15 +88,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Then create user in our database with the guest ID
-    const result = await authService.signup({
+    const signupData = {
       fullName,
       email,
-      phone,
-      dob,
-      password,
+      phone: isGoogleUser ? '555-000-0000' : phone,
+      dob: isGoogleUser ? '1990-01-01' : dob,
+      password: isGoogleUser ? '' : password, // Empty password for Google users
       profileImage,
-      guestId: guestData.id // Add guest ID to the signup data
-    });
+      guestId: guestData.id, // Add guest ID to the signup data
+      registerType: registerType || 'manual' // Add register type
+    };
+
+    console.log('Creating user with data:', { ...signupData, password: '[HIDDEN]' });
+
+    const result = await authService.signup(signupData);
 
     if (result.success) {
       const response = NextResponse.json(result, { status: 201 });

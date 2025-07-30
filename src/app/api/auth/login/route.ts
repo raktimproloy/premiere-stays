@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth';
+import clientPromise from '@/lib/mongodb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // First check if user exists and get their register type
+    const client = await clientPromise;
+    const db = client.db("premiere-stays");
+
+    const user = await db.collection("users").findOne({
+      email: email.toLowerCase()
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return NextResponse.json(
+        { success: false, message: 'Account is deactivated' },
+        { status: 401 }
+      );
+    }
+
+    // Check register type and show appropriate error for Google users
+    if (user.registerType === 'google') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'This account was created with Google. Please use the "Continue with Google" button to login.',
+          error: 'GOOGLE_ACCOUNT'
+        },
+        { status: 401 }
+      );
+    }
+
+    // For manual users, proceed with normal login
     const result = await authService.login(email, password);
 
     if (result.success) {

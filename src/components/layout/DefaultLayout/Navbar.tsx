@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { FaArrowRight } from "react-icons/fa";
 import { useAuth } from '@/components/common/AuthContext';
+import { signOut } from 'next-auth/react';
 import { FiChevronDown, FiUser, FiSettings, FiLogOut, FiGrid } from 'react-icons/fi';
 import { useRef, useEffect } from 'react';
 
@@ -156,7 +157,10 @@ const Navbar = () => {
                         Profile
                       </Link>
                       <button
-                        onClick={() => {
+                        onClick={async () => {
+                          // Use NextAuth signOut function directly as requested
+                          await signOut({ redirect: false });
+                          // Then call our custom logout for cleanup
                           logout();
                           setDropdownOpen(false);
                         }}
@@ -282,7 +286,10 @@ const Navbar = () => {
                       Profile
                     </Link>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
+                        // Use NextAuth signOut function directly as requested
+                        await signOut({ redirect: false });
+                        // Then call our custom logout for cleanup
                         logout();
                         setIsMenuOpen(false);
                       }}

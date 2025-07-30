@@ -5,8 +5,10 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "@/styles/datepicker.css";
 import AuthLayout from '../layout/AuthLayout';
 import { useAuth } from '@/components/common/AuthContext';
+import GoogleLoginButton from '@/components/common/GoogleLoginButton';
 // import Logo from "/images/logo.png"
 const Logo = "/images/logo.png"
 const SideImage = "/images/signup.png"
@@ -261,30 +263,38 @@ const SignUpForm = () => {
           {/* Date of Birth */}
           <div>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6.66602 1.66669V4.16669" stroke="#4E5258" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13.334 1.66669V4.16669" stroke="#4E5258" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2.91602 7.57501H17.0827" stroke="#4E5258" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M17.5 7.08335V14.1667C17.5 16.6667 16.25 18.3334 13.3333 18.3334H6.66667C3.75 18.3334 2.5 16.6667 2.5 14.1667V7.08335C2.5 4.58335 3.75 2.91669 6.66667 2.91669H13.3333C16.25 2.91669 17.5 4.58335 17.5 7.08335Z" stroke="#4E5258" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13.0781 11.4167H13.0856" stroke="#4E5258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13.0781 13.9167H13.0856" stroke="#4E5258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9.99607 11.4167H10.0036" stroke="#4E5258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9.99607 13.9167H10.0036" stroke="#4E5258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.91209 11.4167H6.91957" stroke="#4E5258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.91209 13.9167H6.91957" stroke="#4E5258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
               <DatePicker
                 selected={formData.dob ? new Date(formData.dob) : null}
                 onChange={handleDateChange}
-                placeholderText="Date of birth"
+                placeholderText="Select your date of birth"
                 className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:outline-none transition ${
                   errors.dob 
                     ? 'border-red-500 focus:ring-red-200' 
                     : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
                 }`}
-                dateFormat="yyyy-MM-dd"
+                dateFormat="MMMM dd, yyyy"
+                showYearDropdown
+                showMonthDropdown
+                dropdownMode="select"
+                yearDropdownItemNumber={100}
+                scrollableYearDropdown
+                allowSameDay={false}
+                maxDate={new Date()}
+                minDate={new Date('1900-01-01')}
+                isClearable={false}
+                showPopperArrow={false}
+                popperPlacement="bottom-start"
+                autoComplete="off"
+                readOnly={false}
+                openToDate={formData.dob ? new Date(formData.dob) : new Date('1990-01-01')}
+                dayClassName={date => {
+                  const today = new Date();
+                  const selectedDate = new Date(date);
+                  if (selectedDate.toDateString() === today.toDateString()) {
+                    return 'react-datepicker__day--today';
+                  }
+                  return '';
+                }}
               />
             </div>
             {errors.dob && (
@@ -413,6 +423,19 @@ const SignUpForm = () => {
             </svg>
           )}
         </button>
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          </div>
+        </div>
+
+        {/* Google Login Button */}
+        <GoogleLoginButton />
 
         {/* Error Message */}
         {error && (
