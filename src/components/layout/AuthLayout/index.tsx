@@ -1,9 +1,11 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Link from 'next/link';
+import { signIn, useSession } from 'next-auth/react';
+import { useAuth } from '@/components/common/AuthContext';
 // import Logo from "/images/logo.png"
 const Logo = "/images/logo.png"
 const SideImage = "/images/signup.png"
@@ -18,6 +20,145 @@ interface AuthLayoutProps {
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description, children }) => {
+  const { loginWithGoogle } = useAuth();
+  const { data: session, status } = useSession();
+  const [loading, setLoading] = useState(false);
+  const [processingAuth, setProcessingAuth] = useState(false);
+
+  // Split full name into first and last name
+  const splitName = (fullName: string) => {
+    const nameParts = fullName.trim().split(' ');
+    if (nameParts.length === 1) {
+      return { firstName: nameParts[0], lastName: '' };
+    } else {
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ');
+      return { firstName, lastName };
+    }
+  };
+
+  // Handle authentication when session changes
+  useEffect(() => {
+    if (session?.user && !processingAuth) {
+      console.log('=== NEXT AUTH SESSION DATA ===');
+      console.log('Session Status:', status);
+      console.log('Session Data:', session);
+      console.log('User Data:', session?.user);
+      console.log('================================');
+      
+      handleGoogleAuthentication();
+    }
+  }, [session, status]);
+
+  const handleGoogleAuthentication = async () => {
+    if (processingAuth) return;
+    
+    try {
+      setProcessingAuth(true);
+      console.log('Processing Google authentication...');
+
+      // Split the name into first and last name
+      const fullName = session?.user?.name || 'Google User';
+      const { firstName, lastName } = splitName(fullName);
+      
+      // Use the existing signup API with Google data
+      const signupData = {
+        fullName: fullName,
+        email: session?.user?.email || '',
+        phone: '555-000-0000', // Valid phone format for Google users
+        dob: '1990-01-01', // Valid date format for Google users
+        password: '', // No password for Google users
+        profileImage: session?.user?.image || '',
+        registerType: 'google' // Add register type
+      };
+
+      console.log('Signup data:', signupData);
+      console.log('Split name - First:', firstName, 'Last:', lastName);
+      
+      const signupResponse = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData)
+      });
+
+      const signupResult = await signupResponse.json();
+      console.log('Signup response:', signupResult);
+
+      if (signupResult.success) {
+        console.log('Google user signup successful:', signupResult.user);
+        console.log('JWT token:', signupResult.token);
+        
+        // Update auth context
+        if (loginWithGoogle) {
+          await loginWithGoogle(signupResult.user, signupResult.token);
+        }
+      } else {
+        // If signup fails because user already exists, we need to handle this differently
+        if (signupResult.message?.includes('already exists') || signupResult.message?.includes('duplicate')) {
+          console.log('User already exists, creating a special login flow for Google user...');
+          
+          try {
+            // Call a special endpoint to get Google user data and create token
+            const googleLoginResponse = await fetch('/api/auth/google-login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: session?.user?.email,
+                name: session?.user?.name,
+                image: session?.user?.image
+              })
+            });
+
+            const googleLoginResult = await googleLoginResponse.json();
+            
+            if (googleLoginResult.success) {
+              console.log('Google login successful for existing user:', googleLoginResult.user);
+              console.log('JWT token:', googleLoginResult.token);
+              
+              // Update auth context
+              if (loginWithGoogle) {
+                await loginWithGoogle(googleLoginResult.user, googleLoginResult.token);
+              }
+            } else {
+              console.error('Failed to login existing Google user:', googleLoginResult.message);
+            }
+          } catch (error) {
+            console.error('Error in Google login flow:', error);
+          }
+        } else {
+          console.error('Google signup failed:', signupResult.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error during Google authentication:', error);
+    } finally {
+      setProcessingAuth(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      console.log('Starting Google login...');
+      const result = await signIn('google');
+      if (result?.ok) {
+        console.log('Google login successful!');
+        console.log('User data:', session?.user);
+        
+      } else {
+        console.error('Google login failed:', result?.error);
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen ">
     {/* Left Section - Hidden on mobile, visible on desktop */}
@@ -78,9 +219,21 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
             
             <button
               type="button"
-              className="inline-flex py-2 text-sm font-medium"
+              onClick={handleGoogleLogin}
+              disabled={loading || processingAuth}
+              className={`inline-flex py-2 text-sm font-medium transition ${(loading || processingAuth) ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
             >
-              <Image src={GoogleIcon} alt='google' width={56} height={56} />
+              {loading ? (
+                <div className="flex items-center justify-center w-14 h-14">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+              ) : processingAuth ? (
+                <div className="flex items-center justify-center w-14 h-14">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                </div>
+              ) : (
+                <Image src={GoogleIcon} alt='google' width={56} height={56} />
+              )}
             </button>
             
             <button

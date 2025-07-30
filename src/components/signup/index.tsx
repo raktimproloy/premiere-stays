@@ -8,7 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "@/styles/datepicker.css";
 import AuthLayout from '../layout/AuthLayout';
 import { useAuth } from '@/components/common/AuthContext';
-import GoogleLoginButton from '@/components/common/GoogleLoginButton';
+
 // import Logo from "/images/logo.png"
 const Logo = "/images/logo.png"
 const SideImage = "/images/signup.png"
@@ -434,8 +434,7 @@ const SignUpForm = () => {
           </div>
         </div>
 
-        {/* Google Login Button */}
-        <GoogleLoginButton />
+
 
         {/* Error Message */}
         {error && (

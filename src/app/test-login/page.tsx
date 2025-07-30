@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import GoogleLoginButton from '@/components/common/GoogleLoginButton';
+
 import { useAuth } from '@/components/common/AuthContext';
 
 export default function TestLoginPage() {
@@ -131,7 +131,6 @@ export default function TestLoginPage() {
             <div className="space-y-4">
               {status === 'unauthenticated' ? (
                 <>
-                  <GoogleLoginButton />
                   <button
                     onClick={handleGoogleLogin}
                     className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

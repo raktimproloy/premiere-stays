@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import AuthLayout from "@/components/layout/AuthLayout"
 import Link from 'next/link';
 import { useAuth } from "@/components/common/AuthContext";
-import GoogleLoginButton from '@/components/common/GoogleLoginButton';
+
 
 type FormData = {
   email: string;
@@ -229,8 +229,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Google Login Button */}
-        <GoogleLoginButton />
+
 
         {/* Error Messages */}
         {googleAccountError && (
