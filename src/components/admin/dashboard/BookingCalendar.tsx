@@ -27,6 +27,7 @@ interface Booking {
 
 interface BookingSourcesChartProps {
   bookings: Booking[];
+  height?: number
 }
 
 interface CalendarEvent {
@@ -67,7 +68,7 @@ const getPropertyColor = (propertyId: number) => {
   return propertyColors[propertyId % propertyColors.length];
 };
 
-const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
+const BookingCalendar = ({ bookings, height=350 }: BookingSourcesChartProps) => {
   const [currentView, setCurrentView] = useState<'dayGridMonth' | 'timeGridWeek' | 'listWeek'>('dayGridMonth');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
@@ -311,7 +312,7 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventContent={renderEventContent}
-          height={350}
+          height={height}
           datesSet={(arg) => setCurrentDateTitle(arg.view.title)}
           eventDisplay="block"
           nowIndicator={true}
@@ -516,7 +517,7 @@ const BookingCalendar = ({ bookings }: BookingSourcesChartProps) => {
         }
         
         .calendar-container {
-          height: 350px;
+          height: ${height}px;
         }
 
         /* Highlight all days in a booking range when hovering */

@@ -7,13 +7,16 @@ import Link from 'next/link';
 interface Property {
   id: string;
   name: string;
-  type: string;
+  type?: string;
+  property_type?: string;
   bathrooms: number;
   bedrooms: number;
-  capacity: string;
-  price: string;
-  status: 'Pending' | 'Occupied' | 'Active';
-  listingDate: string;
+  capacity?: string;
+  max_guests?: number;
+  price?: string;
+  status?: 'Pending' | 'Occupied' | 'Active';
+  listingDate?: string;
+  active?: boolean;
 }
 
 const PropertyRequestList = () => {
@@ -24,9 +27,12 @@ const PropertyRequestList = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState<number>(0);
   
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const totalPages = Math.ceil(total / itemsPerPage);
   
   const openModal = (property: Property) => {
     setSelectedProperty(property);
@@ -51,31 +57,29 @@ const PropertyRequestList = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Mock data - in a real app this would come from an API
+  // Fetch properties from API
   useEffect(() => {
-    const mockData: Property[] = [
-      { id: '1', name: 'Urban Apartment', type: 'Apartment', bathrooms: 4, bedrooms: 3, capacity: '8 Guests', price: '$85/night', status: 'Pending', listingDate: '2025-06-30' },
-      { id: '2', name: 'Cory Lakeview Cabin', type: 'Cabin', bathrooms: 2, bedrooms: 2, capacity: '4 Guests', price: '$70/night', status: 'Occupied', listingDate: '2025-07-10' },
-      { id: '3', name: 'Luxury Beach Villa', type: 'Villa', bathrooms: 5, bedrooms: 4, capacity: '8 Guests', price: '$200/night', status: 'Occupied', listingDate: '2025-07-05' },
-      { id: '4', name: 'Rustic Mountain Home', type: 'Duplex House', bathrooms: 2, bedrooms: 1, capacity: '6 Guests', price: '$120/night', status: 'Active', listingDate: '2025-07-01' },
-      { id: '5', name: 'Downtown Loft', type: 'Loft', bathrooms: 1, bedrooms: 1, capacity: '2 Guests', price: '$95/night', status: 'Pending', listingDate: '2025-07-15' },
-      { id: '6', name: 'Seaside Bungalow', type: 'Bungalow', bathrooms: 2, bedrooms: 2, capacity: '4 Guests', price: '$150/night', status: 'Active', listingDate: '2025-07-08' },
-      { id: '7', name: 'Modern Studio', type: 'Studio', bathrooms: 1, bedrooms: 1, capacity: '2 Guests', price: '$65/night', status: 'Occupied', listingDate: '2025-07-12' },
-      { id: '8', name: 'Historic Townhouse', type: 'Townhouse', bathrooms: 3, bedrooms: 2, capacity: '6 Guests', price: '$180/night', status: 'Active', listingDate: '2025-07-03' },
-      { id: '9', name: 'Garden Cottage', type: 'Cottage', bathrooms: 1, bedrooms: 1, capacity: '2 Guests', price: '$85/night', status: 'Pending', listingDate: '2025-07-18' },
-      { id: '10', name: 'Executive Penthouse', type: 'Penthouse', bathrooms: 4, bedrooms: 3, capacity: '6 Guests', price: '$350/night', status: 'Occupied', listingDate: '2025-07-07' },
-      { id: '11', name: 'Ski Chalet', type: 'Chalet', bathrooms: 3, bedrooms: 3, capacity: '8 Guests', price: '$280/night', status: 'Active', listingDate: '2025-07-22' },
-      { id: '12', name: 'Lakeside Retreat', type: 'Retreat', bathrooms: 2, bedrooms: 2, capacity: '4 Guests', price: '$125/night', status: 'Pending', listingDate: '2025-07-14' },
-      { id: '13', name: 'City Center Apartment', type: 'Apartment', bathrooms: 2, bedrooms: 2, capacity: '4 Guests', price: '$110/night', status: 'Occupied', listingDate: '2025-07-09' },
-      { id: '14', name: 'Country Farmhouse', type: 'Farmhouse', bathrooms: 3, bedrooms: 4, capacity: '10 Guests', price: '$240/night', status: 'Active', listingDate: '2025-07-17' },
-      { id: '15', name: 'Beachfront Condo', type: 'Condo', bathrooms: 2, bedrooms: 2, capacity: '6 Guests', price: '$190/night', status: 'Pending', listingDate: '2025-07-25' },
-    ];
-    
-    setProperties(mockData);
-    setFilteredProperties(mockData);
-  }, []);
-  
-  // Filter properties based on status and search term
+    setLoading(true);
+    setError(null);
+    fetch(`/api/properties?page=${currentPage}&pageSize=${itemsPerPage}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to fetch properties');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setProperties(data.properties || []);
+        setTotal(data.total || 0);
+      })
+      .catch((err) => {
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
+  }, [currentPage]);
+
+  // Filter properties based on status and search term (client-side)
   useEffect(() => {
     let result = [...properties];
     
@@ -89,25 +93,13 @@ const PropertyRequestList = () => {
       const term = searchTerm.toLowerCase();
       result = result.filter(property => 
         property.name.toLowerCase().includes(term) || 
-        property.type.toLowerCase().includes(term) ||
-        property.price.toLowerCase().includes(term)
+        property.type?.toLowerCase().includes(term) ||
+        property.price?.toLowerCase().includes(term)
       );
     }
     
     setFilteredProperties(result);
-    setCurrentPage(1); // Reset to first page when filters change
   }, [statusFilter, searchTerm, properties]);
-  
-  // Calculate paginated properties
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProperties = filteredProperties.slice(startIndex, startIndex + itemsPerPage);
-  
-  // Handle status filter change
-  const handleStatusFilterChange = (status: string) => {
-    setStatusFilter(status);
-  };
-  
-
   
   // Pagination controls
   const goToPage = (page: number) => {
@@ -173,7 +165,7 @@ const PropertyRequestList = () => {
         </button>
         
         <span className="text-sm text-gray-600 ml-2">
-          Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredProperties.length)} of {filteredProperties.length} properties
+          Showing {properties.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, total)} of {total} properties
         </span>
       </div>
     );
@@ -202,7 +194,7 @@ const PropertyRequestList = () => {
           </div>
           
           {/* Search Bar */}
-          {/* <div className="mt-4 md:mt-0 md:ml-4">
+          <div className="mt-4 md:mt-0 md:ml-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FiSearch className="h-5 w-5 text-gray-400" />
@@ -215,7 +207,7 @@ const PropertyRequestList = () => {
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-[#EBA83A] focus:border-[#EBA83A] sm:text-sm"
               />
             </div>
-          </div> */}
+          </div>
           
           <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-3 md:mt-0 w-full md:w-auto">
             <div className="flex gap-3 w-full md:w-auto">
@@ -224,7 +216,7 @@ const PropertyRequestList = () => {
                 type="radio"
                 name="statusFilter"
                 checked={statusFilter === 'All'}
-                onChange={() => handleStatusFilterChange('All')}
+                onChange={() => setStatusFilter('All')}
                 className="sr-only"
                 />
                 <span className={`px-5 py-2 rounded-full text-sm font-medium ${
@@ -241,7 +233,7 @@ const PropertyRequestList = () => {
                 type="radio"
                 name="statusFilter"
                 checked={statusFilter === 'Pending'}
-                onChange={() => handleStatusFilterChange('Pending')}
+                onChange={() => setStatusFilter('Pending')}
                 className="sr-only"
                 />
                 <span className={`px-5 py-2 rounded-full text-sm font-medium ${
@@ -265,92 +257,98 @@ const PropertyRequestList = () => {
         {/* Property Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-white">
-                <tr className=''>
-                  <th scope="col" className="px-6 py-5 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Property Name
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Bathroom
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Bed room
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Capacity
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                    Listing Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-black uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedProperties.length > 0 ? (
-                  paginatedProperties.map((property) => (
-                    <tr key={property.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-700">{property.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">{property.type}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {property.bathrooms}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {property.bedrooms}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {property.capacity}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {property.price}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-5 py-2 inline-flex text-md leading-5 font-semibold rounded-full  ${getStatusBadge(property.status)}`}>
-                          {property.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {formatDate(property.listingDate)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => openModal(property)}
-                          className="text-gray-600 hover:text-[#EBA83A] transition-colors"
-                          title="View Details"
-                        >
-                          <FiEye size={18} />
-                        </button>
+            {loading ? (
+              <div className="p-8 text-center text-gray-500">Loading properties...</div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-500">{error}</div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-white">
+                  <tr className=''>
+                    <th scope="col" className="px-6 py-5 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Property Name
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Bathroom
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Bed room
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Capacity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                      Listing Date
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-black uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredProperties.length > 0 ? (
+                    filteredProperties.map((property) => (
+                      <tr key={property.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-700">{property.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-700">{property.type || property.property_type}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {property.bathrooms}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {property.bedrooms}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {property.capacity || property.max_guests}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {property.price || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-5 py-2 inline-flex text-md leading-5 font-semibold rounded-full  ${getStatusBadge(property.status || (property.active ? 'Active' : 'Pending'))}`}>
+                            {property.status || (property.active ? 'Active' : 'Pending')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {property.listingDate ? formatDate(property.listingDate) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => openModal(property)}
+                            className="text-gray-600 hover:text-[#EBA83A] transition-colors"
+                            title="View Details"
+                          >
+                            <FiEye size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                        No properties found matching your filters
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
-                      No properties found matching your filters
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
           
           {/* Pagination */}
-          {filteredProperties.length > itemsPerPage && (
+          {!loading && !error && total > itemsPerPage && (
             <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
               {renderPagination()}
             </div>
@@ -362,7 +360,7 @@ const PropertyRequestList = () => {
       <PropertyDetailModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        property={selectedProperty}
+        property={selectedProperty as Property | any}
         editUrl={`/admin/properties/edit/${selectedProperty?.id}`}
         editLabel="Edit Property"
         editActive={selectedProperty?.status !== 'Pending'}

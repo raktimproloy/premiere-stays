@@ -175,7 +175,7 @@ const Navbar = () => {
                         </Link>
                       )}
                       <Link
-                        href="/profile/1"
+                        href="/profile"
                         className="px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                       >
                         <FiUser className="text-gray-500" />
@@ -303,7 +303,7 @@ const Navbar = () => {
                       </Link>
                     )}
                     <Link
-                      href="/profile/1"
+                      href="/profile"
                       className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:text-[#586DF7] hover:bg-gray-50"
                       onClick={() => setIsMenuOpen(false)}
                     >

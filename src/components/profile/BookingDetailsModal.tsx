@@ -21,6 +21,11 @@ const dummyProperty = {
   rating: 4.9,
   reviews: 28,
   applyDate: '10-10-2025',
+  checkIn: 'N/A',
+  checkOut: 'N/A',
+  guests: 1,
+  nights: 1,
+  status: 'N/A',
   images: [
     '/images/property.png',
     '/images/property.png',
@@ -36,23 +41,28 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
   
   // Map the actual booking data structure to the expected format
   const data = property ? {
-    name: property.title || property.name,
-    location: property.location,
-    bedrooms: property.bedroom || property.bedrooms,
-    bathrooms: property.bathroom || property.bathrooms,
-    type: property.type,
-    capacity: property.capacity,
+    name: property.propertyName || property.title || property.name,
+    location: property.location || 'Location not available',
+    bedrooms: property.bedroom || property.bedrooms || 'N/A',
+    bathrooms: property.bathroom || property.bathrooms || 'N/A',
+    type: property.type || 'N/A',
+    capacity: property.capacity || `${property.guests || 1} Guests`,
     payment: property.payment || 'Credit Card',
     services: property.services || [],
-    price: property.price,
+    price: property.totalAmount || property.price || 0,
     rating: property.rating || 4.5,
     reviews: property.reviews || 3400,
-    applyDate: property.applyDate || '10-08-2025',
+    applyDate: property.bookingDate || property.applyDate || 'N/A',
+    checkIn: property.checkIn || 'N/A',
+    checkOut: property.checkOut || 'N/A',
+    guests: property.guests || 1,
+    nights: property.nights || 1,
+    status: property.status || 'N/A',
     images: property.images || [
-      property.image || '/images/property.png',
-      property.image || '/images/property.png',
-      property.image || '/images/property.png',
-      property.image || '/images/property.png',
+      '/images/property.png',
+      '/images/property.png',
+      '/images/property.png',
+      '/images/property.png',
     ],
     description: property.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem in velit sed enim pharetra aliquet. Etiam euismod, urna eu tincidunt consectetur, nisi nisl aliquam enim, nec dictum ex enim euismod enim. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Integer euismod, urna eu tincidunt consectetur, nisi nisl aliquam enim, nec dictum ex enim euismod enim.',
   } : dummyProperty;
@@ -116,29 +126,32 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
               <span className="text-gray-500">{data.name}</span>
               <span className="font-medium text-gray-700 mt-2">Property Location:</span>
               <span className="text-gray-500">{data.location}</span>
-              <span className="font-medium text-gray-700 mt-2">Bedroom:</span>
-              <span className="text-gray-500">{data.bedrooms}</span>
-              <span className="font-medium text-gray-700 mt-2">Bathroom:</span>
-              <span className="text-gray-500">{data.bathrooms}</span>
-              <span className="font-medium text-gray-700 mt-2">Type:</span>
-              <span className="text-gray-500">{data.type}</span>
-              <span className="font-medium text-gray-700 mt-2">Capacity:</span>
-              <span className="text-gray-500">{data.capacity}</span>
+              <span className="font-medium text-gray-700 mt-2">Check-in Date:</span>
+              <span className="text-gray-500">{data?.checkIn || 'N/A'}</span>
+              <span className="font-medium text-gray-700 mt-2">Check-out Date:</span>
+              <span className="text-gray-500">{data?.checkOut || 'N/A'}</span>
+              <span className="font-medium text-gray-700 mt-2">Number of Guests:</span>
+              <span className="text-gray-500">{data?.guests || 'N/A'}</span>
+              <span className="font-medium text-gray-700 mt-2">Number of Nights:</span>
+              <span className="text-gray-500">{data?.nights || 'N/A'}</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="font-medium text-gray-700">Payment Method:</span>
+              <span className="font-medium text-gray-700">Booking Status:</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold inline-block w-fit ${
+                data.status === 'Approved' ? 'bg-green-500 text-white' :
+                data.status === 'Pending' ? 'bg-yellow-400 text-yellow-900' :
+                data.status === 'Cancelled' ? 'bg-red-500 text-white' :
+                data.status === 'Completed' ? 'bg-green-400 text-white' :
+                'bg-gray-500 text-white'
+              }`}>{data.status}</span>
+              <span className="font-medium text-gray-700 mt-2">Total Amount:</span>
+              <span className="text-gray-500">${data.price.toFixed(2)}</span>
+              <span className="font-medium text-gray-700 mt-2">Booking Date:</span>
+              <span className="text-gray-500">{data.applyDate}</span>
+              <span className="font-medium text-gray-700 mt-2">Payment Method:</span>
               <span className="text-gray-500">{data.payment}</span>
               <span className="font-medium text-gray-700 mt-2">Extra Services:</span>
-              <span className="text-gray-500">{data.services.join(', ')}</span>
-              <span className="font-medium text-gray-700 mt-2">Price:</span>
-              <span className="text-gray-500">${data.price.toFixed(2)} /Night</span>
-              <span className="font-medium text-gray-700 mt-2">Rating:</span>
-              <span className="flex items-center gap-1 text-gray-500">
-                <FaStar className="text-yellow-400" />
-                {data.rating} <span className="ml-1 text-xs text-gray-400">({data.reviews} Reviews)</span>
-              </span>
-              <span className="font-medium text-gray-700 mt-2">Apply Date:</span>
-              <span className="text-gray-500">{data.applyDate}</span>
+              <span className="text-gray-500">{data.services.length > 0 ? data.services.join(', ') : 'None'}</span>
             </div>
           </div>
           {/* Description */}

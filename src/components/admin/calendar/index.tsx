@@ -8,7 +8,34 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import { format } from 'date-fns';
 import { X, Info, Calendar, Grid, ChevronLeft, ChevronRight, Plus } from 'react-feather';
+import BookingCalendar from '../dashboard/BookingCalendar';
 
+interface RevenueItem {
+  amount: number;
+  month: number;
+  year: number;
+}
+
+interface OccupancyTrend {
+  month: string; 
+  year: number;
+  value: number;
+}
+
+interface HistoricalData {
+  role: string;
+  previousRevenue: RevenueItem[];
+  occupancyTrends: OccupancyTrend[];
+  nightlyRates: OccupancyTrend[];
+  bookingSources: {
+    total: number;
+    sources: {
+      name: string;
+      count: number;
+    }[];
+  };
+  bookings: Booking[];
+}
 interface Booking {
   id: number;
   arrival: string;
@@ -138,11 +165,22 @@ const sampleBookings: Booking[] = [
   ];
 const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
   const [currentView, setCurrentView] = useState<'dayGridMonth' | 'timeGridWeek' | 'listWeek'>('dayGridMonth');
+
+  const [historicalData, setHistoricalData] = useState<HistoricalData | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
   const [currentDateTitle, setCurrentDateTitle] = useState('');
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const calendarRef = useRef<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    occupancyRate: "0%",
+    revenueGenerated: 0,
+    totalBookings: 0,
+    totalCustomers: "1,200+"
+  });
 
   // Update date title when view changes
   useEffect(() => {
@@ -152,68 +190,80 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
     }
   }, [currentView]);
 
-  // Transform bookings data into calendar events
-  const events: CalendarEvent[] = bookings.map((booking) => {
-    const isBlocked = booking.is_block || booking.type !== 'booking';
-    const baseColor = isBlocked 
-      ? '#FF6B6B' // Coral red for blocked
-      : getPropertyColor(booking.property.id);
-    
-    return {
-      id: `event-${booking.id}`,
-      title: isBlocked ? 'Blocked' : booking.property.name,
-      start: booking.arrival,
-      end: booking.departure,
-      color: baseColor,
-      textColor: '#ffffff',
-      extendedProps: {
-        source: booking.listing_site,
-        status: booking.status,
-        reservationNumber: booking.platform_reservation_number,
-        notes: booking.notes,
-        isBlock: isBlocked,
-        propertyName: booking.property.name,
-        propertyId: booking.property.id,
-        type: booking.type
+    useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setIsLoadingProperties(true)
+      setError(null);
+      
+      try {
+        const [currentMonthRes, historicalRes] = await Promise.all([
+          fetch('/api/bookings/current-month'),
+          fetch('/api/bookings/historical')
+        ]);
+
+        // Handle API errors
+        if (!currentMonthRes.ok) throw new Error('Failed to fetch current month bookings');
+        if (!historicalRes.ok) throw new Error('Failed to fetch historical bookings');
+
+        const currentMonthData = await currentMonthRes.json();
+        const historicalData = await historicalRes.json();
+
+        setHistoricalData(historicalData);
+
+        // Set stats from current month data
+        setStats({
+          occupancyRate: `${currentMonthData.occupancyRate.toFixed(2)}%`,
+          revenueGenerated: currentMonthData.totalRevenue,
+          totalBookings: currentMonthData.totalBookings,
+          totalCustomers: "1,200+"
+        });
+
+      } catch (err) {
+        console.error('API Error:', err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+        setIsLoadingProperties(false)
       }
     };
-  });
 
-  const handleDateSelect = (selectInfo: any) => {
-    const title = prompt('Enter a reason for blocking these dates:');
-    const calendarApi = selectInfo.view.calendar;
+    fetchData();
+  }, []);
 
-    if (title) {
-      calendarApi.addEvent({
-        id: `new-block-${Date.now()}`,
-        title: 'Blocked',
-        start: selectInfo.startStr,
-        end: selectInfo.endStr,
-        color: '#FF6B6B',
-        textColor: '#ffffff',
-        allDay: selectInfo.allDay,
-        extendedProps: {
-          isBlock: true,
-          propertyName: 'Blocked Dates',
-          type: 'blocked'
-        }
+  const [events, setEvents] = useState([])
+  useEffect(() => {
+
+    if(historicalData?.bookings){
+      // Transform bookings data into calendar events
+      const events: any = historicalData?.bookings.map((booking) => {
+        const isBlocked = booking.is_block || booking.type !== 'booking';
+        const baseColor = isBlocked 
+          ? '#FF6B6B' // Coral red for blocked
+          : getPropertyColor(booking.property.id);
+        
+        return {
+          id: `event-${booking.id}`,
+          title: isBlocked ? 'Blocked' : booking.property.name,
+          start: booking.arrival,
+          end: booking.departure,
+          color: baseColor,
+          textColor: '#ffffff',
+          extendedProps: {
+            source: booking.listing_site,
+            status: booking.status,
+            reservationNumber: booking.platform_reservation_number,
+            notes: booking.notes,
+            isBlock: isBlocked,
+            propertyName: booking.property.name,
+            propertyId: booking.property.id,
+            type: booking.type
+          }
+        };
       });
+      setEvents(events)
     }
-  };
-
-  const handlePrev = () => {
-    if (calendarRef.current) {
-      calendarRef.current.getApi().prev();
-      updateDateTitle();
-    }
-  };
-
-  const handleNext = () => {
-    if (calendarRef.current) {
-      calendarRef.current.getApi().next();
-      updateDateTitle();
-    }
-  };
+  }, [historicalData])
 
   const updateDateTitle = () => {
     if (calendarRef.current) {
@@ -222,179 +272,13 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
     }
   };
 
-  const handleViewChange = (view: 'dayGridMonth' | 'timeGridWeek' | 'listWeek') => {
-    if (calendarRef.current) {
-      calendarRef.current.getApi().changeView(view);
-    }
-    setCurrentView(view);
-  };
 
-  const handleEventClick = (clickInfo: any) => {
-    const event = clickInfo.event;
-    setModalData({
-      title: event.title,
-      start: event.startStr,
-      end: event.endStr,
-      source: event.extendedProps.source,
-      status: event.extendedProps.status,
-      reservationNumber: event.extendedProps.reservationNumber,
-      notes: event.extendedProps.notes,
-      isBlock: event.extendedProps.isBlock,
-      propertyName: event.extendedProps.propertyName,
-      type: event.extendedProps.type
-    });
-    setModalOpen(true);
-  };
 
-  const renderEventContent = (eventInfo: any) => {
-    const viewType = eventInfo.view?.type || '';
-    const title = eventInfo.event.title;
-    const isBlocked = eventInfo.event.extendedProps.isBlock || eventInfo.event.extendedProps.type !== 'booking';
-    const isHovered = hoveredEventId === eventInfo.event.id;
-
-    if (viewType.startsWith('list')) {
-      return (
-        <div 
-          className="flex flex-col p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-          onClick={() => handleEventClick({ event: eventInfo.event })}
-          onMouseEnter={() => setHoveredEventId(eventInfo.event.id)}
-          onMouseLeave={() => setHoveredEventId(null)}
-        >
-          <div className="text-sm font-semibold text-gray-900">
-            {isBlocked ? 'Blocked' : title}
-          </div>
-          <div className="text-xs text-gray-600">
-            {eventInfo.event.extendedProps.source}
-            {!isBlocked && (
-              <span className="ml-2 text-gray-500">
-                {format(new Date(eventInfo.event.start), 'MMM d')} - {format(new Date(eventInfo.event.end), 'MMM d')}
-              </span>
-            )}
-          </div>
-        </div>
-      );
-    } else {
-      const truncatedTitle = isBlocked ? 'Blocked' : title;
-      return (
-        <div 
-          className={`fc-event-main-frame w-full h-full flex items-center justify-center transition-all duration-200 rounded-md ${
-            isHovered ? 'transform scale-105 shadow-lg' : ''
-          }`}
-          onClick={() => handleEventClick({ event: eventInfo.event })}
-          onMouseEnter={() => setHoveredEventId(eventInfo.event.id)}
-          onMouseLeave={() => setHoveredEventId(null)}
-        >
-          <div className="fc-event-title-container px-2 py-1">
-            <div className="fc-event-title text-xs font-medium text-center leading-tight truncate">
-              {truncatedTitle}
-            </div>
-          </div>
-        </div>
-      );
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
-
-        {/* Main Calendar Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 sm:p-4 md:p-6">
-          {/* Calendar Controls */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 mb-6">
-            {/* Navigation */}
-            <div className="flex items-center gap-2 sm:gap-4 justify-center md:justify-start">
-              <button
-                onClick={handlePrev}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                <ChevronLeft size={20} className="text-gray-700" />
-              </button>
-              <h2 className="text-xl font-bold text-gray-900 min-w-[120px] sm:min-w-[200px] text-center">
-                {currentDateTitle}
-              </h2>
-              <button
-                onClick={handleNext}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                <ChevronRight size={20} className="text-gray-700" />
-              </button>
-            </div>
-
-            {/* View Selector */}
-            <div className="flex bg-gray-100 p-1 rounded-xl w-full md:w-auto justify-center md:justify-start">
-              <button
-                onClick={() => handleViewChange('dayGridMonth')}
-                className={`px-3 sm:px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'dayGridMonth' 
-                    ? 'bg-white shadow-sm text-blue-600 font-medium' 
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <Grid size={16} />
-                Month
-              </button>
-              <button
-                onClick={() => handleViewChange('timeGridWeek')}
-                className={`px-3 sm:px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'timeGridWeek' 
-                    ? 'bg-white shadow-sm text-blue-600 font-medium' 
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <Calendar size={16} />
-                Week
-              </button>
-              <button
-                onClick={() => handleViewChange('listWeek')}
-                className={`px-3 sm:px-4 py-2 text-sm rounded-lg flex items-center gap-2 transition-colors ${
-                  currentView === 'listWeek' 
-                    ? 'bg-white shadow-sm text-blue-600 font-medium' 
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                List
-              </button>
-            </div>
-          </div>
-
-          {/* Calendar */}
-          <div className="calendar-container overflow-x-auto rounded-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-              initialView={currentView}
-              headerToolbar={false}
-              events={events}
-              selectable={true}
-              select={handleDateSelect}
-              eventClick={handleEventClick}
-              eventContent={renderEventContent}
-              height={window.innerWidth < 640 ? 400 : 600}
-              datesSet={(arg) => setCurrentDateTitle(arg.view.title)}
-              eventDisplay="block"
-              nowIndicator={true}
-              dayMaxEvents={4}
-              dayMaxEventRows={4}
-              views={{
-                dayGridMonth: {
-                  dayMaxEventRows: 4,
-                },
-                timeGridWeek: {
-                  dayHeaderFormat: { weekday: 'short', day: 'numeric' }
-                },
-                listWeek: {
-                  listDayFormat: { weekday: 'long', day: 'numeric', month: 'long' }
-                }
-              }}
-              eventClassNames="cursor-pointer"
-              dayHeaderClassNames="bg-gray-50 font-medium text-gray-700 text-sm"
-            />
-          </div>
-        </div>
+        <BookingCalendar bookings={historicalData?.bookings || []} height={400} />
 
         {/* Booking Details Modal */}
         {modalOpen && modalData && (
@@ -504,7 +388,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mt-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Booking List</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {events.map((event, index) => (
+            {events.map((event:any, index:any) => (
               <div key={event.id} className="flex items-center gap-3 text-sm">
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0" 

@@ -32,27 +32,54 @@ interface BookingRequest {
 const Bookings = () => {
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<BookingRequest[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('Pending');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalBookings, setTotalBookings] = useState<number>(0);
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
 
-  
-  // Mock data - matches the image
+  // Fetch bookings from API with pagination
+  const fetchBookings = async (page: number = 1) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const limit = 8;
+      const offset = (page - 1) * limit;
+      const sinceDate = '2024-01-01T00:00:00Z';
+      
+      const response = await fetch(`/api/bookings/all?limit=${limit}&offset=${offset}&since=${sinceDate}`);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to fetch bookings');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setRequests(data.bookings);
+        setFilteredRequests(data.bookings);
+        
+        // Update pagination info
+        setTotalPages(data.pagination.totalPages);
+        setTotalBookings(data.pagination.total);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch bookings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const mockData: BookingRequest[] = [
-        { id: '1', personName: 'MD Siam', email: 'mdsiam@gmail.com', phone: '880 1877787...', propertyName: 'Urban Apartment', type: 'Apartment', status: 'Pending', applyDate: '2025-06-30', price: '$85/night' },
-        { id: '2', personName: 'MD Rahat', email: 'mdsiam@gmail.com', phone: '880 1877787...', propertyName: 'Urban Apartment', type: 'Apartment', status: 'Pending', applyDate: '2025-06-30', price: '$85/night' },
-        { id: '3', personName: 'Rifat Hassan', email: 'mdsiam@gmail.com', phone: '880 1877787...', propertyName: 'Cozy Lakeview Cabin', type: 'Cabin', status: 'Occupied', applyDate: '2025-07-10', price: '$85/night' },
-        { id: '4', personName: 'Hasib ali', email: 'mdsiam@gmail.com', phone: '880 1877787...', propertyName: 'Luxury Beach Villa', type: 'Villa', status: 'Occupied', applyDate: '2025-07-05', price: '$85/night' },
-        { id: '5', personName: 'Sbbir Rahm...', email: 'mdsiam@gmail.com', phone: '880 1877787...', propertyName: 'Urban Apartment', type: 'Apartment', status: 'Pending', applyDate: '2025-06-30', price: '$85/night' },
-      ];
-    setRequests(mockData);
-    setFilteredRequests(mockData);
-  }, []);
+    fetchBookings(currentPage);
+  }, [currentPage]);
 
   // Filter requests based on status
   useEffect(() => {
@@ -61,12 +88,7 @@ const Bookings = () => {
       result = result.filter(request => request.status === statusFilter);
     }
     setFilteredRequests(result);
-    setCurrentPage(1);
   }, [statusFilter, requests]);
-
-  // Pagination
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
 
   // Status badge styling
   const getStatusBadge = (status: string) => {
@@ -144,7 +166,7 @@ const Bookings = () => {
         </button>
         
         <span className="text-sm text-gray-600 ml-2">
-          Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredRequests.length)} of {filteredRequests.length} properties
+          Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalBookings)} of {totalBookings} bookings
         </span>
       </div>
     );
@@ -175,7 +197,7 @@ const Bookings = () => {
       listingDate: request.applyDate, // Use applyDate as listingDate
     };
   };
-
+console.log(statusFilter)
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -184,6 +206,22 @@ const Bookings = () => {
             <h1 className="text-2xl font-bold text-gray-900">Booking Request List</h1>
           </div>
           <div className="mt-4 flex gap-3 md:mt-0">
+            <label className="flex items-center cursor-pointer">
+                <input
+                type="radio"
+                name="statusFilter"
+                checked={statusFilter === 'active'}
+                onChange={() => setStatusFilter('active')}
+                className="sr-only"
+                />
+                <span className={`px-5 py-2 rounded-full text-sm font-medium ${
+                statusFilter === 'active' 
+                    ? 'bg-green-500 text-white ' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}>
+                Active Bookings
+                </span>
+            </label>
             <label className="flex items-center cursor-pointer">
                 <input
                 type="radio"
@@ -218,6 +256,8 @@ const Bookings = () => {
             </label>
           </div>
         </div>
+        {loading && <div className="p-8 text-center text-gray-500">Loading bookings...</div>}
+        {error && <div className="p-8 text-center text-red-500">{error}</div>}
         {/* Booking Request Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
@@ -236,8 +276,8 @@ const Bookings = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedRequests.length > 0 ? (
-                  paginatedRequests.map((request) => (
+                {filteredRequests.length > 0 ? (
+                  filteredRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{request.personName}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{request.email}</td>
@@ -270,7 +310,7 @@ const Bookings = () => {
           </div>
           
           {/* Pagination */}
-          {filteredRequests.length > itemsPerPage && (
+          {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
               {renderPagination()}
             </div>

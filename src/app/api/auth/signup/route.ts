@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       fullName,
       email,
       phone: isGoogleUser ? '555-000-0000' : phone,
-      dob: isGoogleUser ? '1990-01-01' : dob,
+      dob: isGoogleUser ? '20-20-2020' : dob,
       password: isGoogleUser ? '' : password, // Empty password for Google users
       profileImage,
       guestId: guestData.id, // Add guest ID to the signup data

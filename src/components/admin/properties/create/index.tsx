@@ -6,8 +6,10 @@ import CreateModal from './createModal';
 import dynamic from 'next/dynamic';
 const RichTextEditor = dynamic(() => import('@/components/common/Editor'), { ssr: false });
 import { useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function CreatePropertyPage() {
+  const router = useRouter();
   // State for form fields
   const [propertyName, setPropertyName] = useState('');
   const [propertyLocation, setPropertyLocation] = useState('');
@@ -32,15 +34,83 @@ export default function CreatePropertyPage() {
 
   const handleBackToList = () => {
     // Navigate to property list page in a real app
-    // router.push('/properties');
+    router.push('/admin/properties');
     setIsModalOpen(false);
   };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsModalOpen(true);
-    
+    setLoading(true);
+    setError(null);
+
+    const payload = {
+      active: false,
+      name: propertyName,
+      address: {
+        street1: propertyLocation,
+        street2: "",
+        city: "",
+        province: "",
+        state: "",
+        postalCode: "",
+        country: "",
+      },
+      calendar_color: "FF0000",
+      check_in: "15:00",
+      check_out: "11:00",
+      days_before_arrival_for_check: 5,
+      days_before_arrival_for_custom: 1,
+      min_hours_before_arrival: 2,
+      min_nights: 1,
+      pending_action: "cancel",
+      pending_for: "payment",
+      pending_hours_for_check: 1,
+      pending_hours_for_credit_card: 1,
+      pending_hours_for_custom: 1,
+      quote_expiration_days: 7,
+      require_confirmation_for_online_bookings: true,
+      second_payment_rule: "schedule_never",
+      security_deposit_rule: "take_if",
+      security_deposit_type: "hold",
+      send_payment_reminder: true,
+      send_security_deposit_reminder: true,
+      travel_insurance_rule: "disabled",
+      user_id: 1,
+      // ...add more fields as needed
+    };
+
+    try {
+      const res = await fetch('/api/properties/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to create property');
+        setLoading(false);
+        return;
+      }
+      // Reset all form fields after successful creation
+      setPropertyName("");
+      setPropertyLocation("");
+      setTotalBathroom("");
+      setTotalBedroom("");
+      setPropertyType("");
+      setCapacity("");
+      setDetails("");
+      setUploadedFiles([]);
+      setFileUrls([]);
+      setEditorValue("");
+      setIsModalOpen(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create property');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle file upload
@@ -81,13 +151,16 @@ export default function CreatePropertyPage() {
             <button
               onClick={handleSubmit}
               className="w-full flex justify-center items-center gap-2 py-3 px-6 bg-[#40C557] hover:bg-[#40C557]/80 text-white font-semibold rounded-full shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 cursor-pointer"
+              disabled={loading}
             >
-              Upload Property
+              {loading ? "Uploading..." : "Upload Property"}
               <img src="/images/icons/done.png" alt="arrow-right" className="w-4 h-4" />
             </button>
           </div>
         </div>
-
+        {error && (
+          <div className="mb-4 text-red-600 font-semibold">{error}</div>
+        )}
         <form>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
             <div className="bg-white shadow rounded-lg p-6 sm:p-8">
