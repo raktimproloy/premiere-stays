@@ -10,11 +10,6 @@ const handler = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user, account }) {
-            // Log the token and user data for debugging
-            console.log("JWT Callback - Token:", token);
-            console.log("JWT Callback - User:", user);
-            console.log("JWT Callback - Account:", account);
-            
             if (account && user) {
                 return {
                     ...token,
@@ -32,19 +27,12 @@ const handler = NextAuth({
             return token;
         },
         async session({ session, token }) {
-            // Log session data for debugging
-            console.log("Session Callback - Session:", session);
-            console.log("Session Callback - Token:", token);
             
             session.user = token.user as any;
             (session as any).accessToken = token.accessToken;
             return session;
         },
         async signIn({ user, account, profile }) {
-            // Log sign-in data for debugging
-            console.log("SignIn Callback - User:", user);
-            console.log("SignIn Callback - Account:", account);
-            console.log("SignIn Callback - Profile:", profile);
             
             return true;
         },

@@ -52,8 +52,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      // User exists - log them in (similar to normal login flow)
-      console.log('Google user found, logging in:', existingUser.email);
 
       // Update last login
       await db.collection("users").updateOne(
@@ -86,8 +84,6 @@ export async function POST(request: NextRequest) {
 
       return response;
     } else {
-      // User doesn't exist - register them (similar to signup flow)
-      console.log('Google user not found, registering new user:', email);
 
       // First, create guest in OwnerRez
       let guestData;

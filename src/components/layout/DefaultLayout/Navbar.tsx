@@ -19,10 +19,9 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const Logo = '/images/logo.png';
-  const { isAuthenticated, logout } = useAuth();
-
-  // Get user data from auth context
-  const { user: authUser, role } = useAuth();
+  
+  // Single useAuth call to get all needed values
+  const { isAuthenticated, logout, loading, user: authUser, role } = useAuth();
   
   // Use auth user data if available, otherwise use dummy data
   const user = authUser ? {
@@ -68,6 +67,32 @@ const Navbar = () => {
       return pathname === path;
     });
   };
+
+  // Show loading state while authentication is being checked
+  if (loading) {
+    return (
+      <nav className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-22">
+            {/* Logo */}
+            <div className="flex-shrink-0 flex items-center">
+              <Image src={Logo} alt='logo' width={157} height={70} className="w-32 sm:w-36 md:w-40" />
+            </div>
+
+            {/* Loading indicator */}
+            <div className="hidden lg:flex items-center">
+              <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+            </div>
+
+            {/* Mobile loading */}
+            <div className="lg:hidden flex items-center">
+              <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">

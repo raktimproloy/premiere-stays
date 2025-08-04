@@ -194,11 +194,6 @@ export default function Index() {
         setCurrentMonthData(currentMonthData);
         setHistoricalData(historicalData);
 
-        // Log data to console as requested
-        // console.log('Current Month Data:', currentMonthData);
-        // console.log('Historical Data:', historicalData);
-        // console.log('statementsData Data:', statementsData);
-
         // Set stats from current month data
         setStats({
           occupancyRate: `${currentMonthData.occupancyRate.toFixed(2)}%`,

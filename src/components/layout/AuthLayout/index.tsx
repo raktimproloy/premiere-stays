@@ -4,7 +4,7 @@ import Image from 'next/image';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Link from 'next/link';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, useSession, signOut } from 'next-auth/react';
 import { useAuth } from '@/components/common/AuthContext';
 // import Logo from "/images/logo.png"
 const Logo = "/images/logo.png"
@@ -39,23 +39,17 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
 
   // Handle authentication when session changes
   useEffect(() => {
-    if (session?.user && !processingAuth) {
-      console.log('=== NEXT AUTH SESSION DATA ===');
-      console.log('Session Status:', status);
-      console.log('Session Data:', session);
-      console.log('User Data:', session?.user);
-      console.log('================================');
+    if (session?.user && !processingAuth && session.user.email) {
       
       handleGoogleAuthentication();
     }
-  }, [session, status]);
+  }, [session, status, processingAuth, loginWithGoogle]);
 
   const handleGoogleAuthentication = async () => {
     if (processingAuth) return;
     
     try {
       setProcessingAuth(true);
-      console.log('Processing Google authentication...');
 
       // Split the name into first and last name
       const fullName = session?.user?.name || 'Google User';
@@ -72,8 +66,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
         registerType: 'google' // Add register type
       };
 
-      console.log('Signup data:', signupData);
-      console.log('Split name - First:', firstName, 'Last:', lastName);
       
       const signupResponse = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -84,20 +76,21 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
       });
 
       const signupResult = await signupResponse.json();
-      console.log('Signup response:', signupResult);
 
       if (signupResult.success) {
-        console.log('Google user signup successful:', signupResult.user);
-        console.log('JWT token:', signupResult.token);
         
         // Update auth context
         if (loginWithGoogle) {
-          await loginWithGoogle(signupResult.user, signupResult.token);
+          const result = await loginWithGoogle(signupResult.user, signupResult.token);
+          
+          // Clear NextAuth session to prevent conflicts
+          if (result) {
+            await signOut({ redirect: false });
+          }
         }
       } else {
         // If signup fails because user already exists, we need to handle this differently
         if (signupResult.message?.includes('already exists') || signupResult.message?.includes('duplicate')) {
-          console.log('User already exists, creating a special login flow for Google user...');
           
           try {
             // Call a special endpoint to get Google user data and create token
@@ -116,12 +109,15 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
             const googleLoginResult = await googleLoginResponse.json();
             
             if (googleLoginResult.success) {
-              console.log('Google login successful for existing user:', googleLoginResult.user);
-              console.log('JWT token:', googleLoginResult.token);
               
               // Update auth context
               if (loginWithGoogle) {
-                await loginWithGoogle(googleLoginResult.user, googleLoginResult.token);
+                const result = await loginWithGoogle(googleLoginResult.user, googleLoginResult.token);
+                
+                // Clear NextAuth session to prevent conflicts
+                if (result) {
+                  await signOut({ redirect: false });
+                }
               }
             } else {
               console.error('Failed to login existing Google user:', googleLoginResult.message);

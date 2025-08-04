@@ -101,8 +101,6 @@ export async function GET() {
       });
     }
 
-    // Cache is invalid or doesn't exist, fetch from API
-    console.log('Cache invalid or expired, fetching properties from API...');
     const properties = await fetchAllProperties();
     
     // Store in cache

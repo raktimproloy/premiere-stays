@@ -111,7 +111,6 @@ async function callOwnerRezSearchAPI(filters: SearchFilters): Promise<OwnerRezSe
   searchUrl.searchParams.append('limit', limit.toString());
   searchUrl.searchParams.append('offset', offset.toString());
 
-  console.log('Calling OwnerRez search API:', searchUrl.toString());
 
   const res = await fetch(searchUrl.toString(), { headers });
 
@@ -165,8 +164,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // Step 1: Call OwnerRez search API to get property IDs
-    console.log('Step 1: Calling OwnerRez search API...');
     const searchResponse = await callOwnerRezSearchAPI(filters);
     
     if (!searchResponse.items || searchResponse.items.length === 0) {
@@ -191,10 +188,7 @@ export async function GET(request: Request) {
 
     // Extract property IDs from search response
     const propertyIds = searchResponse.items.map(item => item.id);
-    console.log(`Step 1 complete: Found ${propertyIds.length} property IDs from OwnerRez search`);
 
-    // Step 2: Get full property details from cached JSON file
-    console.log('Step 2: Getting full property details from cache...');
     const cachedProperties = getCachedProperties();
     
     if (!cachedProperties || cachedProperties.length === 0) {
@@ -218,7 +212,6 @@ export async function GET(request: Request) {
 
     // Get full property details for the found IDs
     const fullProperties = getPropertiesByIds(propertyIds);
-    console.log(`Step 2 complete: Retrieved ${fullProperties.length} full property details from cache`);
 
     // Step 3: Apply additional filters that aren't supported by OwnerRez search API
     let filteredProperties = fullProperties;
@@ -251,7 +244,6 @@ export async function GET(request: Request) {
     const totalPages = Math.ceil(totalCount / limit);
     const currentPage = filters.page || 1;
 
-    console.log(`Step 3 complete: Returning ${paginatedProperties.length} properties with pagination`);
 
     return NextResponse.json({
       success: true,

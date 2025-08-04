@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { getBookingPath, clearBookingPath } from '@/utils/cookies';
@@ -27,6 +27,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   role: 'user' | 'admin' | 'superadmin' | null;
+  testRedirect: () => void;
 }
 
 interface SignupData {
@@ -58,6 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<'user' | 'admin' | 'superadmin' | null>(null);
   const router = useRouter();
+  
+  // Add refs to prevent multiple simultaneous calls
+  const authCheckInProgress = useRef(false);
+  const lastAuthCheck = useRef<number>(0);
+  const AUTH_CHECK_INTERVAL = 30000; // 30 seconds
 
   // Check authentication status on mount
   useEffect(() => {
@@ -65,7 +71,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const checkAuthStatus = async () => {
+    // Prevent multiple simultaneous calls
+    if (authCheckInProgress.current) {
+      return;
+    }
+
+    // Check if we've recently checked auth status
+    const now = Date.now();
+    if (now - lastAuthCheck.current < AUTH_CHECK_INTERVAL) {
+      setLoading(false);
+      return;
+    }
+
     try {
+      authCheckInProgress.current = true;
+      setLoading(true);
+      lastAuthCheck.current = now;
+      
+      // Check server-side authentication (for regular users with HTTP-only cookies)
       const response = await fetch('/api/auth/me');
       const data = await response.json();
 
@@ -73,29 +96,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(data.user);
         setIsAuthenticated(true);
         setRole(data.user.role);
-      } else {
-        // Check localStorage for dummy admin/superadmin users
-        const token = localStorage.getItem('authToken');
-        const storedUser = localStorage.getItem('user');
-        
-        if (token && storedUser) {
-          try {
-            const userData = JSON.parse(storedUser);
+        setLoading(false);
+        return;
+      }
+
+      // If server-side auth fails, check localStorage for dummy admin/superadmin users only
+      const storedUser = localStorage.getItem('user');
+      
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          // Only allow dummy users (admin/superadmin) from localStorage
+          if (userData.role === 'admin' || userData.role === 'superadmin') {
             setUser(userData);
             setIsAuthenticated(true);
             setRole(userData.role);
-          } catch (error) {
-            console.error('Error parsing stored user data:', error);
-            // Clear invalid data
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
+            setLoading(false);
+            return;
           }
-        } else {
-          setIsAuthenticated(false);
-          setUser(null);
-          setRole(null);
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+          // Clear invalid data
+          localStorage.removeItem('user');
         }
       }
+
+      setIsAuthenticated(false);
+      setUser(null);
+      setRole(null);
     } catch (error) {
       console.error('Auth status check error:', error);
       setIsAuthenticated(false);
@@ -103,6 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRole(null);
     } finally {
       setLoading(false);
+      authCheckInProgress.current = false;
     }
   };
 
@@ -112,26 +141,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRole(userData.role);
     setLoading(false);
 
-    // Check for booking path redirect
-    const bookingPath = getBookingPath();
-    if (bookingPath && userData.role === 'user') {
-      // Clear the booking path cookie
-      clearBookingPath();
-      // Redirect to the saved booking path with searchId if available
-      const redirectPath = bookingPath.searchId 
-        ? `${bookingPath.path}?id=${bookingPath.searchId}`
-        : bookingPath.path;
-      router.push(redirectPath);
-    } else {
-      // Default redirect based on role
-      if (userData.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else if (userData.role === 'superadmin') {
-        router.push('/superadmin/dashboard');
+    // Add a small delay to ensure state updates are processed
+    setTimeout(() => {
+      
+      // Check for booking path redirect
+      const bookingPath = getBookingPath();
+      
+      if (bookingPath && userData.role === 'user') {
+        // Clear the booking path cookie
+        clearBookingPath();
+        // Redirect to the saved booking path with searchId if available
+        const redirectPath = bookingPath.searchId 
+          ? `${bookingPath.path}?id=${bookingPath.searchId}`
+          : bookingPath.path;
+        try {
+          router.push(redirectPath);
+        } catch (error) {
+          window.location.href = redirectPath;
+        }
       } else {
-        router.push('/');
+        // Default redirect based on role
+        let redirectPath = '/';
+        if (userData.role === 'admin') {
+          redirectPath = '/admin/dashboard';
+        } else if (userData.role === 'superadmin') {
+          redirectPath = '/superadmin/dashboard';
+        } else {
+          redirectPath = '/';
+        }
+        try {
+          router.push(redirectPath);
+        } catch (error) {
+          window.location.href = redirectPath;
+        }
       }
-    }
+    }, 500); // Increased delay to ensure state updates
   };
 
   const login = async (email: string, password: string) => {
@@ -156,7 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         
         handleSuccessfulAuth(userData);
-        localStorage.setItem('authToken', 'dummy-token');
+        // Store dummy user in localStorage (no token needed for dummy users)
         localStorage.setItem('user', JSON.stringify(userData));
         
         return true;
@@ -194,13 +238,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     
     try {
-      console.log('Google login successful, updating auth context:', userData);
       
-      // Store token in localStorage for consistency
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
+      // For Google users, we don't need to store token in localStorage
+      // The token is handled by NextAuth and stored in cookies
       handleSuccessfulAuth(userData);
+      setLoading(false);
       return true;
     } catch (error) {
       console.error('Google login error:', error);
@@ -262,25 +304,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setUser(null);
     setRole(null);
-    localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+    
+    // Reset auth check timestamp to allow immediate re-check if needed
+    lastAuthCheck.current = 0;
     
     // Redirect to home page
     router.push('/');
   };
 
+  // Test function for debugging redirect
+  const testRedirect = () => {
+    router.push('/');
+  };
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    isAuthenticated, 
+    user,
+    login, 
+    loginWithGoogle,
+    signup,
+    logout, 
+    loading, 
+    error, 
+    role,
+    testRedirect
+  }), [isAuthenticated, user, loading, error, role]);
+
   return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      user,
-      login, 
-      loginWithGoogle,
-      signup,
-      logout, 
-      loading, 
-      error, 
-      role 
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [googleAccountError, setGoogleAccountError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const { login, loading, error } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +47,11 @@ export default function LoginPage() {
     // Clear Google account error when user types
     if (googleAccountError) {
       setGoogleAccountError(null);
+    }
+    
+    // Clear local error when user types
+    if (localError) {
+      setLocalError(null);
     }
   };
 
@@ -70,38 +76,20 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGoogleAccountError(null); // Clear any previous Google account error
+    setLocalError(null); // Clear any previous local error
     
     if (validateForm()) {
       try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          // Use the existing login function to handle successful login
-          await login(formData.email, formData.password);
-        } else {
-          // Check if it's a Google account error
-          if (data.error === 'GOOGLE_ACCOUNT') {
-            setGoogleAccountError(data.message);
-          } else {
-            // Handle other errors through the existing auth context
-            await login(formData.email, formData.password);
-          }
+        // Use the AuthContext login function directly
+        const success = await login(formData.email, formData.password);
+        
+        if (!success) {
+          // Error is already set in the AuthContext
+          console.log('Login failed');
         }
       } catch (error) {
         console.error('Login error:', error);
-        // Fallback to existing login function for error handling
-        await login(formData.email, formData.password);
+        setLocalError('Network error. Please try again.');
       }
     }
   };
@@ -220,14 +208,14 @@ export default function LoginPage() {
         </button>
 
         {/* Divider */}
-        <div className="relative my-6">
+        {/* <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm">
             <span className="px-2 bg-white text-gray-500">Or continue with</span>
           </div>
-        </div>
+        </div> */}
 
 
 
@@ -247,8 +235,8 @@ export default function LoginPage() {
           </div>
         )}
 
-        {error && !googleAccountError && (
-          <p className="mt-2 text-center text-sm text-red-600">{error}</p>
+        {(localError || error) && !googleAccountError && (
+          <p className="mt-2 text-center text-sm text-red-600">{localError || error}</p>
         )}
       </form>
     </AuthLayout>

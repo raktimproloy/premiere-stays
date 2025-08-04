@@ -76,9 +76,7 @@ export async function POST(request: NextRequest) {
     try {
       // For Google users, use a valid phone number format
       const guestPhone = isGoogleUser ? '555-000-0000' : phone;
-      console.log('Creating guest with phone:', guestPhone);
       guestData = await createGuestInOwnerRez(fullName, email, guestPhone);
-      console.log('Guest created successfully:', guestData);
     } catch (error) {
       console.error('Failed to create guest in OwnerRez:', error);
       return NextResponse.json(
@@ -99,7 +97,6 @@ export async function POST(request: NextRequest) {
       registerType: registerType || 'manual' // Add register type
     };
 
-    console.log('Creating user with data:', { ...signupData, password: '[HIDDEN]' });
 
     const result = await authService.signup(signupData);
 

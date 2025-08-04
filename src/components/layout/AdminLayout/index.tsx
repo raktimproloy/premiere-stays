@@ -27,6 +27,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
+  console.log(user);
+
   // Check authentication and role
   useEffect(() => {
     if (!loading) {

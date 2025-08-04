@@ -25,14 +25,12 @@ export default function CreatePropertyPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleCreateNewProperty = () => {
-    console.log('Create new property clicked');
     // Navigate to create property page in a real app
     // router.push('/create-property');
     setIsModalOpen(false);
   };
 
   const handleBackToList = () => {
-    console.log('Back to property list clicked');
     // Navigate to property list page in a real app
     // router.push('/properties');
     setIsModalOpen(false);
@@ -42,18 +40,6 @@ export default function CreatePropertyPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsModalOpen(true);
-    console.log({
-      propertyName,
-      propertyLocation,
-      totalBathroom,
-      totalBedroom,
-      propertyType,
-      capacity,
-      details,
-      fileUploaded,
-      uploadedFiles: uploadedFiles.map(file => file.name),
-      editorValue,
-    });
     
   };
 

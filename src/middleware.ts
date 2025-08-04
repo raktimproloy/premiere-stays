@@ -14,56 +14,53 @@ export async function middleware(request: NextRequest) {
 
   // Get JWT token from cookie
   const token = request.cookies.get('authToken')?.value;
-
-  // Admin routes - allow admin and superadmin
-  if (pathname.startsWith('/admin/')) {
-    if (!token) {
-      console.log('Middleware: No token found for admin route:', pathname);
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    try {
-      const decoded = verifyToken(token);
-      console.log('Middleware: Token decoded for admin route:', { pathname, role: decoded.role });
-      if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
-        console.log('Middleware: Insufficient role for admin route:', { pathname, role: decoded.role });
+  setTimeout(() => {
+    // Admin routes - allow admin and superadmin
+    if (pathname.startsWith('/admin/')) {
+      if (!token) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-    } catch (error) {
-      console.log('Middleware: Token verification failed for admin route:', { pathname, error: error instanceof Error ? error.message : 'Unknown error' });
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
-  // Superadmin routes - only allow superadmin
-  if (pathname.startsWith('/superadmin/')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    try {
-      const decoded = verifyToken(token);
-      if (decoded.role !== 'superadmin') {
+  
+      try {
+        const decoded = verifyToken(token);
+        if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
+      } catch (error) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-    } catch (error) {
-      return NextResponse.redirect(new URL('/login', request.url));
     }
-  }
-
-  // User routes (like profile, bookings, etc.) - allow all authenticated users
-  if (pathname.startsWith('/profile/') || pathname.startsWith('/bookings/')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+  
+    // Superadmin routes - only allow superadmin
+    if (pathname.startsWith('/superadmin/')) {
+      if (!token) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+  
+      try {
+        const decoded = verifyToken(token);
+        if (decoded.role !== 'superadmin') {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
+      } catch (error) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
     }
-
-    try {
-      const decoded = verifyToken(token);
-      // Allow all authenticated users (user, admin, superadmin) to access profile and bookings
-    } catch (error) {
-      return NextResponse.redirect(new URL('/login', request.url));
+  
+    // User routes (like profile, bookings, etc.) - allow all authenticated users
+    if (pathname.startsWith('/profile/') || pathname.startsWith('/bookings/')) {
+      if (!token) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+  
+      try {
+        const decoded = verifyToken(token);
+        // Allow all authenticated users (user, admin, superadmin) to access profile and bookings
+      } catch (error) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
     }
-  }
+  }, 1000);
 
   return NextResponse.next();
 }
