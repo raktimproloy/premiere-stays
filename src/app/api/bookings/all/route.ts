@@ -153,7 +153,7 @@ async function fetchAllGuests(createdSince?: string) {
     const data: any = await response.json();
     console.log('Guests data received:', data);
     allGuests = [...allGuests, ...(data.items || [])];
-    nextPageUrl = data.next_page_url ? `${v2Url}${data.next_page_url}` : null;
+    nextPageUrl = data.next_page_url ? `https://api.ownerrez.com${data.next_page_url}` : null;
   }
 
   return allGuests;

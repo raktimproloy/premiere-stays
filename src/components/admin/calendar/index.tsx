@@ -172,15 +172,19 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
   const [currentDateTitle, setCurrentDateTitle] = useState('');
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const calendarRef = useRef<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     occupancyRate: "0%",
     revenueGenerated: 0,
     totalBookings: 0,
     totalCustomers: "1,200+"
   });
+
+  // Pagination state for booking list
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 16; // Show 6 items per page (2 rows of 3 items each)
 
   // Update date title when view changes
   useEffect(() => {
@@ -190,7 +194,7 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
     }
   }, [currentView]);
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setIsLoadingProperties(true)
@@ -272,8 +276,34 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
     }
   };
 
+  // Pagination logic for booking list
+  const totalPages = Math.ceil(events.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEvents = events.slice(startIndex, endIndex);
 
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // Reset to first page when events change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [events.length]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
@@ -386,9 +416,17 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
 
         {/* Booking List */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Booking List</h3>
+          <div className="flex justify-between items-center mb-4 sm:mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Booking List</h3>
+            {totalPages > 1 && (
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </div>
+            )}
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {events.map((event:any, index:any) => (
+            {currentEvents.map((event:any, index:any) => (
               <div key={event.id} className="flex items-center gap-3 text-sm">
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0" 
@@ -403,12 +441,57 @@ const CalendarPage = ({ bookings = sampleBookings }: CalendarPageProps) => {
                 </span>
               </div>
             ))}
-            {events.length === 0 && (
+            {currentEvents.length === 0 && (
               <div className="col-span-full text-center text-gray-500 py-8">
                 No bookings found
               </div>
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-lg transition-colors ${
+                  currentPage === 1
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-lg transition-colors ${
+                  currentPage === totalPages
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

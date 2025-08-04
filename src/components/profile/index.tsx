@@ -15,6 +15,7 @@ interface User {
   profileImage?: string;
   guestId?: number;
   role: 'user' | 'admin' | 'superadmin';
+  registerType?: 'manual' | 'google';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -204,15 +205,15 @@ export default function Profile() {
       return;
     }
 
-    if (!form.phone.trim()) {
-      setError('Phone number is required');
-      return;
-    }
+    // if (!form.phone.trim()) {
+    //   setError('Phone number is required');
+    //   return;
+    // }
 
-    if (!isValidDateFormat(form.dob)) {
-      setError('Please enter a valid date in MM-DD-YYYY format');
-      return;
-    }
+    // if (!isValidDateFormat(form.dob)) {
+    //   setError('Please enter a valid date in MM-DD-YYYY format');
+    //   return;
+    // }
     
     try {
       setSaving(true);
@@ -422,13 +423,15 @@ export default function Profile() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-3 sm:gap-0">
-                <button
-                  type="button"
-                  className="text-[#586DF7] text-sm hover:underline"
-                  onClick={() => { setShowModal(false); setShowPasswordModal(true); }}
-                >
-                  Change Password?
-                </button>
+                {user?.registerType !== 'google' && (
+                  <button
+                    type="button"
+                    className="text-[#586DF7] text-sm hover:underline"
+                    onClick={() => { setShowModal(false); setShowPasswordModal(true); }}
+                  >
+                    Change Password?
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={saving}
@@ -460,7 +463,29 @@ export default function Profile() {
             >
               <FaTimes />
             </button>
-            <form onSubmit={handlePasswordSubmit} className="space-y-3 sm:space-y-4">
+            
+            {user?.registerType === 'google' ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaLock className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Google Account</h3>
+                <p className="text-gray-600 mb-4">
+                  You registered with Google, so you cannot change your password here.
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  To change your password, please visit your Google Account settings.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-full shadow transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePasswordSubmit} className="space-y-3 sm:space-y-4">
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center border border-[#1C88FF1A] rounded-lg px-3 py-2 bg-gray-50">
                   <FaLock className="text-gray-400 mr-2 w-4 h-4 sm:w-5 sm:h-5" />
@@ -523,6 +548,7 @@ export default function Profile() {
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

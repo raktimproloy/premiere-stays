@@ -5,7 +5,7 @@ import React from 'react'
 export default function page() {
   return (
     <SuperAdminLayout>
-        <Properties />
+        <Properties role="superadmin" />
     </SuperAdminLayout>
   )
 }

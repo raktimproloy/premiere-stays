@@ -32,15 +32,13 @@ async function fetchAllBookingsFromOwnerRez(): Promise<OwnerRezBooking[]> {
   const allBookings: OwnerRezBooking[] = [];
   let offset = 0;
   const limit = 1000;
-
-  // Use a date from 2 years ago to get all bookings
-  const sinceDate = new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
-  const endDate = new Date(Date.now() + 1 * 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year in future
+  const sinceDate = '2024-01-01T00:00:00Z'; // Use a fixed date like the working route
 
   console.log('Fetching bookings from OwnerRez API...');
 
   while (true) {
-    const url = `${v2Url}/bookings?since_utc=${sinceDate}&from=${sinceDate}&to=${endDate}&include_charges=true&limit=${limit}&offset=${offset}`;
+    const sinceParam = sinceDate ? `&since_utc=${sinceDate}` : '';
+    const url = `${v2Url}/bookings?limit=${limit}&offset=${offset}${sinceParam}`;
     
     console.log('Fetching URL:', url);
     

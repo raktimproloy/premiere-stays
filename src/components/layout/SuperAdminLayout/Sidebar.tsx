@@ -6,7 +6,7 @@ import { FiX } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { FiHelpCircle } from 'react-icons/fi';
 
-import { DashboardIcon, PropertyIcon, BookingIcon, CalendarIcon, ReviewsIcon, ProfileIcon, SettingsIcon } from '../../../../public/images/svg';
+import { DashboardIcon, PropertyIcon, BookingIcon, CalendarIcon, ReviewsIcon, ProfileIcon, SettingsIcon, BusinessRequestIcon, PaymentHistoryIcon } from '../../../../public/images/svg';
 import type { IconProps } from '../../../../public/images/svg';
 
 const Logo = "/images/logo.png"
@@ -56,18 +56,21 @@ export default function Sidebar({
   // Main navigation items
   const mainNavItems: NavItem[] = [
     { title: 'Dashboard', link: '/superadmin/dashboard', icon: <DashboardIcon /> },
+    { title: 'Business Request', link: '/superadmin/business-request', icon: <BusinessRequestIcon /> },
     { title: 'Manage Property', link: '/superadmin/properties', icon: <PropertyIcon /> },
+    { title: 'Property Request', link: '/superadmin/property-request', icon: <PropertyIcon /> },
     { title: 'Bookings', link: '/superadmin/bookings', icon: <BookingIcon /> },
+    { title: 'Payment History', link: '/superadmin/payment-history', icon: <PaymentHistoryIcon /> },
     { title: 'Calendar', link: '/superadmin/calendar', icon: <CalendarIcon /> },
     { title: 'Reviews', link: '/superadmin/reviews', icon: <ReviewsIcon /> },
-    { title: 'Users', link: '/superadmin/users', icon: <ProfileIcon /> },
+    // { title: 'Users', link: '/superadmin/users', icon: <ProfileIcon /> },
   ];
 
   // Superadmin navigation items
   const superadminNavItems: NavItem[] = [
     { title: 'Profile', link: '/superadmin/profile', icon: <ProfileIcon /> },
     { title: 'Settings', link: '/superadmin/settings', icon: <SettingsIcon /> },
-    { title: 'Help', link: '/superadmin/help', icon: <FiHelpCircle size={22} /> },
+    // { title: 'Help', link: '/superadmin/help', icon: <FiHelpCircle size={22} /> },
   ];
 
   return (

@@ -5,7 +5,7 @@ import Profile from '@/components/admin/profile'
 export default function page() {
   return (
     <AdminLayout>
-        <Profile/>
+        <Profile role="admin"/>
     </AdminLayout>
   )
 }

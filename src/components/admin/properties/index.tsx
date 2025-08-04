@@ -19,7 +19,7 @@ interface Property {
   active?: boolean;
 }
 
-const PropertyRequestList = () => {
+const PropertyRequestList = ({role}: {role: string}) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -245,7 +245,7 @@ const PropertyRequestList = () => {
                 </span>
             </label>
             </div>
-            <Link href="/admin/properties/create"
+            <Link href={role === "superadmin" ? "/superadmin/properties/create" : "/admin/properties/create"}
               className="flex items-center justify-center px-6 py-3 bg-[#586DF7] text-white rounded-full hover:bg-[#d99a34] transition-colors shadow-sm w-full md:w-auto mt-3 md:mt-0"
             >
               <FiPlus className="mr-2 border rounded-full font-bol" />
@@ -361,7 +361,7 @@ const PropertyRequestList = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         property={selectedProperty as Property | any}
-        editUrl={`/admin/properties/edit/${selectedProperty?.id}`}
+        editUrl={role === "superadmin" ? `/superadmin/properties/edit/${selectedProperty?.id}` : `/admin/properties/edit/${selectedProperty?.id}`}
         editLabel="Edit Property"
         editActive={selectedProperty?.status !== 'Pending'}
         onEditClick={() => { /* custom logic */ }}

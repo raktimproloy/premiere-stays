@@ -1,52 +1,168 @@
 'use client';
-import React, { useState } from 'react';
-import { Edit2, Camera, User, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Edit2, Camera, User, Mail, Phone, MapPin, MessageCircle, Loader2 } from 'lucide-react';
 import { CameraIcon, EditIcon } from '../../../../public/images/svg';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
-const ProfilePage = () => {
-  const [profileData, setProfileData] = useState({
-    fullName: 'Rifat',
-    email: 'john@example.com',
-    phone: '+1 (404) 123-4567',
-    supportEmail: 'john@example.com',
-    supportNumber: '+1 (404) 123-4567',
-    address: '2345 Peachtree St, Atlanta'
-  });
+interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  dob?: string;
+  profileImage?: string;
+  guestId?: string;
+  role: string;
+}
 
-  const [isEditing, setIsEditing] = useState(false);
+const ProfilePage = ({role}: {role: string}) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
-  const handleInputChange = (field: string, value: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(role === "superadmin" ? '/api/superadmin/profile' : '/api/user/profile');
+      const data = await response.json();
+
+      if (response.ok) {
+        setUser(data.user);
+      } else {
+        setError(data.error || 'Failed to fetch user data');
+      }
+    } catch (error) {
+      setError('Failed to fetch user data');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(role === "superadmin" ? '/api/superadmin/upload-image' : '/api/user/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUser(prev => prev ? { ...prev, profileImage: data.profileImage } : null);
+        setSuccess('Profile image updated successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(data.error || 'Failed to upload image');
+      }
+    } catch (error) {
+      setError('Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleEditProfile = () => {
+    router.push(role === "superadmin" ? '/superadmin/settings' : '/admin/settings');
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 flex items-center justify-center py-12 min-h-screen">
+        <div className="flex items-center gap-2">
+          <Loader2 className="animate-spin" size={20} />
+          <span>Loading profile...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="bg-gray-50 flex items-center justify-center py-12 min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No user data found</p>
+          <button 
+            onClick={fetchUserData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 flex items-start py-12">
       <div className="w-full max-w-2xl">
+        {/* Success/Error Messages */}
+        {success && (
+          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg animate-fadeIn">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg animate-fadeIn">
+            {error}
+          </div>
+        )}
+
         <div className="bg-white rounded-lg p-8 gap-10">
-            <div className="flex items-center gap-2 mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Profile Details</h1>
-                {/* <Edit2 size={20} className="text-blue-600" /> */}
-                <Link href="/admin/settings"> 
-                <EditIcon/>
-                
-                </Link>
-            </div>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">Profile Details</h1>
+            <button
+              onClick={handleEditProfile}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Edit2 size={16} />
+              Edit Profile
+            </button>
+          </div>
+
           {/* Profile Image Section */}
-          <div className=" flex-shrink-0">
-            <div className="w-28 h-28 relative bg-gray-200 rounded-full flex items-center justify-center ">
+          <div className="flex-shrink-0">
+            <div className="w-28 h-28 relative bg-gray-200 rounded-full flex items-center justify-center">
               <img 
-                src="/images/profile2.jpg" 
+                src={user.profileImage || "/images/profile2.jpg"} 
                 alt="Profile" 
                 className="w-full h-full object-cover rounded-full"
               />
-            <button className="absolute bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50">
-              {/* <Camera size={16} className="text-gray-600" /> */}
-              <CameraIcon/>
-            </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="absolute bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {uploadingImage ? (
+                  <Loader2 className="animate-spin" size={12} />
+                ) : (
+                  <CameraIcon />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
             </div>
           </div>
 
@@ -58,32 +174,38 @@ const ProfilePage = () => {
                   <th colSpan={2} className="text-xl font-semibold text-gray-900 pb-2 pt-0">Personal Info</th>
                 </tr>
                 <tr>
-                  <td className=" text-gray-400 w-36">Full Name</td>
-                  <td className="font-semibold text-gray-900">{profileData.fullName}</td>
+                  <td className="text-gray-400 w-36">Full Name</td>
+                  <td className="font-semibold text-gray-900">{user.fullName || 'N/A'}</td>
                 </tr>
                 <tr>
-                  <td className=" text-gray-400">Email Address</td>
-                  <td className="ont-semibold text-gray-900">{profileData.email}</td>
+                  <td className="text-gray-400">Email Address</td>
+                  <td className="font-semibold text-gray-900">{user.email}</td>
                 </tr>
                 <tr>
-                  <td className=" text-gray-400">Phone Number</td>
-                  <td className="font-semibold text-gray-900">{profileData.phone}</td>
+                  <td className="text-gray-400">Phone Number</td>
+                  <td className="font-semibold text-gray-900">{user.phone || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td className="text-gray-400">Date of Birth</td>
+                  <td className="font-semibold text-gray-900">
+                    {user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A'}
+                  </td>
                 </tr>
                 <tr><td colSpan={2} className="h-4"></td></tr>
                 <tr>
-                  <th colSpan={2} className=" text-xl font-semibold text-gray-900 pb-2 pt-0">Support</th>
+                  <th colSpan={2} className="text-xl font-semibold text-gray-900 pb-2 pt-0">Support</th>
                 </tr>
                 <tr>
-                  <td className=" text-gray-400">Support Email</td>
-                  <td className=" font-semibold text-gray-900">{profileData.supportEmail}</td>
+                  <td className="text-gray-400">Support Email</td>
+                  <td className="font-semibold text-gray-900">support@premiere-stays.com</td>
                 </tr>
                 <tr>
-                  <td className=" text-gray-400">Support Number</td>
-                  <td className="font-semibold text-gray-900">{profileData.supportNumber}</td>
+                  <td className="text-gray-400">Support Number</td>
+                  <td className="font-semibold text-gray-900">+1 (404) 123-4567</td>
                 </tr>
                 <tr>
-                  <td className=" text-gray-400">Address</td>
-                  <td className=" font-semibold text-gray-900">{profileData.address}</td>
+                  <td className="text-gray-400">Address</td>
+                  <td className="font-semibold text-gray-900">2345 Peachtree St, Atlanta</td>
                 </tr>
               </tbody>
             </table>

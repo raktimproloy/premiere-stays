@@ -42,4 +42,44 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch property', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
+}
+
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: 'Property ID is required' }, { status: 400 });
+  }
+
+  try {
+    const body = await request.json();
+
+    const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME || "info@premierestaysmiami.com";
+    const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN || "pt_1xj6mw0db483n2arxln6rg2zd8xockw2";
+    const baseUrl = process.env.NEXT_PUBLIC_OWNERREZ_API_V1 || "https://api.ownerrez.com/v1";
+
+    if (!username || !password) {
+      return NextResponse.json({ error: 'API credentials not configured' }, { status: 500 });
+    }
+
+    const auth = Buffer.from(`${username}:${password}`).toString('base64');
+    const headers = {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    };
+
+    const res = await fetch(`${baseUrl}/properties/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return NextResponse.json({ error: data.message || 'Failed to update property', details: data }, { status: res.status });
+    }
+
+    return NextResponse.json({ success: true, property: data });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update property', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+  }
 } 
