@@ -5,15 +5,15 @@ import React, { useState } from 'react';
 // Define property type
 interface Property {
   active: boolean;
-  address: {
+  address?: {
     city: string;
     country: string;
     id: number;
     is_default: boolean;
     postal_code: string;
     state: string;
-    street1: string;
-    street2: string;
+    street1?: string;
+    street2?: string;
   };
   bathrooms: number;
   bathrooms_full: number;
@@ -192,7 +192,7 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
                             {property.name || 'N/A'}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {property.address.street1 || 'N/A'}
+                            {property.address?.street1 || 'N/A'}
                           </div>
                           <div className="text-xs text-gray-400">
                             ID: {property.id}

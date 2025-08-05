@@ -1,5 +1,5 @@
 {
-  "timestamp": 1754305739393,
+  "timestamp": 1754396971357,
   "data": {
     "role": "admin",
     "previousRevenue": [
@@ -123,15 +123,15 @@
       {
         "month": "Aug",
         "year": 2025,
-        "value": 14.84
+        "value": 15.48
       }
     ],
     "bookingSources": {
-      "total": 92,
+      "total": 93,
       "sources": [
         {
           "name": "Airbnb",
-          "count": 92
+          "count": 93
         }
       ]
     },
@@ -205,11 +205,40 @@
       {
         "monthName": "Aug",
         "year": 2025,
-        "totalNights": 46,
-        "ratePerNight": 223.47
+        "totalNights": 48,
+        "ratePerNight": 214.16
       }
     ],
     "bookings": [
+      {
+        "adults": 0,
+        "arrival": "2025-08-05",
+        "booked_utc": "2025-08-04T22:51:40Z",
+        "cancellation_policy_id": 26939,
+        "check_in": "15:00",
+        "check_out": "11:00",
+        "children": 0,
+        "created_utc": "2025-08-04T22:51:40Z",
+        "currency_code": "USD",
+        "departure": "2025-08-07",
+        "form_key": "06a34f980be7408f982c574ba88b0837",
+        "guest_id": 617900899,
+        "id": 14615051,
+        "infants": 0,
+        "is_block": false,
+        "listing_site": "Airbnb",
+        "notes": "Imported on 8/4/2025 22:51:39 EST from:\nhttps://www.airbnb.com/calendar/ical/743455221086012901.ics?s=3a83c45133af52b9014774782870f35f\n\niCal Title:\nReserved\n\niCal Description:\nReservation URL: https://www.airbnb.com/hosting/reservations/details/HMCHDCRPM5\nPhone Number (Last 4 Digits): 5502",
+        "pets": 0,
+        "platform_reservation_number": "HMCHDCRPM5",
+        "property": {
+          "id": 459941,
+          "name": "Modern Design District Wynwood TH w/Heated Pool"
+        },
+        "property_id": 459941,
+        "status": "active",
+        "type": "booking",
+        "updated_utc": "2025-08-04T22:51:40Z"
+      },
       {
         "adults": 0,
         "arrival": "2025-08-09",

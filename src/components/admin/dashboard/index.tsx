@@ -101,8 +101,8 @@ interface Property {
     is_default: boolean;
     postal_code: string;
     state: string;
-    street1: string;
-    street2: string;
+    street1?: string;
+    street2?: string;
   };
   bathrooms: number;
   bathrooms_full: number;
