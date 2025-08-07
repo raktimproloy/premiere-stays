@@ -54,22 +54,33 @@ const HeroSection = () => {
       setIsLoadingLocations(true);
       try {
         // First, ensure properties are cached
+        console.log('Fetching properties cache...');
         const cacheResponse = await fetch('/api/properties/cache');
         if (!cacheResponse.ok) {
-          console.error('Failed to cache properties');
-          return;
+          console.error('Failed to cache properties:', cacheResponse.status, cacheResponse.statusText);
+          // Continue anyway - the locations API might still work
+        } else {
+          const cacheData = await cacheResponse.json();
+          console.log('Cache response:', cacheData);
         }
 
         // Then fetch locations
+        console.log('Fetching locations...');
         const response = await fetch('/api/properties/locations');
         if (response.ok) {
           const data = await response.json();
+          console.log('Locations response:', data);
           if (data.success && data.locations) {
             setAllLocations(data.locations);
             setFilteredLocations(data.locations);
+            console.log(`Loaded ${data.locations.length} locations`);
+          } else {
+            console.error('Locations response not successful:', data);
           }
         } else {
-          console.error('Failed to fetch locations');
+          console.error('Failed to fetch locations:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
         }
       } catch (error) {
         console.error('Error fetching locations:', error);

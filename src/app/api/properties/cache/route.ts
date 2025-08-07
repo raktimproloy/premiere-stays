@@ -61,6 +61,8 @@ async function fetchAllProperties(): Promise<Property[]> {
   let offset = 0;
   const limit = 1000;
 
+  console.log('Starting to fetch properties from OwnerRez API...');
+
   while (true) {
     const apiUrl = new URL(`${baseUrl}/properties`);
     apiUrl.searchParams.append('include_tags', 'True');
@@ -68,6 +70,8 @@ async function fetchAllProperties(): Promise<Property[]> {
     apiUrl.searchParams.append('include_listing_numbers', 'True');
     apiUrl.searchParams.append('limit', limit.toString());
     apiUrl.searchParams.append('offset', offset.toString());
+
+    console.log(`Fetching properties with offset: ${offset}, limit: ${limit}`);
 
     const res = await fetch(apiUrl.toString(), { headers });
 
@@ -79,39 +83,57 @@ async function fetchAllProperties(): Promise<Property[]> {
     const data: OwnerRezPropertiesResponse = await res.json();
     allProperties.push(...data.items);
     
+    console.log(`Fetched ${data.items.length} properties. Total so far: ${allProperties.length}`);
+    
     if (data.items.length < limit) break;
     offset += limit;
   }
 
+  console.log(`Total properties fetched: ${allProperties.length}`);
   return allProperties;
 }
 
 export async function GET() {
   try {
+    console.log('Cache API called. Environment:', process.env.NODE_ENV);
+    console.log('Vercel environment:', process.env.VERCEL);
+
     // Check if cache is valid
     const cachedProperties = getCachedProperties();
     
     if (cachedProperties) {
+      console.log(`Returning ${cachedProperties.length} properties from cache`);
       return NextResponse.json({
         success: true,
         message: 'Properties retrieved from cache',
         totalProperties: cachedProperties.length,
         properties: cachedProperties,
-        source: 'cache'
+        source: 'cache',
+        environment: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
       });
     }
 
+    console.log('No valid cache found, fetching from API...');
     const properties = await fetchAllProperties();
     
     // Store in cache
-    setCachedProperties(properties);
+    console.log('Storing properties in cache...');
+    const cacheSuccess = setCachedProperties(properties);
+
+    if (!cacheSuccess) {
+      console.warn('Failed to cache properties, but returning them anyway');
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Properties fetched from API and cached',
+      message: cacheSuccess ? 'Properties fetched from API and cached' : 'Properties fetched from API but caching failed',
       totalProperties: properties.length,
       properties: properties,
-      source: 'api'
+      source: 'api',
+      cacheSuccess,
+      environment: process.env.NODE_ENV,
+      isVercel: process.env.VERCEL === '1'
     });
 
   } catch (error) {
@@ -119,7 +141,9 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: 'Failed to fetch properties', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        environment: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
       },
       { status: 500 }
     );

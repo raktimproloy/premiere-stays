@@ -24,26 +24,39 @@ interface LocationData {
 
 export async function GET() {
   try {
+    console.log('Locations API called. Environment:', process.env.NODE_ENV);
+    console.log('Vercel environment:', process.env.VERCEL);
+
     // Get properties from cache
     const allProperties = getCachedProperties();
     
+    console.log(`Retrieved ${allProperties?.length || 0} properties from cache`);
+    
     if (!allProperties || allProperties.length === 0) {
+      console.log('No cached properties available for locations');
       // If no cached properties, return empty result
       return NextResponse.json({
         success: true,
         message: 'No cached properties available. Please call /api/properties/cache first.',
         totalLocations: 0,
-        locations: []
+        locations: [],
+        environment: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
       });
     }
 
     const locationMap = new Map<string, LocationData>();
 
+    console.log('Processing properties to extract locations...');
+
     allProperties.forEach((property: Property) => {
       const city = property.address?.city?.trim() || '';
       const country = property.address?.country?.trim() || '';
       
-      if (!city || !country) return;
+      if (!city || !country) {
+        console.log(`Skipping property ${property.id} - missing city or country: city="${city}", country="${country}"`);
+        return;
+      }
 
       const locationKey = `${city}-${country}`;
       
@@ -65,12 +78,16 @@ export async function GET() {
       a.city.localeCompare(b.city)
     );
 
+    console.log(`Found ${uniqueLocations.length} unique locations`);
+
     return NextResponse.json({
       success: true,
       message: 'Locations retrieved from cached properties',
       totalLocations: uniqueLocations.length,
       locations: uniqueLocations,
-      source: 'cache'
+      source: 'cache',
+      environment: process.env.NODE_ENV,
+      isVercel: process.env.VERCEL === '1'
     });
 
   } catch (error) {
@@ -78,7 +95,9 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: 'Failed to fetch locations', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        environment: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
       },
       { status: 500 }
     );

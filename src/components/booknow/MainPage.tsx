@@ -93,12 +93,14 @@ export default function MainPage() {
                 }
                 
                 // First, ensure properties are cached
+                console.log('Fetching properties cache...');
                 const cacheResponse = await fetch('/api/properties/cache');
                 if (!cacheResponse.ok) {
-                    console.error('Failed to cache properties');
-                    setProperties(getDummyProperties());
-                    setFilteredProperties(getDummyProperties());
-                    return;
+                    console.error('Failed to cache properties:', cacheResponse.status, cacheResponse.statusText);
+                    // Continue anyway - the search API might still work
+                } else {
+                    const cacheData = await cacheResponse.json();
+                    console.log('Cache response:', cacheData);
                 }
 
                 // Then fetch properties from search API
