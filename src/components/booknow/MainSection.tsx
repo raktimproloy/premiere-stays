@@ -1,9 +1,5 @@
 'use client'
 import React, { useRef, useState, useEffect } from 'react'
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/navigation';
 import { BathroomIcon, BedIcon, CalendarIcon, GuestIcon, HeartIcon, LocationFillIcon, ProfileIcon, PropertyIcon, PropertyIcon2, ShareIcon } from '../../../public/images/svg';
 import DatePicker from 'react-datepicker';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
@@ -105,14 +101,8 @@ export default function MainSection(props: MainSectionProps) {
         setEmail(user.email);
       }
     }, [isAuthenticated, user]);
-    // Use property images if available, otherwise fallback
-    const propertyImages = property?.images && Array.isArray(property.images) && property.images.length > 0
-      ? property.images.map((img: any) => img.url || img)
-      : images;
-    const [mainImage, setMainImage] = useState(propertyImages[0]);
-    useEffect(() => {
-      setMainImage(propertyImages[0]);
-    }, [propertyImages]);
+    // Use property medium thumbnail if available, otherwise fallback
+    const mainImage = property?.thumbnail_url_medium || images[0];
     const [checkInDate, setCheckInDate] = useState<Date | null>(null);
     const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -202,57 +192,15 @@ export default function MainSection(props: MainSectionProps) {
         <div className="w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center">
           <img src={mainImage} alt="Property" className="object-cover w-full h-full" />
         </div>
-        <div className="w-full relative">
-          {/* Custom navigation buttons */}
-          <button
-            className="swiper-button-prev-custom absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow hover:bg-yellow-400 transition hidden sm:flex"
-            type="button"
-          >
-            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <button
-            className="swiper-button-next-custom absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow hover:bg-yellow-400 transition hidden sm:flex"
-            type="button"
-          >
-            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-          </button>
-          <Swiper
-            spaceBetween={12}
-            slidesPerView={4}
-            className="!px-2"
-            loop={true}
-            navigation={{
-              nextEl: '.swiper-button-next-custom',
-              prevEl: '.swiper-button-prev-custom',
-            }}
-            modules={[Navigation]}
-            breakpoints={{
-              320: { slidesPerView: 2 },
-              640: { slidesPerView: 3 },
-              1024: { slidesPerView: 4 },
-            }}
-          >
-            {propertyImages.map((img: string, idx: number) => (
-              <SwiperSlide key={img}>
-                <button
-                  className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${mainImage === img ? 'border-yellow-400' : 'border-transparent'}`}
-                  onClick={() => setMainImage(img)}
-                >
-                  <img src={img} alt="Thumb" className="object-cover w-full h-full" />
-                </button>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
       </div>
 
       {/* Right: Booking Card */}
       <div className="w-full lg:w-2/5 flex flex-col">
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{property?.name || 'Wynwood Townhomes w/ Heated Pools'}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{property?.name || 'Property Details'}</h1>
           <div className="flex items-center text-gray-500 text-sm mb-4">
           <span className='mr-2 bg-[#586DF71A] p-2 rounded-full'><LocationFillIcon /></span>
-            {property?.address ? `${property.address.city}, ${property.address.state}, ${property.address.country}` : 'Miami, Miami-Dade County, Florida, United States'}
+            {property?.address ? `${property.address.city}, ${property.address.state}, ${property.address.country}` : 'Location not available'}
           </div>
           <input
             type="email"
@@ -379,8 +327,9 @@ export default function MainSection(props: MainSectionProps) {
             <span className='bg-[#586DF7] p-2 rounded-lg'><PropertyIcon2 /></span>
             <div className='flex flex-col ml-2'>
                 <span className="text-xs text-gray-500 mb-1">Type</span>
-                <span className="rounded-lg py-1 text-sm font-semibold">Private Room / Apartment</span>
-
+                <span className="rounded-lg py-1 text-sm font-semibold">
+                  {property?.property_type ? property.property_type.charAt(0).toUpperCase() + property.property_type.slice(1) : 'N/A'}
+                </span>
             </div>
         </div>
       </div>
@@ -388,9 +337,10 @@ export default function MainSection(props: MainSectionProps) {
         <div className="flex items-center">
         <span className='bg-[#F86E04] p-2 rounded-lg'><GuestIcon /></span>
         <div className='flex flex-col ml-2'>
-          <span className="text-xs text-gray-500 mb-1">Accomodation</span>
-          <span className=" text-orange-700 rounded-lg py-1 text-sm font-semibold">16+ Guests</span>
-
+          <span className="text-xs text-gray-500 mb-1">Accommodation</span>
+          <span className="text-orange-700 rounded-lg py-1 text-sm font-semibold">
+            {property?.max_guests ? `${property.max_guests}+ Guests` : 'N/A'}
+          </span>
         </div>
         </div>
       </div>
@@ -398,9 +348,10 @@ export default function MainSection(props: MainSectionProps) {
         <div className="flex items-center">
             <span className='bg-[#38C6F9] p-2 rounded-lg'><BedIcon /></span>
             <div className='flex flex-col ml-2'>
-
           <span className="text-xs text-gray-500 mb-1">Bedrooms</span>
-          <span className=" text-blue-700 rounded-lg py-1 text-sm font-semibold">6 Bedrooms / 8 Beds</span>
+          <span className="text-blue-700 rounded-lg py-1 text-sm font-semibold">
+            {property?.bedrooms ? `${property.bedrooms} Bedroom${property.bedrooms > 1 ? 's' : ''}` : 'N/A'}
+          </span>
             </div>
         </div>
       </div>
@@ -409,8 +360,14 @@ export default function MainSection(props: MainSectionProps) {
             <span className='bg-[#A020F0] p-2 rounded-lg'><BathroomIcon /></span>
             <div className='flex flex-col ml-2'>
           <span className="text-xs text-gray-500 mb-1">Bathrooms</span>
-          <span className=" text-purple-700 rounded-lg py-1 text-sm font-semibold">4 Full 1 Half Baths</span>
-
+          <span className="text-purple-700 rounded-lg py-1 text-sm font-semibold">
+            {property?.bathrooms_full && property?.bathrooms_half 
+              ? `${property.bathrooms_full} Full ${property.bathrooms_half} Half Bath${(property.bathrooms_full + property.bathrooms_half) > 1 ? 's' : ''}`
+              : property?.bathrooms 
+                ? `${property.bathrooms} Bathroom${property.bathrooms > 1 ? 's' : ''}`
+                : 'N/A'
+            }
+          </span>
             </div>
         </div>
       </div>

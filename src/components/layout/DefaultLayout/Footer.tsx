@@ -7,7 +7,7 @@ const FooterSection = () => {
     const CTAImage = "/images/cta_image.png"
     const Logo = "/images/logo.png"
   return (
-    <div className="relative pt-20">
+    <div className="relative pt-40">
       {/* Footer */}
       <footer className="bg-[#100A55] text-white pt-44 sm:pt-50 md:pt-64 pb-8 sm:pb-12 relative">
         <div className="absolute top-0 left-0 right-0 z-10 max-w-7xl mx-auto px-4 pt-4 sm:px-6 lg:px-8 -mt-40 sm:-mt-36 md:-mt-32">
