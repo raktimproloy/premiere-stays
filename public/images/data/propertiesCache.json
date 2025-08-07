@@ -2,21 +2,6 @@
   "properties": [
     {
       "active": true,
-      "bathrooms": 0,
-      "bathrooms_full": 0,
-      "bathrooms_half": 0,
-      "bedrooms": 0,
-      "check_in": "16:00",
-      "check_out": "11:00",
-      "currency_code": "USD",
-      "id": 462242,
-      "is_snoozed": false,
-      "key": "b7b99648-9a2b-44bb-b4f5-d10650355fe3",
-      "max_guests": 0,
-      "name": "Test"
-    },
-    {
-      "active": true,
       "address": {
         "city": "Miami",
         "country": "UNITED STATES",
@@ -157,6 +142,6 @@
       "thumbnail_url_medium": "https://uc.orez.io/i/0bdf2c5c38f74ef8aa9dce6f10de1813-Medium"
     }
   ],
-  "timestamp": 1754396931783,
-  "expiresAt": 1754397231783
+  "timestamp": 1754579482870,
+  "expiresAt": 1754579782870
 }
