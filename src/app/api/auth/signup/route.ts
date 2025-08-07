@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth';
 
-async function createGuestInOwnerRez(fullName: string, email: string, phone: string) {
+async function createGuestInOwnerRez(fullName: string, email: string, phone: string, request: NextRequest) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/guests`, {
+    // Get the base URL from the request headers
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const host = request.headers.get('host') || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
+    
+    const response = await fetch(`${baseUrl}/api/guests`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -30,6 +35,9 @@ async function createGuestInOwnerRez(fullName: string, email: string, phone: str
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Signup API called. Environment:', process.env.NODE_ENV);
+    console.log('Vercel environment:', process.env.VERCEL);
+    
     const { fullName, email, phone, dob, password, profileImage, registerType } = await request.json();
 
     // Check if this is a Google user
@@ -76,7 +84,9 @@ export async function POST(request: NextRequest) {
     try {
       // For Google users, use a valid phone number format
       const guestPhone = isGoogleUser ? '555-000-0000' : phone;
-      guestData = await createGuestInOwnerRez(fullName, email, guestPhone);
+      console.log('Creating guest in OwnerRez with:', { fullName, email, guestPhone });
+      guestData = await createGuestInOwnerRez(fullName, email, guestPhone, request);
+      console.log('Guest created successfully:', guestData?.id);
     } catch (error) {
       console.error('Failed to create guest in OwnerRez:', error);
       return NextResponse.json(
@@ -118,6 +128,15 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Signup API error:', error);
+    
+    // Check if it's a MongoDB connection error
+    if (error instanceof Error && error.message.includes('Server selection timed out')) {
+      return NextResponse.json(
+        { success: false, message: 'Database connection error. Please try again in a few moments.' },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }

@@ -1,7 +1,18 @@
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.NEXT_PUBLIC_MONGODB_URL!;
-const options = {};
+
+// MongoDB connection options with better timeout and retry settings
+const options = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  bufferMaxEntries: 0,
+  retryWrites: true,
+  retryReads: true,
+  connectTimeoutMS: 10000,
+  maxIdleTimeMS: 30000,
+};
 
 let client;
 let clientPromise: Promise<MongoClient>;
@@ -17,6 +28,7 @@ if (process.env.NODE_ENV === "development") {
   }
   clientPromise = (global as any)._mongoClientPromise;
 } else {
+  // In production, create a new client for each request to avoid connection issues
   client = new MongoClient(uri, options);
   clientPromise = client.connect();
 }
