@@ -8,7 +8,7 @@ import React from 'react'
 export default function Page() {
   const searchParams = useSearchParams()
   const params = useParams()
-  const searchId = searchParams.get('id')
+  const searchId = searchParams.get('id') || undefined
   const propertyId = params?.id as string
 
   return (
