@@ -93,8 +93,6 @@ const SignUpForm = () => {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^[0-9]{10,15}$/;
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     
     // Full name validation
     if (!formData.fullName.trim()) {
@@ -113,8 +111,8 @@ const SignUpForm = () => {
     // Phone validation
     if (!formData.phone) {
       newErrors.phone = 'Phone number is required';
-    } else if (!phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
+    } else if (formData.phone.replace(/\D/g, '').length < 10) {
+      newErrors.phone = 'Please enter a valid phone number (at least 10 digits)';
     }
     
     // Date of birth validation
@@ -137,8 +135,8 @@ const SignUpForm = () => {
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (!passwordRegex.test(formData.password)) {
-      newErrors.password = 'Password must be at least 8 characters, include uppercase, lowercase, number, and special character';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long';
     }
     
     // Confirm password validation
@@ -157,13 +155,15 @@ const SignUpForm = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      await signup({
+      const success = await signup({
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         dob: formData.dob,
         password: formData.password
       });
+      
+      console.log('Signup result:', success); // Debug log
     }
   };
 

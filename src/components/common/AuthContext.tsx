@@ -63,22 +63,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Add refs to prevent multiple simultaneous calls
   const authCheckInProgress = useRef(false);
   const lastAuthCheck = useRef<number>(0);
+  const signupInProgress = useRef(false);
   const AUTH_CHECK_INTERVAL = 30000; // 30 seconds
 
   // Check authentication status on mount
   useEffect(() => {
-    checkAuthStatus();
+    // Add a small delay to allow any ongoing auth operations to complete
+    const timer = setTimeout(() => {
+      checkAuthStatus();
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const checkAuthStatus = async () => {
+    console.log('checkAuthStatus called'); // Debug log
+    
     // Prevent multiple simultaneous calls
     if (authCheckInProgress.current) {
+      console.log('Auth check already in progress, skipping'); // Debug log
+      return;
+    }
+
+    // Don't check auth if signup is in progress
+    if (signupInProgress.current) {
+      console.log('Signup in progress, skipping auth check'); // Debug log
       return;
     }
 
     // Check if we've recently checked auth status
     const now = Date.now();
     if (now - lastAuthCheck.current < AUTH_CHECK_INTERVAL) {
+      console.log('Auth check too recent, skipping'); // Debug log
       setLoading(false);
       return;
     }
@@ -88,11 +104,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       lastAuthCheck.current = now;
       
+      console.log('Checking server-side authentication...'); // Debug log
+      
       // Check server-side authentication (for regular users with HTTP-only cookies)
       const response = await fetch('/api/auth/me');
       const data = await response.json();
 
+      console.log('Auth check response:', data); // Debug log
+
       if (data.success && data.user) {
+        console.log('User authenticated via server'); // Debug log
         setUser(data.user);
         setIsAuthenticated(true);
         setRole(data.user.role);
@@ -108,6 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = JSON.parse(storedUser);
           // Only allow dummy users (admin/superadmin) from localStorage
           if (userData.role === 'admin' || userData.role === 'superadmin') {
+            console.log('User authenticated via localStorage (dummy user)'); // Debug log
             setUser(userData);
             setIsAuthenticated(true);
             setRole(userData.role);
@@ -121,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      console.log('No authentication found'); // Debug log
       setIsAuthenticated(false);
       setUser(null);
       setRole(null);
@@ -136,16 +159,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const handleSuccessfulAuth = (userData: User) => {
+    console.log('handleSuccessfulAuth called with:', userData); // Debug log
+    
     setUser(userData);
     setIsAuthenticated(true);
     setRole(userData.role);
     setLoading(false);
 
+    console.log('Auth state updated, redirecting in 500ms...'); // Debug log
+
     // Add a small delay to ensure state updates are processed
     setTimeout(() => {
+      console.log('Executing redirect logic...'); // Debug log
       
       // Check for booking path redirect
       const bookingPath = getBookingPath();
+      console.log('Booking path found:', bookingPath); // Debug log
       
       if (bookingPath && userData.role === 'user') {
         // Clear the booking path cookie
@@ -154,12 +183,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const redirectPath = bookingPath.searchId 
           ? `${bookingPath.path}?id=${bookingPath.searchId}`
           : bookingPath.path;
+        console.log('Redirecting to booking path:', redirectPath); // Debug log
         try {
           router.push(redirectPath);
         } catch (error) {
           window.location.href = redirectPath;
         }
       } else {
+        console.log('No booking path found or user is not a regular user, using default redirect'); // Debug log
         // Default redirect based on role
         let redirectPath = '/';
         if (userData.role === 'admin') {
@@ -169,6 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           redirectPath = '/';
         }
+        console.log('Redirecting to default path:', redirectPath); // Debug log
         try {
           router.push(redirectPath);
         } catch (error) {
@@ -255,6 +287,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (userData: SignupData) => {
     setLoading(true);
     setError(null);
+    signupInProgress.current = true; // Set signup in progress flag
     
     try {
       const response = await fetch('/api/auth/signup', {
@@ -266,19 +299,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       const data = await response.json();
+      console.log('Signup response:', data); // Debug log
 
       if (response.ok && data.success) {
-        handleSuccessfulAuth(data.user);
+        // Ensure the user data has the required fields for AuthContext
+        const userForAuth: User = {
+          _id: data.user._id,
+          fullName: data.user.fullName,
+          email: data.user.email,
+          phone: data.user.phone,
+          dob: data.user.dob,
+          profileImage: data.user.profileImage,
+          role: data.user.role,
+          createdAt: data.user.createdAt,
+          emailVerified: data.user.emailVerified,
+          lastLogin: data.user.lastLogin
+        };
+        
+        console.log('User data for auth:', userForAuth); // Debug log
+        
+        // Add a small delay to ensure the cookie is properly set
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        handleSuccessfulAuth(userForAuth);
+        signupInProgress.current = false; // Clear signup in progress flag
         return true;
       } else {
         setError(data.message || 'Signup failed');
         setLoading(false);
+        signupInProgress.current = false; // Clear signup in progress flag
         return false;
       }
     } catch (error) {
       console.error('Signup error:', error);
       setError('Network error. Please try again.');
       setLoading(false);
+      signupInProgress.current = false; // Clear signup in progress flag
       return false;
     }
   };

@@ -73,7 +73,11 @@ const MainSection = () => {
 
   // Fetch property data
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      console.log('No property ID provided, redirecting to home'); // Debug log
+      router.push('/');
+      return;
+    }
     setPropertyLoading(true);
     setPropertyError(null);
     fetch(`/api/properties/${id}`)
@@ -85,26 +89,36 @@ const MainSection = () => {
         } else {
           setProperty(null);
           setPropertyError('Property not found');
+          console.log('Property not found, redirecting to home'); // Debug log
+          router.push('/');
         }
       })
       .catch(() => {
         setProperty(null);
         setPropertyError('Failed to fetch property');
+        console.log('Failed to fetch property, redirecting to home'); // Debug log
+        router.push('/');
       })
       .finally(() => setPropertyLoading(false));
-  }, [id]);
+  }, [id, router]);
 
   // Prefill right side from search session
   useEffect(() => {
+    console.log('Checkout component mounted with searchId:', searchId); // Debug log
     if (searchId) {
       const session = getSearchSession(searchId);
-      if (!session) {
-        router.push('/');
-        return;
+      console.log('Search session found:', session); // Debug log
+      if (session) {
+        if (session.checkInDate) setCheckInDate(new Date(session.checkInDate));
+        if (session.checkOutDate) setCheckOutDate(new Date(session.checkOutDate));
+        if (session.guests) setGuests(session.guests);
+      } else {
+        // If no search session but user is authenticated and has property ID, 
+        // allow them to continue with checkout (session might have expired)
+        console.log('Search session not found, but allowing checkout to continue');
       }
-      if (session.checkInDate) setCheckInDate(new Date(session.checkInDate));
-      if (session.checkOutDate) setCheckOutDate(new Date(session.checkOutDate));
-      if (session.guests) setGuests(session.guests);
+    } else {
+      console.log('No searchId provided, proceeding with checkout'); // Debug log
     }
   }, [searchId, router]);
 
