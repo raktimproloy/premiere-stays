@@ -16,7 +16,8 @@ export default function CreatePropertyPage() {
   const [fileUploaded, setFileUploaded] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
-
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -35,21 +36,69 @@ export default function CreatePropertyPage() {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsModalOpen(true);
-    console.log({
-      propertyName,
-      propertyLocation,
-      totalBathroom,
-      totalBedroom,
-      propertyType,
-      capacity,
-      fullName,
-      fileUploaded,
-      uploadedFiles: uploadedFiles.map(file => file.name)
-    });
-    
+    setLoading(true);
+    setError(null);
+
+    const propertyData = {
+      name: propertyName,
+      propertyLocation: propertyLocation,
+      totalBathroom: totalBathroom,
+      totalBedroom: totalBedroom,
+      propertyType: propertyType,
+      capacity: capacity,
+      details: fullName,
+      editorValue: '',
+    };
+
+    try {
+      // Create FormData to send both property data and images
+      const formData = new FormData();
+      formData.append('propertyData', JSON.stringify(propertyData));
+      
+      console.log('FormData created:', {
+        propertyData: propertyData,
+        uploadedFilesCount: uploadedFiles.length,
+        uploadedFiles: uploadedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
+      });
+      
+      // Append all uploaded images
+      uploadedFiles.forEach((file, index) => {
+        formData.append('images', file);
+        console.log(`Appended image ${index}:`, file.name, file.size, file.type);
+      });
+
+      console.log('FormData entries:', Array.from(formData.entries()).map(([key, value]) => [key, typeof value === 'string' ? value : `${value.name} (${value.size} bytes)`]));
+
+      const res = await fetch('/api/properties/create', {
+        method: 'POST',
+        body: formData, // Don't set Content-Type header for FormData
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to create property');
+        setLoading(false);
+        return;
+      }
+      
+      // Reset all form fields after successful creation
+      setPropertyName("");
+      setPropertyLocation("");
+      setTotalBathroom("");
+      setTotalBedroom("");
+      setPropertyType("");
+      setCapacity("");
+      setFullName("");
+      setUploadedFiles([]);
+      setFileUrls([]);
+      setIsModalOpen(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create property');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle file upload
@@ -90,12 +139,16 @@ export default function CreatePropertyPage() {
             <button
               onClick={handleSubmit}
               className="w-full flex justify-center items-center gap-2 py-3 px-6 bg-[#40C557] hover:bg-[#40C557]/80 text-white font-semibold rounded-full shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 cursor-pointer"
+              disabled={loading}
             >
-              Upload Property
+              {loading ? "Uploading..." : "Upload Property"}
               <img src="/images/icons/done.png" alt="arrow-right" className="w-4 h-4" />
             </button>
           </div>
         </div>
+        {error && (
+          <div className="mb-4 text-red-600 font-semibold">{error}</div>
+        )}
 
         <form>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>

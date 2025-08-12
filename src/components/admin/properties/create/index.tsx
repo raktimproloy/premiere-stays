@@ -46,54 +46,48 @@ export default function CreatePropertyPage() {
     setLoading(true);
     setError(null);
 
-    const payload = {
-      active: false,
+    const propertyData = {
       name: propertyName,
-      address: {
-        street1: propertyLocation,
-        street2: "",
-        city: "",
-        province: "",
-        state: "",
-        postalCode: "",
-        country: "",
-      },
-      calendar_color: "FF0000",
-      check_in: "15:00",
-      check_out: "11:00",
-      days_before_arrival_for_check: 5,
-      days_before_arrival_for_custom: 1,
-      min_hours_before_arrival: 2,
-      min_nights: 1,
-      pending_action: "cancel",
-      pending_for: "payment",
-      pending_hours_for_check: 1,
-      pending_hours_for_credit_card: 1,
-      pending_hours_for_custom: 1,
-      quote_expiration_days: 7,
-      require_confirmation_for_online_bookings: true,
-      second_payment_rule: "schedule_never",
-      security_deposit_rule: "take_if",
-      security_deposit_type: "hold",
-      send_payment_reminder: true,
-      send_security_deposit_reminder: true,
-      travel_insurance_rule: "disabled",
-      user_id: 1,
-      // ...add more fields as needed
+      propertyLocation: propertyLocation,
+      totalBathroom: totalBathroom,
+      totalBedroom: totalBedroom,
+      propertyType: propertyType,
+      capacity: capacity,
+      details: details,
+      editorValue: editorValue,
     };
 
     try {
+      // Create FormData to send both property data and images
+      const formData = new FormData();
+      formData.append('propertyData', JSON.stringify(propertyData));
+      
+      console.log('FormData created:', {
+        propertyData: propertyData,
+        uploadedFilesCount: uploadedFiles.length,
+        uploadedFiles: uploadedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
+      });
+      
+      // Append all uploaded images
+      uploadedFiles.forEach((file, index) => {
+        formData.append('images', file);
+        console.log(`Appended image ${index}:`, file.name, file.size, file.type);
+      });
+
+      console.log('FormData entries:', Array.from(formData.entries()).map(([key, value]) => [key, typeof value === 'string' ? value : `${value.name} (${value.size} bytes)`]));
+
       const res = await fetch('/api/properties/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: formData, // Don't set Content-Type header for FormData
       });
+      
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Failed to create property');
         setLoading(false);
         return;
       }
+      
       // Reset all form fields after successful creation
       setPropertyName("");
       setPropertyLocation("");

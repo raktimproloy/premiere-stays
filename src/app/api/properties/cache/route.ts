@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCachedProperties, setCachedProperties } from '@/utils/propertyCache';
+import { propertyService } from '@/lib/propertyService';
 
 interface Property {
   id: number;
@@ -93,6 +94,63 @@ async function fetchAllProperties(): Promise<Property[]> {
   return allProperties;
 }
 
+async function mergeOwnerRezWithLocalData(ownerRezProperties: Property[]): Promise<Property[]> {
+  try {
+    console.log('Fetching local properties to merge with OwnerRez data...');
+    const localProperties = await propertyService.getAllProperties();
+    console.log(`Found ${localProperties.length} local properties`);
+
+    // Create a map of local properties by OwnerRez ID for quick lookup
+    const localPropertiesMap = new Map(
+      localProperties.map(prop => [prop.ownerRezId, prop])
+    );
+
+    // Merge OwnerRez properties with local data
+    const mergedProperties = ownerRezProperties.map(ownerRezProp => {
+      const localProp = localPropertiesMap.get(ownerRezProp.id);
+      
+      if (localProp) {
+        // Merge OwnerRez data with local data (OwnerRez takes priority)
+        return {
+          ...ownerRezProp,
+          // Add local data as additional fields
+          localData: {
+            description: localProp.description,
+            amenities: localProp.amenities,
+            rules: localProp.rules,
+            pricing: localProp.pricing,
+            availability: localProp.availability,
+            policies: localProp.policies,
+            owner: localProp.owner,
+            status: localProp.status,
+            isVerified: localProp.isVerified,
+            images: localProp.images,
+            createdAt: localProp.createdAt,
+            updatedAt: localProp.updatedAt,
+            lastSyncedWithOwnerRez: localProp.lastSyncedWithOwnerRez
+          }
+        };
+      } else {
+        // No local data, return OwnerRez property as is
+        return {
+          ...ownerRezProp,
+          localData: null
+        };
+      }
+    });
+
+    console.log(`Merged ${mergedProperties.length} properties with local data`);
+    return mergedProperties;
+  } catch (error) {
+    console.error('Error merging OwnerRez with local data:', error);
+    // Return OwnerRez properties without local data if merge fails
+    return ownerRezProperties.map(prop => ({
+      ...prop,
+      localData: null
+    }));
+  }
+}
+
 export async function GET() {
   try {
     console.log('Cache API called. Environment:', process.env.NODE_ENV);
@@ -102,13 +160,14 @@ export async function GET() {
     const cachedProperties = getCachedProperties();
     
     if (cachedProperties) {
-      console.log(`Returning ${cachedProperties.length} properties from cache`);
+      console.log(`Returning ${cachedProperties.length} properties from cache with local data merge`);
+      const mergedProperties = await mergeOwnerRezWithLocalData(cachedProperties);
       return NextResponse.json({
         success: true,
-        message: 'Properties retrieved from cache',
-        totalProperties: cachedProperties.length,
-        properties: cachedProperties,
-        source: 'cache',
+        message: 'Properties retrieved from cache and merged with local data',
+        totalProperties: mergedProperties.length,
+        properties: mergedProperties,
+        source: 'cache_merged',
         environment: process.env.NODE_ENV,
         isVercel: process.env.VERCEL === '1'
       });
@@ -117,9 +176,13 @@ export async function GET() {
     console.log('No valid cache found, fetching from API...');
     const properties = await fetchAllProperties();
     
-    // Store in cache
-    console.log('Storing properties in cache...');
-    const cacheSuccess = setCachedProperties(properties);
+    // Merge with local data
+    console.log('Merging OwnerRez properties with local data...');
+    const mergedProperties = await mergeOwnerRezWithLocalData(properties);
+    
+    // Store merged properties in cache
+    console.log('Storing merged properties in cache...');
+    const cacheSuccess = setCachedProperties(mergedProperties);
 
     if (!cacheSuccess) {
       console.warn('Failed to cache properties, but returning them anyway');
@@ -127,10 +190,10 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: cacheSuccess ? 'Properties fetched from API and cached' : 'Properties fetched from API but caching failed',
-      totalProperties: properties.length,
-      properties: properties,
-      source: 'api',
+      message: cacheSuccess ? 'Properties fetched from API, merged with local data, and cached' : 'Properties fetched from API and merged with local data, but caching failed',
+      totalProperties: mergedProperties.length,
+      properties: mergedProperties,
+      source: 'api_merged',
       cacheSuccess,
       environment: process.env.NODE_ENV,
       isVercel: process.env.VERCEL === '1'
