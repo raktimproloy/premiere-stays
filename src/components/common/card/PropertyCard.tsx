@@ -6,6 +6,7 @@ import { BedIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function PropertyCard({property, searchId}: {property: any, searchId?: string | null}) {
+  console.log(property)
   const router = useRouter();
   return (
     <div 

@@ -58,6 +58,11 @@ const MainSection = () => {
   const [propertyLoading, setPropertyLoading] = useState(true);
   const [propertyError, setPropertyError] = useState<string | null>(null);
 
+  // Pricing state
+  const [pricing, setPricing] = useState<any>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingError, setPricingError] = useState<string | null>(null);
+
   // Guest search/create state
   const [guest, setGuest] = useState<any>(null);
   const [guestLoading, setGuestLoading] = useState(false);
@@ -80,12 +85,30 @@ const MainSection = () => {
     }
     setPropertyLoading(true);
     setPropertyError(null);
-    fetch(`/api/properties/${id}`)
+    
+    // Check if we have dates from search session to include pricing
+    let url = `/api/properties/${id}`;
+    const params = new URLSearchParams();
+    
+    if (checkInDate && checkOutDate) {
+      params.append('start', formatLocalDate(checkInDate));
+      params.append('end', formatLocalDate(checkOutDate));
+      url += `?${params.toString()}`;
+    }
+    
+    fetch(url)
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to fetch property');
         const data = await res.json();
         if (data.success && data.property) {
           setProperty(data.property);
+          
+          // If pricing data is available from the initial fetch, set it
+          if (data.pricing) {
+            setPricing(data.pricing);
+          } else if (data.pricingError) {
+            setPricingError(data.pricingError);
+          }
         } else {
           setProperty(null);
           setPropertyError('Property not found');
@@ -100,7 +123,7 @@ const MainSection = () => {
         router.push('/');
       })
       .finally(() => setPropertyLoading(false));
-  }, [id, router]);
+  }, [id, router, checkInDate, checkOutDate]);
 
   // Prefill right side from search session
   useEffect(() => {
@@ -254,12 +277,72 @@ const MainSection = () => {
     setNewAddress(false);
   };
 
+  const fetchPricing = async (startDate: Date, endDate: Date) => {
+    if (!startDate || !endDate || !id) return;
+    
+    setPricingLoading(true);
+    setPricingError(null);
+    
+    try {
+      const start = formatLocalDate(startDate);
+      const end = formatLocalDate(endDate);
+      
+      // Fetch property with pricing using the existing API
+      const response = await fetch(`/api/properties/${id}?start=${start}&end=${end}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Extract pricing from the response
+        if (data.pricing) {
+          setPricing(data.pricing);
+        } else if (data.pricingError) {
+          setPricingError(data.pricingError);
+          setPricing(null);
+        } else {
+          setPricing(null);
+        }
+      } else {
+        setPricingError('Failed to fetch property data');
+        setPricing(null);
+      }
+    } catch (error) {
+      setPricingError('Failed to fetch pricing');
+      setPricing(null);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
   const handleCheckInSelect = (date: Date | null) => {
     setCheckInDate(date);
+    
+    // Clear pricing if check-in is cleared
+    if (!date) {
+      setPricing(null);
+      setPricingError(null);
+      return;
+    }
+    
+    // Fetch pricing if both dates are selected
+    if (date && checkOutDate) {
+      fetchPricing(date, checkOutDate);
+    }
   };
 
   const handleCheckOutSelect = (date: Date | null) => {
     setCheckOutDate(date);
+    
+    // Clear pricing if check-out is cleared
+    if (!date) {
+      setPricing(null);
+      setPricingError(null);
+      return;
+    }
+    
+    // Fetch pricing if both dates are selected
+    if (checkInDate && date) {
+      fetchPricing(checkInDate, date);
+    }
   };
 
   const handleDropdown = (dropdown: string) => {
@@ -570,32 +653,57 @@ const MainSection = () => {
               {/* Booking Summary */}
               <div className="border-t border-gray-200 pt-4 sm:pt-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Booking Summary</h3>
-                <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-                  <div className="flex justify-between text-sm sm:text-base">
-                    <span className="text-gray-600">$175 × 33 nights</span>
-                    <span className="font-medium">$6,775.00</span>
+                
+                {!checkInDate || !checkOutDate ? (
+                  <div className="text-center py-4 text-gray-400 text-sm">
+                    Select check-in and check-out dates to see pricing
                   </div>
-                  <div className="flex justify-between text-sm sm:text-base">
-                    <span className="text-gray-600">Breakfast</span>
-                    <span className="font-medium">$63.00</span>
+                ) : pricingLoading ? (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Loading pricing...
                   </div>
-                  <div className="flex justify-between text-sm sm:text-base">
-                    <span className="text-gray-600">Taxes (4.5%)</span>
-                    <span className="font-medium">$291.80</span>
+                ) : pricingError ? (
+                  <div className="text-center py-4 text-red-500 text-sm">
+                    {pricingError}
                   </div>
-                </div>
-                <div className="border-t border-gray-200 pt-3 sm:pt-4 mb-4 sm:mb-6">
-                  <div className="flex justify-between text-base sm:text-lg font-bold">
-                    <span>Total</span>
-                    <span>$6,129.90</span>
+                ) : pricing ? (
+                  <>
+                    <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                      <div className="flex justify-between text-sm sm:text-base">
+                        <span className="text-gray-600">
+                          ${pricing.summary.averagePricePerNight.toFixed(2)} × {pricing.summary.availableNights} night{pricing.summary.availableNights !== 1 ? 's' : ''}
+                        </span>
+                        <span className="font-medium">${pricing.summary.totalAmount.toFixed(2)}</span>
+                      </div>
+                      {pricing.summary.blockedNights > 0 && (
+                        <div className="flex justify-between text-sm sm:text-base text-red-500">
+                          <span>Blocked nights ({pricing.summary.blockedNights})</span>
+                          <span>-${(pricing.summary.blockedNights * pricing.summary.averagePricePerNight).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm sm:text-base">
+                        <span className="text-gray-600">Taxes (4.5%)</span>
+                        <span className="font-medium">${(pricing.summary.totalAmount * 0.045).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-gray-200 pt-3 sm:pt-4 mb-4 sm:mb-6">
+                      <div className="flex justify-between text-base sm:text-lg font-bold">
+                        <span>Total</span>
+                        <span>${(pricing.summary.totalAmount * 1.045).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                      <div className="flex justify-between text-sm sm:text-base">
+                        <span className="font-medium text-blue-800">Payment due</span>
+                        <span className="font-bold text-blue-800">${(pricing.summary.totalAmount * 1.045).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-gray-400 text-sm">
+                    No pricing available for selected dates
                   </div>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                  <div className="flex justify-between text-sm sm:text-base">
-                    <span className="font-medium text-blue-800">Payment due</span>
-                    <span className="font-bold text-blue-800">$6,129.90</span>
-                  </div>
-                </div>
+                )}
                 <button
                   className="w-full bg-[#F7B730] text-black py-2 sm:py-3 px-4 rounded-full shadow-sm hover:bg-[#e4c278] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm sm:text-base"
                   onClick={handleCheckout}

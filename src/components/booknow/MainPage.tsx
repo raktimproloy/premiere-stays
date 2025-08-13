@@ -122,7 +122,7 @@ export default function MainPage() {
                             persons: prop.max_guests || 2,
                             roomType: prop.property_type || 'Entire Unit',
                             facilities: ['Wi-Fi', 'Parking'], // Default facilities
-                            price: 200, // Default price - you might want to get this from API
+                            price: prop.totalPrice || 0, // Default price - you might want to get this from API
                             discountPrice: 180,
                             badge: "FOR RENT",
                             rating: 4.8,
