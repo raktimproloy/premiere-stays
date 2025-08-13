@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ensureThumbnailUrls } from '@/utils/propertyCache';
 
 interface Property {
   id: number;
@@ -101,15 +102,16 @@ export async function GET(request: Request) {
 
     const data: OwnerRezPropertiesResponse = await res.json();
     
+    // Ensure all properties have thumbnail URLs by fetching from local API if needed
+    console.log('Ensuring all properties have thumbnail URLs...');
+    const propertiesWithThumbnails = await ensureThumbnailUrls(data.items);
+    
     return NextResponse.json({
       total: data.count,
       page,
       pageSize,
       totalPages: Math.ceil(data.count / pageSize),
-      properties: data.items.map(property => ({
-        ...property,
-        // Add any transformations here if needed
-      }))
+      properties: propertiesWithThumbnails
     });
   } catch (error) {
     console.error('Properties API error:', error);

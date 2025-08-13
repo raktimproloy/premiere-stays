@@ -164,3 +164,72 @@ export const getCacheInfo = () => {
     isVercel: process.env.VERCEL === '1'
   };
 }; 
+
+// Function to check and populate missing thumbnail URLs from cached MongoDB data
+export async function ensureThumbnailUrls(properties: any[]): Promise<any[]> {
+  if (!properties || properties.length === 0) {
+    return properties;
+  }
+
+  const propertiesWithThumbnails = [...properties];
+  let updatedCount = 0;
+  
+  console.log(`Ensuring thumbnail URLs for ${properties.length} properties...`);
+  
+  for (let i = 0; i < propertiesWithThumbnails.length; i++) {
+    const property = propertiesWithThumbnails[i];
+    
+    if (!property || !property.id) {
+      console.warn(`Property at index ${i} is missing or has no ID, skipping...`);
+      continue;
+    }
+    
+    // Check if any thumbnail URL is missing
+    if (!property.thumbnail_url || !property.thumbnail_url_medium || !property.thumbnail_url_large) {
+      try {
+        console.log(`Property ${property.id} missing thumbnail URLs, checking cached MongoDB data...`);
+        
+        // Check if we have localData with images from MongoDB
+        if (property.localData && property.localData.images && property.localData.images.length > 0) {
+          let propertyUpdated = false;
+          
+          // Find the primary image or use the first image
+          const primaryImage = property.localData.images.find((img: any) => img.isPrimary) || property.localData.images[0];
+          
+          if (primaryImage && primaryImage.url) {
+            // Update missing thumbnail URLs with MongoDB image data
+            if (!property.thumbnail_url) {
+              propertiesWithThumbnails[i].thumbnail_url = primaryImage.url;
+              propertyUpdated = true;
+            }
+            
+            if (!property.thumbnail_url_medium) {
+              propertiesWithThumbnails[i].thumbnail_url_medium = primaryImage.url;
+              propertyUpdated = true;
+            }
+            
+            if (!property.thumbnail_url_large) {
+              propertiesWithThumbnails[i].thumbnail_url_large = primaryImage.url;
+              propertyUpdated = true;
+            }
+            
+            if (propertyUpdated) {
+              updatedCount++;
+              console.log(`Updated property ${property.id} with MongoDB image: ${primaryImage.url}`);
+            }
+          } else {
+            console.warn(`Property ${property.id} has localData.images but no valid image URL found`);
+          }
+        } else {
+          console.warn(`Property ${property.id} has no localData.images in cached data`);
+        }
+      } catch (error) {
+        console.warn(`Failed to process MongoDB data for property ${property.id}:`, error);
+        // Continue with other properties even if one fails
+      }
+    }
+  }
+  
+  console.log(`Thumbnail URL check complete. Updated ${updatedCount} out of ${properties.length} properties.`);
+  return propertiesWithThumbnails;
+} 

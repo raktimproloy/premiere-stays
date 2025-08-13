@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCachedProperties, getPropertiesByIds } from '@/utils/propertyCache';
+import { getCachedProperties, getPropertiesByIds, ensureThumbnailUrls } from '@/utils/propertyCache';
 
 interface Property {
   id: number;
@@ -121,6 +121,8 @@ async function callOwnerRezSearchAPI(filters: SearchFilters): Promise<OwnerRezSe
 
   return await res.json();
 }
+
+
 
 export async function GET(request: Request) {
   try {
@@ -244,12 +246,15 @@ export async function GET(request: Request) {
     const totalPages = Math.ceil(totalCount / limit);
     const currentPage = filters.page || 1;
 
+    // Step 4: Ensure all properties have thumbnail URLs by fetching from local API if needed
+    console.log('Ensuring all properties have thumbnail URLs...');
+    const propertiesWithThumbnails = await ensureThumbnailUrls(paginatedProperties);
 
     return NextResponse.json({
       success: true,
       message: 'Properties retrieved from OwnerRez search and cached details',
       data: {
-        properties: paginatedProperties,
+        properties: propertiesWithThumbnails,
         pagination: {
           currentPage,
           totalPages,
@@ -264,7 +269,7 @@ export async function GET(request: Request) {
       searchStats: {
         ownerRezResults: searchResponse.items.length,
         cachedPropertiesFound: fullProperties.length,
-        finalResults: paginatedProperties.length
+        finalResults: propertiesWithThumbnails.length
       }
     });
 

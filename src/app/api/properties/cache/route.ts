@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCachedProperties, setCachedProperties } from '@/utils/propertyCache';
+import { getCachedProperties, setCachedProperties, ensureThumbnailUrls } from '@/utils/propertyCache';
 import { propertyService } from '@/lib/propertyService';
 
 interface Property {
@@ -162,11 +162,16 @@ export async function GET() {
     if (cachedProperties) {
       console.log(`Returning ${cachedProperties.length} properties from cache with local data merge`);
       const mergedProperties = await mergeOwnerRezWithLocalData(cachedProperties);
+      
+      // Ensure all properties have thumbnail URLs
+      console.log('Ensuring all cached properties have thumbnail URLs...');
+      const propertiesWithThumbnails = await ensureThumbnailUrls(mergedProperties);
+      
       return NextResponse.json({
         success: true,
         message: 'Properties retrieved from cache and merged with local data',
-        totalProperties: mergedProperties.length,
-        properties: mergedProperties,
+        totalProperties: propertiesWithThumbnails.length,
+        properties: propertiesWithThumbnails,
         source: 'cache_merged',
         environment: process.env.NODE_ENV,
         isVercel: process.env.VERCEL === '1'
@@ -180,9 +185,13 @@ export async function GET() {
     console.log('Merging OwnerRez properties with local data...');
     const mergedProperties = await mergeOwnerRezWithLocalData(properties);
     
+    // Ensure all properties have thumbnail URLs
+    console.log('Ensuring all merged properties have thumbnail URLs...');
+    const propertiesWithThumbnails = await ensureThumbnailUrls(mergedProperties);
+    
     // Store merged properties in cache
     console.log('Storing merged properties in cache...');
-    const cacheSuccess = setCachedProperties(mergedProperties);
+    const cacheSuccess = setCachedProperties(propertiesWithThumbnails);
 
     if (!cacheSuccess) {
       console.warn('Failed to cache properties, but returning them anyway');
@@ -191,8 +200,8 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       message: cacheSuccess ? 'Properties fetched from API, merged with local data, and cached' : 'Properties fetched from API and merged with local data, but caching failed',
-      totalProperties: mergedProperties.length,
-      properties: mergedProperties,
+      totalProperties: propertiesWithThumbnails.length,
+      properties: propertiesWithThumbnails,
       source: 'api_merged',
       cacheSuccess,
       environment: process.env.NODE_ENV,

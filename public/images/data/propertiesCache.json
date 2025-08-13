@@ -2,6 +2,68 @@
   "properties": [
     {
       "active": true,
+      "bathrooms": 0,
+      "bathrooms_full": 0,
+      "bathrooms_half": 0,
+      "bedrooms": 0,
+      "check_in": "16:00",
+      "check_out": "11:00",
+      "currency_code": "USD",
+      "id": 462865,
+      "is_snoozed": false,
+      "key": "40348e4d-efb9-4f8a-90ff-fcb55726824a",
+      "max_guests": 0,
+      "name": "Image",
+      "localData": {
+        "description": "<p>tester</p>",
+        "amenities": [],
+        "rules": [],
+        "pricing": {
+          "baseRate": 0,
+          "currency": "USD",
+          "cleaningFee": 0,
+          "serviceFee": 0,
+          "taxes": 0
+        },
+        "availability": {
+          "checkInTime": "15:00",
+          "checkOutTime": "11:00",
+          "minStay": 1,
+          "maxStay": 30
+        },
+        "policies": {
+          "cancellationPolicy": "Standard",
+          "houseRules": [],
+          "petPolicy": "No pets allowed",
+          "smokingPolicy": "No smoking"
+        },
+        "owner": {
+          "id": "1",
+          "name": "Property Owner",
+          "email": "owner@example.com",
+          "phone": ""
+        },
+        "status": "draft",
+        "isVerified": false,
+        "images": [
+          {
+            "url": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg",
+            "publicId": "properties/ycr3mgep4ufonx4jas5t",
+            "alt": "Image - Image 1",
+            "isPrimary": true,
+            "uploadedAt": "2025-08-12T14:43:11.558Z"
+          }
+        ],
+        "createdAt": "2025-08-12T14:43:11.558Z",
+        "updatedAt": "2025-08-12T14:43:11.558Z",
+        "lastSyncedWithOwnerRez": "2025-08-12T14:43:11.558Z"
+      },
+      "thumbnail_url": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg",
+      "thumbnail_url_medium": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg",
+      "thumbnail_url_large": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg"
+    },
+    {
+      "active": true,
       "address": {
         "city": "Miami",
         "country": "UNITED STATES",
@@ -34,7 +96,8 @@
       "property_type": "house",
       "thumbnail_url": "https://uc.orez.io/i/d53dc27e2ae84dba91d67039bcf54b40-Thumb",
       "thumbnail_url_large": "https://uc.orez.io/i/d53dc27e2ae84dba91d67039bcf54b40-Large",
-      "thumbnail_url_medium": "https://uc.orez.io/i/d53dc27e2ae84dba91d67039bcf54b40-Medium"
+      "thumbnail_url_medium": "https://uc.orez.io/i/d53dc27e2ae84dba91d67039bcf54b40-Medium",
+      "localData": null
     },
     {
       "active": true,
@@ -69,7 +132,8 @@
       "property_type": "townhome",
       "thumbnail_url": "https://uc.orez.io/i/0f4ff9101bcb4f689633cee3c8eb5547-Thumb",
       "thumbnail_url_large": "https://uc.orez.io/i/0f4ff9101bcb4f689633cee3c8eb5547-Large",
-      "thumbnail_url_medium": "https://uc.orez.io/i/0f4ff9101bcb4f689633cee3c8eb5547-Medium"
+      "thumbnail_url_medium": "https://uc.orez.io/i/0f4ff9101bcb4f689633cee3c8eb5547-Medium",
+      "localData": null
     },
     {
       "active": true,
@@ -104,7 +168,8 @@
       "property_type": "house",
       "thumbnail_url": "https://uc.orez.io/i/e0995045a86a40728ccd7870684649bf-Thumb",
       "thumbnail_url_large": "https://uc.orez.io/i/e0995045a86a40728ccd7870684649bf-Large",
-      "thumbnail_url_medium": "https://uc.orez.io/i/e0995045a86a40728ccd7870684649bf-Medium"
+      "thumbnail_url_medium": "https://uc.orez.io/i/e0995045a86a40728ccd7870684649bf-Medium",
+      "localData": null
     },
     {
       "active": true,
@@ -139,9 +204,10 @@
       "property_type": "guest_house",
       "thumbnail_url": "https://uc.orez.io/i/0bdf2c5c38f74ef8aa9dce6f10de1813-Thumb",
       "thumbnail_url_large": "https://uc.orez.io/i/0bdf2c5c38f74ef8aa9dce6f10de1813-Large",
-      "thumbnail_url_medium": "https://uc.orez.io/i/0bdf2c5c38f74ef8aa9dce6f10de1813-Medium"
+      "thumbnail_url_medium": "https://uc.orez.io/i/0bdf2c5c38f74ef8aa9dce6f10de1813-Medium",
+      "localData": null
     }
   ],
-  "timestamp": 1754965774435,
-  "expiresAt": 1754966074435
+  "timestamp": 1755060227860,
+  "expiresAt": 1755060527860
 }

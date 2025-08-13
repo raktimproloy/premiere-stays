@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { propertyService } from '@/lib/propertyService';
+import { ensureThumbnailUrls } from '@/utils/propertyCache';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -96,6 +97,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ownerRezError,
         source: 'not_found'
       }, { status: 404 });
+    }
+
+    // Ensure the property has thumbnail URLs by fetching from local API if needed
+    if (!mergedProperty.thumbnail_url || !mergedProperty.thumbnail_url_medium || !mergedProperty.thumbnail_url_large) {
+      console.log(`Property ${mergedProperty.id} missing thumbnail URLs, ensuring they are available...`);
+      const [propertyWithThumbnails] = await ensureThumbnailUrls([mergedProperty]);
+      mergedProperty = propertyWithThumbnails;
     }
 
     return NextResponse.json({ 

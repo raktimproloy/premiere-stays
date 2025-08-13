@@ -43,6 +43,7 @@ export default function MainPage() {
     const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
     const [searchSession, setSearchSession] = useState<SearchSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
@@ -57,6 +58,7 @@ export default function MainPage() {
     useEffect(() => {
         const initializeSearch = async () => {
             setIsLoading(true);
+            setIsInitialLoad(true);
             
             try {
                 // Check if searchId exists
@@ -126,37 +128,78 @@ export default function MainPage() {
                             rating: 4.8,
                             reviews: 28
                         }));
+                        console.log(`Successfully loaded ${transformedProperties.length} properties`);
                         setProperties(transformedProperties);
                         setFilteredProperties(transformedProperties);
-                                         } else {
-                         console.error('No properties found in search response');
-                         setProperties([]);
-                         setFilteredProperties([]);
-                     }
-                 } else {
-                     console.error('Failed to fetch properties from search API');
-                     setProperties([]);
-                     setFilteredProperties([]);
-                 }
-             } catch (error) {
-                 console.error('Error initializing search:', error);
-                 setProperties([]);
-                 setFilteredProperties([]);
-             } finally {
-                 setIsLoading(false);
-             }
+                    } else {
+                        console.error('No properties found in search response');
+                        // Don't clear properties if we already have some
+                        if (properties.length === 0) {
+                            setProperties([]);
+                            setFilteredProperties([]);
+                        }
+                    }
+                } else {
+                    console.error('Failed to fetch properties from search API');
+                    // Don't clear properties if we already have some
+                    if (properties.length === 0) {
+                        setProperties([]);
+                        setFilteredProperties([]);
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing search:', error);
+                // Don't clear properties if we already have some
+                if (properties.length === 0) {
+                    setProperties([]);
+                    setFilteredProperties([]);
+                }
+            } finally {
+                console.log('Initial load complete. Properties count:', properties.length, 'Filtered count:', filteredProperties.length);
+                setIsLoading(false);
+                setIsInitialLoad(false);
+            }
         };
 
         initializeSearch();
     }, [searchId, router]);
 
-
-
     // Apply filters to properties
     useEffect(() => {
+        // Skip filter application during initial load or if no search session
+        if (isInitialLoad || !searchSession || properties.length === 0) {
+            return;
+        }
+
+        // Check if any filters are actually selected
+        const hasActiveFilters = selectedRoomTypes.length > 0 || 
+                               selectedBeds.length > 0 || 
+                               selectedBathrooms.length > 0 || 
+                               selectedGuests.length > 0 || 
+                               selectedPersons.length > 0 || 
+                               selectedFacilities.length > 0 || 
+                               priceRange[0] > 0 || 
+                               priceRange[1] < 400;
+
+        // If no filters are active, just use the original properties
+        if (!hasActiveFilters) {
+            setFilteredProperties(properties);
+            setCurrentPage(1);
+            return;
+        }
+
+        // If we have active filters, we need to make an API call
+        // But first, let's check if we actually have properties to filter
+        if (properties.length === 0) {
+            return;
+        }
+
         // Build search parameters for API
         const fetchFilteredProperties = async () => {
-            setIsLoading(true);
+            // Only show loading if we're actually making an API call
+            if (hasActiveFilters) {
+                setIsLoading(true);
+            }
             try {
                 const searchParams = new URLSearchParams();
                 // Room Type
@@ -242,20 +285,31 @@ export default function MainPage() {
                         }));
                         setFilteredProperties(transformedProperties);
                     } else {
-                        setFilteredProperties([]);
+                        // If no properties found in filter, keep the original properties
+                        setFilteredProperties(properties);
                     }
                 } else {
-                    setFilteredProperties([]);
+                    // If API call failed, keep the original properties
+                    setFilteredProperties(properties);
                 }
             } catch (error) {
-                setFilteredProperties([]);
+                console.error('Error applying filters:', error);
+                // If there's an error, keep the original properties
+                setFilteredProperties(properties);
             } finally {
-                setIsLoading(false);
+                // Only hide loading if we were actually loading
+                if (hasActiveFilters) {
+                    setIsLoading(false);
+                }
             }
         };
-        fetchFilteredProperties();
+        
+        // Only fetch if we have active filters
+        if (hasActiveFilters) {
+            fetchFilteredProperties();
+        }
         setCurrentPage(1); // Reset to first page when filters change
-    }, [selectedRoomTypes, selectedBeds, selectedBathrooms, selectedGuests, selectedPersons, selectedFacilities, priceRange, searchSession]);
+    }, [selectedRoomTypes, selectedBeds, selectedBathrooms, selectedGuests, selectedPersons, selectedFacilities, priceRange, searchSession, isInitialLoad, properties, filteredProperties]);
 
     const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
     const paginatedProperties = filteredProperties.slice(
@@ -294,48 +348,36 @@ export default function MainPage() {
         }
     };
 
-
+    // Show loading state during initial load or when loading and no properties yet
+    if (isInitialLoad || (isLoading && properties.length === 0)) {
+        return (
+            <div className="w-full text-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading properties...</p>
+            </div>
+        );
+    }
 
     return (
         <>
-            {/* Search Session Info */}
-            {/* {searchSession && (
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                            <div className="text-sm text-blue-800">
-                                <span className="font-semibold">Search Results for:</span> {searchSession.location} • 
-                                {searchSession.checkInDate && searchSession.checkOutDate ? 
-                                    ` ${searchSession.checkInDate} to ${searchSession.checkOutDate}` : 
-                                    ' Flexible dates'
-                                } • {searchSession.guests} {searchSession.guests === 1 ? 'guest' : 'guests'}
-                            </div>
-                            <div className="text-xs text-blue-600 mt-2 sm:mt-0">
-                                Session expires in 20 minutes
-                            </div>
-                        </div>
+            {/* Properties Header Section */}
+            {!isLoading && !isInitialLoad && properties.length > 0 && (
+                <div className="flex flex-col max-w-6xl mx-auto lg:flex-row justify-between items-center mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
+                    <div className="text-sm sm:text-base lg:text-lg font-medium text-gray-800 text-center lg:text-left">
+                        <span className="font-semibold">{(currentPage - 1) * PROPERTIES_PER_PAGE + 1}</span> - <span className="font-semibold">{Math.min(currentPage * PROPERTIES_PER_PAGE, filteredProperties.length)}</span> of <span className="font-semibold">{filteredProperties.length}</span> Properties
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-500 text-xs sm:text-sm">Sort By:</span>
+                        <button
+                            className="ml-2 border border-gray-300 rounded-full px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition flex items-center"
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            More Filters
+                            <svg className="ml-1 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
                     </div>
                 </div>
-            )} */}
-
-                         {/* Properties Header Section */}
-             {!isLoading && filteredProperties.length > 0 && (
-                 <div className="flex flex-col max-w-6xl mx-auto lg:flex-row justify-between items-center mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
-                     <div className="text-sm sm:text-base lg:text-lg font-medium text-gray-800 text-center lg:text-left">
-                         <span className="font-semibold">{(currentPage - 1) * PROPERTIES_PER_PAGE + 1}</span> - <span className="font-semibold">{Math.min(currentPage * PROPERTIES_PER_PAGE, filteredProperties.length)}</span> of <span className="font-semibold">{filteredProperties.length}</span> Properties
-                     </div>
-                     <div className="flex items-center gap-2">
-                         <span className="text-gray-500 text-xs sm:text-sm">Sort By:</span>
-                         <button
-                             className="ml-2 border border-gray-300 rounded-full px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition flex items-center"
-                             onClick={() => setShowFilters(!showFilters)}
-                         >
-                             More Filters
-                             <svg className="ml-1 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                         </button>
-                     </div>
-                 </div>
-             )}
+            )}
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row">
                 {/* Mobile Filter Modal Overlay */}
@@ -497,9 +539,9 @@ export default function MainPage() {
                     </div>
                 )}
 
-                                 {/* Desktop Sidebar Filter Panel */}
-                 {showFilters && !isLoading && filteredProperties.length > 0 && (
-                     <div className="hidden lg:block lg:relative lg:w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-6 mr-8 relative z-20">
+                {/* Desktop Sidebar Filter Panel */}
+                {showFilters && !isLoading && !isInitialLoad && properties.length > 0 && (
+                    <div className="hidden lg:block lg:relative lg:w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-6 mr-8 relative z-20">
                         <div className="flex justify-between items-center mb-4">
                             <div className="font-semibold text-lg">Filter by</div>
                             <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
@@ -642,66 +684,66 @@ export default function MainPage() {
                     </div>
                 )}
 
-                                 {/* Property Grid */}
-                 <div className={`flex-1 transition-all duration-300 ${showFilters ? 'lg:w-2/3' : 'w-full'}`}>
-                   {isLoading ? (
-                     <div className="w-full text-center py-16">
-                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-                       <p className="text-gray-600">Loading properties...</p>
-                     </div>
-                   ) : filteredProperties.length === 0 ? (
-                     <div className="w-full text-center py-16">
-                       <div className="mb-4">
-                         <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                         </svg>
-                       </div>
-                       <h3 className="text-lg font-medium text-gray-900 mb-2">No properties available</h3>
-                       <p className="text-gray-500">No properties found matching your search criteria.</p>
-                     </div>
-                   ) : (
-                     <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 ${showFilters ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
-                       {paginatedProperties.map((property) => (
-                         <PropertyCard key={property.id} property={property} searchId={searchId} />
-                       ))}
-                     </div>
-                   )}
-                 </div>
+                {/* Property Grid */}
+                <div className={`flex-1 transition-all duration-300 ${showFilters ? 'lg:w-2/3' : 'w-full'}`}>
+                    {isLoading ? (
+                        <div className="w-full text-center py-16">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Loading properties...</p>
+                        </div>
+                    ) : !isInitialLoad && !isLoading && properties.length === 0 ? (
+                        <div className="w-full text-center py-16">
+                            <div className="mb-4">
+                                <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No properties available</h3>
+                            <p className="text-gray-500">No properties found matching your search criteria.</p>
+                        </div>
+                    ) : filteredProperties.length > 0 ? (
+                        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 ${showFilters ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
+                            {paginatedProperties.map((property) => (
+                                <PropertyCard key={property.id} property={property} searchId={searchId} />
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
             </div>
 
-                         {/* Pagination */}
-             {!isLoading && filteredProperties.length > 0 && totalPages > 1 && (
-                 <div className="flex justify-center my-16 mb-20 sm:my-16 lg:my-20 px-4 sm:px-6 lg:px-8">
-                     <nav className="flex items-center gap-2 sm:gap-4">
-                         {/* Left Arrow */}
-                         <button
-                             className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border text-sm sm:text-base ${currentPage === 1 ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
-                             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                             disabled={currentPage === 1}
-                         >
-                             &larr;
-                         </button>
-                         {/* Page Numbers */}
-                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                             <button
-                                 key={page}
-                                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-blue-100 text-blue-500 font-semibold text-xs sm:text-sm ${currentPage === page ? 'bg-yellow-400 text-white' : 'bg-white hover:bg-blue-50'}`}
-                                 onClick={() => setCurrentPage(page)}
-                             >
-                                 {page.toString().padStart(2, '0')}
-                             </button>
-                         ))}
-                         {/* Right Arrow */}
-                         <button
-                             className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border text-sm sm:text-base ${currentPage === totalPages ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
-                             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                             disabled={currentPage === totalPages}
-                         >
-                             &rarr;
-                         </button>
-                     </nav>
-                 </div>
-             )}
+            {/* Pagination */}
+            {!isLoading && !isInitialLoad && properties.length > 0 && totalPages > 1 && (
+                <div className="flex justify-center my-16 mb-20 sm:my-16 lg:my-20 px-4 sm:px-6 lg:px-8">
+                    <nav className="flex items-center gap-2 sm:gap-4">
+                        {/* Left Arrow */}
+                        <button
+                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border text-sm sm:text-base ${currentPage === 1 ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            &larr;
+                        </button>
+                        {/* Page Numbers */}
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-blue-100 text-blue-500 font-semibold text-xs sm:text-sm ${currentPage === page ? 'bg-yellow-400 text-white' : 'bg-white hover:bg-blue-50'}`}
+                                onClick={() => setCurrentPage(page)}
+                            >
+                                {page.toString().padStart(2, '0')}
+                            </button>
+                        ))}
+                        {/* Right Arrow */}
+                        <button
+                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border text-sm sm:text-base ${currentPage === totalPages ? 'border-blue-100 text-blue-200 cursor-not-allowed' : 'border-blue-100 text-blue-500 hover:bg-blue-50'}`}
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            &rarr;
+                        </button>
+                    </nav>
+                </div>
+            )}
         </>
     )
 }
