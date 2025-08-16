@@ -10,7 +10,13 @@ export default function PropertyCard({property, searchId, showPrice = true}: {pr
   const router = useRouter();
   return (
     <div 
-      onClick={() => router.push(`/book-now/${property.id}${searchId ? `?id=${searchId}` : ''}`)}
+      onClick={() => {
+        if (showPrice) {
+          router.push(`/book-now/${property.id}${searchId ? `?id=${searchId}` : ''}`);
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }}
       key={property.id}
       className="bg-white rounded-xl shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
     >

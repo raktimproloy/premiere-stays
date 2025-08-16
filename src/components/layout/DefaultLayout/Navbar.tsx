@@ -51,7 +51,7 @@ const Navbar = () => {
     { name: 'Home', path: '/', activePath: ["/"] },
     { name: 'About Us', path: '/about', activePath: ["/about"] },
     { name: 'Services', path: '/services', activePath: ["/services"] },
-    { name: 'Book Now', path: '/book-now', activePath: ["/book-now", "/book-now/", "/book-now/index", "/book-now/checkout", "/book-now/checkout/", "/book-now/checkout/index"] },
+    // { name: 'Book Now', path: '/book-now', activePath: ["/book-now", "/book-now/", "/book-now/index", "/book-now/checkout", "/book-now/checkout/", "/book-now/checkout/index"] },
     { name: 'FAQS', path: '/faqs', activePath: ["/faqs"] },
     { name: 'Contact Us', path: '/contact', activePath: ["/contact"] },
   ];

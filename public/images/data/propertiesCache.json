@@ -2,68 +2,6 @@
   "properties": [
     {
       "active": true,
-      "bathrooms": 0,
-      "bathrooms_full": 0,
-      "bathrooms_half": 0,
-      "bedrooms": 0,
-      "check_in": "16:00",
-      "check_out": "11:00",
-      "currency_code": "USD",
-      "id": 462865,
-      "is_snoozed": false,
-      "key": "40348e4d-efb9-4f8a-90ff-fcb55726824a",
-      "max_guests": 0,
-      "name": "Image",
-      "localData": {
-        "description": "<p>tester</p>",
-        "amenities": [],
-        "rules": [],
-        "pricing": {
-          "baseRate": 0,
-          "currency": "USD",
-          "cleaningFee": 0,
-          "serviceFee": 0,
-          "taxes": 0
-        },
-        "availability": {
-          "checkInTime": "15:00",
-          "checkOutTime": "11:00",
-          "minStay": 1,
-          "maxStay": 30
-        },
-        "policies": {
-          "cancellationPolicy": "Standard",
-          "houseRules": [],
-          "petPolicy": "No pets allowed",
-          "smokingPolicy": "No smoking"
-        },
-        "owner": {
-          "id": "1",
-          "name": "Property Owner",
-          "email": "owner@example.com",
-          "phone": ""
-        },
-        "status": "draft",
-        "isVerified": false,
-        "images": [
-          {
-            "url": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg",
-            "publicId": "properties/ycr3mgep4ufonx4jas5t",
-            "alt": "Image - Image 1",
-            "isPrimary": true,
-            "uploadedAt": "2025-08-12T14:43:11.558Z"
-          }
-        ],
-        "createdAt": "2025-08-12T14:43:11.558Z",
-        "updatedAt": "2025-08-12T14:43:11.558Z",
-        "lastSyncedWithOwnerRez": "2025-08-12T14:43:11.558Z"
-      },
-      "thumbnail_url": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg",
-      "thumbnail_url_medium": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg",
-      "thumbnail_url_large": "https://res.cloudinary.com/dxyneuwlb/image/upload/v1755009790/properties/ycr3mgep4ufonx4jas5t.jpg"
-    },
-    {
-      "active": true,
       "address": {
         "city": "Miami",
         "country": "UNITED STATES",
@@ -208,6 +146,6 @@
       "localData": null
     }
   ],
-  "timestamp": 1755190855899,
-  "expiresAt": 1755191155899
+  "timestamp": 1755334583156,
+  "expiresAt": 1755334883156
 }

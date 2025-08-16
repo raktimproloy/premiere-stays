@@ -4,6 +4,7 @@ import React from 'react'
 import { FiArrowRight } from 'react-icons/fi'
 
 export default function CardOne({service}: {service: any}) {
+  console.log(service)
   return (
     <div 
     key={service.id}

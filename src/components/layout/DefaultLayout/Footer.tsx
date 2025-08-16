@@ -1,3 +1,4 @@
+'use client'
 // components/FooterSection.tsx
 import Image from 'next/image';
 import React from 'react';
@@ -21,7 +22,7 @@ const FooterSection = () => {
                   <p className="text-sm sm:text-base lg:text-lg text-blue-100 max-w-xl mb-4 sm:mb-6">
                     Browse our available rentals and secure your stay with just a few clicks. Whether you're planning a weekend getaway or a longer stay, we've got the perfect space waiting for you.
                   </p>
-                  <button className="bg-[#F7B730] text-black hover:bg-[#F7B730]/80 font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-sm sm:text-base lg:text-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                  <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className=" bg-[#F7B730] text-black hover:bg-[#F7B730]/80 font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-sm sm:text-base lg:text-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
                     Book A Property
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -46,9 +47,15 @@ const FooterSection = () => {
             <div className="sm:col-span-2 lg:col-span-2 border-l-0 sm:border-l lg:border-l border-gray-600 pl-0 sm:pl-4 lg:pl-8">
               <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 uppercase tracking-wider">Company</h3>
               <ul className="space-y-1 sm:space-y-2">
-                {['Home', 'About Us', 'Services', 'FAQs', 'Book Now', 'Contact Us'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">{item}</a>
+                {[
+                  { name: 'Home', path: '/' },
+                  { name: 'About Us', path: '/about' },
+                  { name: 'Services', path: '/services' },
+                  { name: 'FAQs', path: '/faqs' },
+                  { name: 'Contact Us', path: '/contact' }
+                ].map((item) => (
+                  <li key={item.name}>
+                    <a href={item.path} className="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">{item.name}</a>
                   </li>
                 ))}
               </ul>
@@ -58,9 +65,16 @@ const FooterSection = () => {
             <div className="sm:col-span-2 lg:col-span-2 border-l-0 sm:border-l lg:border-l border-gray-600 pl-0 sm:pl-4 lg:pl-8">
               <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 uppercase tracking-wider">For Sale and Rent</h3>
               <ul className="space-y-1 sm:space-y-2">
-                {['Owner Services', 'Manage Your Rental', 'Grow Your Portfolio', 'Owner Login', 'Privacy Policy', 'Terms and Condition'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">{item}</a>
+                {[
+                  { name: 'Owner Services', path: '/services' },
+                  { name: 'Manage Your Rental', path: '/profile' },
+                  { name: 'Grow Your Portfolio', path: '/profile' },
+                  { name: 'Owner Login', path: '/login' },
+                  { name: 'Privacy Policy', path: '/privacy' },
+                  { name: 'Terms and Condition', path: '/terms' }
+                ].map((item) => (
+                  <li key={item.name}>
+                    <a href={item.path} className="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">{item.name}</a>
                   </li>
                 ))}
               </ul>
@@ -74,7 +88,14 @@ const FooterSection = () => {
                   <span className='mr-2 bg-[#35A7A124] rounded-full p-2 sm:p-3'>
                     <BlueCallIcon/>
                   </span>
-                  <span className="text-sm sm:text-base text-gray-400">Phone: <br/> <span className="text-white">(123) 757-2069</span></span>
+                  <span className="text-sm sm:text-base text-gray-400">Phone: <br/> 
+                    <a 
+                      href="tel:(123) 757-2069" 
+                      className="text-white hover:text-[#F7B730] transition-colors cursor-pointer"
+                    >
+                      (123) 757-2069
+                    </a>
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className='mr-2 bg-[#35A7A124] rounded-full p-2 sm:p-3'>
@@ -82,7 +103,14 @@ const FooterSection = () => {
                     <path d="M18.2083 4.146H7.79158C4.66659 4.146 2.58325 5.7085 2.58325 9.35433V16.646C2.58325 20.2918 4.66659 21.8543 7.79158 21.8543H18.2083C21.3333 21.8543 23.4166 20.2918 23.4166 16.646V9.35433C23.4166 5.7085 21.3333 4.146 18.2083 4.146ZM18.6978 10.4897L15.4374 13.0939C14.7499 13.646 13.8749 13.9168 12.9999 13.9168C12.1249 13.9168 11.2395 13.646 10.5624 13.0939L7.302 10.4897C6.96867 10.2189 6.91658 9.71891 7.177 9.38558C7.44783 9.05225 7.93742 8.98975 8.27075 9.26058L11.5312 11.8647C12.3228 12.5002 13.6666 12.5002 14.4583 11.8647L17.7187 9.26058C18.052 8.98975 18.552 9.04183 18.8124 9.38558C19.0833 9.71891 19.0312 10.2189 18.6978 10.4897Z" fill="#38C6F9"/>
                     </svg>
                   </span>
-                  <span className="text-sm sm:text-base text-gray-400">Email: <span className="text-white">info@premierestayamiami.com</span></span>
+                  <span className="text-sm sm:text-base text-gray-400">Email: 
+                    <a 
+                      href="mailto:info@premierestayamiami.com" 
+                      className="text-white hover:text-[#F7B730] transition-colors cursor-pointer"
+                    >
+                      info@premierestayamiami.com
+                    </a>
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className='mr-2 bg-[#35A7A124] rounded-full p-2 sm:p-3'>

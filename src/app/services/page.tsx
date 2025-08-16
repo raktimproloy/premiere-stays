@@ -62,6 +62,7 @@ export default function page() {
       statLabel: 'Amazing team members'
     }
   ];
+  console.log(services)
   return (
     <DefaultLayout>
         <Breadcrumb bgImage={"/images/service_breadcrumb.jpg"} path={["Home", "Services"]} title="Find Your Perfect Stay - Book with Confidence" description="Explore a wide range of rental properties tailored to your needs. Whether it’s short-term or long-term, we make booking easy, secure, and hassle-free." />

@@ -20,7 +20,7 @@ const ServicesSection = () => {
       description: 'We prioritize cleanliness and guest satisfaction with our meticulous housekeeping. Each turnover is managed with a detailed checklist to ensure a hotel-standard experience.',
       stat: '99%',
       statLabel: 'Customer Satisfaction',
-      link: '/services/housekeeping'
+      link: '/services'
     },
     {
       id: 2,
@@ -31,7 +31,7 @@ const ServicesSection = () => {
       description: 'Navigating local laws and regulations in the short-term rental market can be complex, especially in places like Miami. We stay up-to-date on all relevant legal requirements.',
       stat: '06Y',
       statLabel: 'Years Experience',
-      link: '/services/legal'
+      link: '/services'
     },
     {
       id: 3,
@@ -42,7 +42,7 @@ const ServicesSection = () => {
       description: 'Our team is available to handle all aspects of guest communication, from initial inquiries to post-checkout feedback. We ensure timely, professional responses to all',
       stat: '35+',
       statLabel: 'Amazing team members',
-      link: '/services/communication'
+      link: '/services'
     }
   ];
 
