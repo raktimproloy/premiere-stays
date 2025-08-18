@@ -9,12 +9,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    // Check if pricing is requested
-    const { searchParams } = new URL(request.url);
-    const start = searchParams.get('start');
-    const end = searchParams.get('end');
-    const includePricing = start && end;
-
     // First, try to get property from OwnerRez
     const username = process.env.NEXT_PUBLIC_OWNERREZ_USERNAME || "info@premierestaysmiami.com";
     const password = process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN || "pt_1xj6mw0db483n2arxln6rg2zd8xockw2";
@@ -112,87 +106,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       mergedProperty = propertyWithThumbnails;
     }
 
-    // Fetch pricing if dates are provided
-    let pricing = null;
-    let pricingError = null;
-    
-    if (includePricing) {
-      try {
-        // Validate date format
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-        
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          pricingError = 'Invalid date format. Use YYYY-MM-DD';
-        } else if (startDate >= endDate) {
-          pricingError = 'Start date must be before end date';
-        } else {
-          // Fetch pricing from OwnerRez v1 API
-          const pricingBaseUrl = process.env.NEXT_PUBLIC_OWNERREZ_API_V1 || "https://api.ownerrez.com/v1";
-          const pricingUrl = `${pricingBaseUrl}/listings/${id}/pricing?includePricingRules=true&start=${start}&end=${end}`;
-          
-          const pricingRes = await fetch(pricingUrl, {
-            headers: {
-              'Authorization': `Basic ${auth}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (pricingRes.ok) {
-            const pricingData = await pricingRes.json();
-            
-            // Calculate total amount and provide summary
-            let totalAmount = 0;
-            let totalNights = 0;
-            let availableNights = 0;
-            let blockedNights = 0;
-
-            if (Array.isArray(pricingData)) {
-              pricingData.forEach((day: any) => {
-                if (!day.isStayDisallowed) {
-                  totalAmount += day.amount || 0;
-                  availableNights++;
-                } else {
-                  blockedNights++;
-                }
-                totalNights++;
-              });
-            }
-
-            pricing = {
-              pricing: pricingData,
-              summary: {
-                totalAmount: parseFloat(totalAmount.toFixed(2)),
-                totalNights,
-                availableNights,
-                blockedNights,
-                averagePricePerNight: availableNights > 0 ? parseFloat((totalAmount / availableNights).toFixed(2)) : 0,
-                startDate: start,
-                endDate: end
-              }
-            };
-          } else {
-            const errorText = await pricingRes.text();
-            try {
-              const errorJson = JSON.parse(errorText);
-              pricingError = errorJson.message || `Failed to fetch pricing: ${pricingRes.status}`;
-            } catch {
-              pricingError = `Failed to fetch pricing: ${pricingRes.status} - ${errorText || 'Unknown error'}`;
-            }
-          }
-        }
-      } catch (error) {
-        pricingError = 'Failed to fetch pricing';
-      }
-    }
-
     return NextResponse.json({ 
       success: true, 
       property: mergedProperty,
       source,
-      ownerRezError: ownerRezError || null,
-      pricing: pricing,
-      pricingError: pricingError
+      ownerRezError: ownerRezError || null
     });
 
   } catch (error) {

@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/common/AuthContext";
 import SessionProvider from "@/components/common/SessionProvider";
 import Script from "next/script";
+import PagePreloader from "@/components/common/PagePreloader";
 
 // ✅ Load the Inter Tight font
 const interTight = Inter_Tight({
@@ -32,11 +33,13 @@ export default function RootLayout({
         />
       </head>
       <body className={`${interTight.variable} antialiased`}>
-        <SessionProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </SessionProvider>
+        <PagePreloader>
+          <SessionProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </SessionProvider>
+        </PagePreloader>
       </body>
     </html>
   );

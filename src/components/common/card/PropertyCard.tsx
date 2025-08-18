@@ -4,10 +4,21 @@ import React from 'react'
 import { BathroomIcon, GuestIcon, LocationFillIcon } from '../../../../public/images/svg'
 import { BedIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import LoadingSpinner from '../LoadingSpinner';
 
 export default function PropertyCard({property, searchId, showPrice = true}: {property: any, searchId?: string | null, showPrice?: boolean}) {
   console.log(property)
   const router = useRouter();
+
+  // Pricing skeleton component
+  const PricingSkeleton = () => (
+    <div className="flex justify-between items-center">
+      <div className='flex items-center'>
+        <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div 
       onClick={() => {
@@ -85,10 +96,25 @@ export default function PropertyCard({property, searchId, showPrice = true}: {pr
         {showPrice && (
           <div className="flex justify-between items-center">
             <div className='flex items-center'>
-              <div className="text-lg sm:text-xl font-bold text-gray-900">${(property.price || 0).toFixed(2)}</div>
-              <div className="text-gray-400 text-sm sm:text-base">/Last minute</div>
+              {/* Show pricing based on state */}
+              {property.pricingLoading ? (
+                <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+              ) : property.pricingError ? (
+                <div className="text-sm text-red-500">Pricing unavailable</div>
+              ) : property.pricing ? (
+                <div className="text-lg sm:text-xl font-bold text-gray-900">
+                  ${property.pricing.summary?.totalAmount?.toFixed(2) || property.price?.toFixed(2) || '0.00'}
+                </div>
+              ) : property.price && property.price > 0 ? (
+                <div className="text-lg sm:text-xl font-bold text-gray-900">
+                  ${property.price.toFixed(2)}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-400">Price on request</div>
+              )}
+              <div className="text-gray-400 text-sm sm:text-base"></div>
             </div>
-            <div className="text-right">
+            {/* <div className="text-right">
               <div className="text-xs sm:text-sm text-gray-500 flex items-center">
                   <span>
                   <svg  
@@ -107,7 +133,7 @@ export default function PropertyCard({property, searchId, showPrice = true}: {pr
                   <span className="sm:hidden">({property.reviews || 0})</span>
               </div>
               
-            </div>
+            </div> */}
           </div>
         )}
       </div>

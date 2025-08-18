@@ -5,6 +5,7 @@ import DefaultLayout from '@/components/layout/DefaultLayout'
 import React, { useState, useEffect } from 'react'
 import { getSearchSession, SearchSession } from '@/utils/cookies';
 import { useRouter, useSearchParams } from 'next/navigation';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const propertyImage1 = '/images/property.png';
 
@@ -24,6 +25,10 @@ interface Property {
   badge: string;
   rating: number;
   reviews: number;
+  // Add pricing state
+  pricing?: any;
+  pricingLoading?: boolean;
+  pricingError?: string | null;
 }
 
 const ROOM_TYPES = ['Private Room', 'Shared Room', 'Entire Unit'];
@@ -33,7 +38,7 @@ const GUESTS = ['Adult', 'Youth', 'Children'];
 const PERSONS = ['One Person', 'Two Person', 'Four Person'];
 const FACILITIES = ['Wi-Fi', 'Pet-Friendly', 'AC', 'Laundry', 'Kitchen Access', 'Private Bathroom', 'Parking', 'Furnished'];
 
-const PROPERTIES_PER_PAGE = 3;
+const PROPERTIES_PER_PAGE = 9;
 
 export default function MainPage() {
     const router = useRouter();
@@ -53,6 +58,67 @@ export default function MainPage() {
     const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
     const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 400]);
+
+    // Fetch pricing for a specific property
+    const fetchPropertyPricing = async (propertyId: number, checkInDate: string, checkOutDate: string) => {
+        if (!checkInDate || !checkOutDate) return;
+
+        try {
+            console.log(`🔄 Fetching pricing for property ${propertyId}...`);
+            
+            // Update property to show pricing loading state
+            setProperties(prev => prev.map(prop => 
+                prop.id === propertyId 
+                    ? { ...prop, pricingLoading: true, pricingError: null }
+                    : prop
+            ));
+
+            const response = await fetch(`/api/properties/${propertyId}/pricing?start=${checkInDate}&end=${checkOutDate}`);
+            const data = await response.json();
+
+            if (data.success) {
+                console.log(`✅ Pricing loaded for property ${propertyId}`);
+                // Update property with pricing data
+                setProperties(prev => prev.map(prop => 
+                    prop.id === propertyId 
+                        ? { 
+                            ...prop, 
+                            pricing: data.pricing, 
+                            pricingLoading: false, 
+                            pricingError: null,
+                            price: data.pricing.summary.totalAmount || prop.price
+                        }
+                        : prop
+                ));
+            } else {
+                console.log(`❌ Pricing failed for property ${propertyId}:`, data.error);
+                // Update property with pricing error
+                setProperties(prev => prev.map(prop => 
+                    prop.id === propertyId 
+                        ? { 
+                            ...prop, 
+                            pricing: null, 
+                            pricingLoading: false, 
+                            pricingError: data.error || 'Failed to fetch pricing'
+                        }
+                        : prop
+                ));
+            }
+        } catch (error) {
+            console.error(`❌ Pricing error for property ${propertyId}:`, error);
+            // Update property with pricing error
+            setProperties(prev => prev.map(prop => 
+                prop.id === propertyId 
+                    ? { 
+                        ...prop, 
+                        pricing: null, 
+                        pricingLoading: false, 
+                        pricingError: 'Failed to fetch pricing'
+                    }
+                    : prop
+            ));
+        }
+    };
 
     // Fetch search session and properties on component mount
     useEffect(() => {
@@ -95,7 +161,7 @@ export default function MainPage() {
                 }
                 
                 // First, ensure properties are cached
-                console.log('Fetching properties cache...');
+                console.log('🔄 Step 1: Fetching properties cache...');
                 const cacheResponse = await fetch('/api/properties/cache');
                 if (!cacheResponse.ok) {
                     console.error('Failed to cache properties:', cacheResponse.status, cacheResponse.statusText);
@@ -106,6 +172,7 @@ export default function MainPage() {
                 }
 
                 // Then fetch properties from search API
+                console.log('🔄 Step 1: Fetching properties from search API...');
                 const response = await fetch(`/api/properties/search?${searchParams.toString()}`);
                 if (response.ok) {
                     const data = await response.json();
@@ -122,15 +189,30 @@ export default function MainPage() {
                             persons: prop.max_guests || 2,
                             roomType: prop.property_type || 'Entire Unit',
                             facilities: ['Wi-Fi', 'Parking'], // Default facilities
-                            price: prop.totalPrice || 0, // Default price - you might want to get this from API
+                            price: 0, // Will be updated with real pricing
                             discountPrice: 180,
                             badge: "FOR RENT",
                             rating: 4.8,
-                            reviews: 28
+                            reviews: 28,
+                            // Initialize pricing state
+                            pricing: null,
+                            pricingLoading: false,
+                            pricingError: null
                         }));
-                        console.log(`Successfully loaded ${transformedProperties.length} properties`);
+                        console.log(`✅ Step 1 Complete: Successfully loaded ${transformedProperties.length} properties`);
                         setProperties(transformedProperties);
                         setFilteredProperties(transformedProperties);
+
+                        // Step 2: Fetch pricing for each property if we have dates
+                        if (session.checkInDate && session.checkOutDate) {
+                            console.log('🔄 Step 2: Fetching pricing for all properties...');
+                            // Fetch pricing for each property with a small delay to show properties first
+                            transformedProperties.forEach((property: Property, index: number) => {
+                                setTimeout(() => {
+                                    fetchPropertyPricing(property.id, session.checkInDate!, session.checkOutDate!);
+                                }, index * 200); // Stagger pricing requests
+                            });
+                        }
                     } else {
                         console.error('No properties found in search response');
                         // Don't clear properties if we already have some
@@ -277,13 +359,27 @@ export default function MainPage() {
                             persons: prop.max_guests || 2,
                             roomType: prop.property_type || 'Entire Unit',
                             facilities: ['Wi-Fi', 'Parking'], // Default facilities
-                            price: 200, // Default price - you might want to get this from API
+                            price: 0, // Will be updated with real pricing
                             discountPrice: 180,
                             badge: "FOR RENT",
                             rating: 4.8,
-                            reviews: 28
+                            reviews: 28,
+                            // Initialize pricing state
+                            pricing: null,
+                            pricingLoading: false,
+                            pricingError: null
                         }));
                         setFilteredProperties(transformedProperties);
+
+                        // Fetch pricing for filtered properties if we have dates
+                        if (searchSession && searchSession.checkInDate && searchSession.checkOutDate) {
+                            console.log('🔄 Fetching pricing for filtered properties...');
+                            transformedProperties.forEach((property: Property, index: number) => {
+                                setTimeout(() => {
+                                    fetchPropertyPricing(property.id, searchSession.checkInDate!, searchSession.checkOutDate!);
+                                }, index * 200); // Stagger pricing requests
+                            });
+                        }
                     } else {
                         // If no properties found in filter, keep the original properties
                         setFilteredProperties(properties);

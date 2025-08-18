@@ -60,7 +60,7 @@ const MainSection = () => {
 
   // Pricing state
   const [pricing, setPricing] = useState<any>(null);
-  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingLoading, setPricingLoading] = useState(true);
   const [pricingError, setPricingError] = useState<string | null>(null);
 
   // Guest search/create state
@@ -76,7 +76,7 @@ const MainSection = () => {
   const [bookingResults, setBookingResults] = useState<any[]>([]);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
-  // Fetch property data
+  // Fetch property data (without pricing)
   useEffect(() => {
     if (!id) {
       console.log('No property ID provided, redirecting to home'); // Debug log
@@ -86,29 +86,13 @@ const MainSection = () => {
     setPropertyLoading(true);
     setPropertyError(null);
     
-    // Check if we have dates from search session to include pricing
-    let url = `/api/properties/${id}`;
-    const params = new URLSearchParams();
-    
-    if (checkInDate && checkOutDate) {
-      params.append('start', formatLocalDate(checkInDate));
-      params.append('end', formatLocalDate(checkOutDate));
-      url += `?${params.toString()}`;
-    }
-    
-    fetch(url)
+    // Fetch property data only (pricing will be fetched separately when dates are selected)
+    fetch(`/api/properties/${id}`)
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to fetch property');
         const data = await res.json();
         if (data.success && data.property) {
           setProperty(data.property);
-          
-          // If pricing data is available from the initial fetch, set it
-          if (data.pricing) {
-            setPricing(data.pricing);
-          } else if (data.pricingError) {
-            setPricingError(data.pricingError);
-          }
         } else {
           setProperty(null);
           setPropertyError('Property not found');
@@ -123,7 +107,7 @@ const MainSection = () => {
         router.push('/');
       })
       .finally(() => setPropertyLoading(false));
-  }, [id, router, checkInDate, checkOutDate]);
+  }, [id, router]);
 
   // Prefill right side from search session
   useEffect(() => {
@@ -144,6 +128,14 @@ const MainSection = () => {
       console.log('No searchId provided, proceeding with checkout'); // Debug log
     }
   }, [searchId, router]);
+
+  // Auto-fetch pricing when dates are available from search session
+  useEffect(() => {
+    if (checkInDate && checkOutDate && property) {
+      console.log('🔄 Auto-fetching pricing for pre-filled dates:', checkInDate, checkOutDate);
+      fetchPricing(checkInDate, checkOutDate);
+    }
+  }, [checkInDate, checkOutDate, property]);
 
   // Optionally, prefill email with logged-in user
   useEffect(() => {
@@ -280,6 +272,8 @@ const MainSection = () => {
   const fetchPricing = async (startDate: Date, endDate: Date) => {
     if (!startDate || !endDate || !id) return;
     
+    console.log('🔄 Fetching pricing for dates:', startDate, endDate, 'Property ID:', id);
+    
     setPricingLoading(true);
     setPricingError(null);
     
@@ -287,25 +281,26 @@ const MainSection = () => {
       const start = formatLocalDate(startDate);
       const end = formatLocalDate(endDate);
       
-      // Fetch property with pricing using the existing API
-      const response = await fetch(`/api/properties/${id}?start=${start}&end=${end}`);
+      console.log('📅 Formatted dates:', start, end);
+      console.log('🌐 API URL:', `/api/properties/${id}/pricing?start=${start}&end=${end}`);
+      
+      // Fetch pricing from the dedicated pricing API
+      const response = await fetch(`/api/properties/${id}/pricing?start=${start}&end=${end}`);
       const data = await response.json();
       
+      console.log('📊 Pricing API response:', data);
+      
       if (data.success) {
-        // Extract pricing from the response
-        if (data.pricing) {
-          setPricing(data.pricing);
-        } else if (data.pricingError) {
-          setPricingError(data.pricingError);
-          setPricing(null);
-        } else {
-          setPricing(null);
-        }
+        setPricing(data.pricing);
+        setPricingError(null);
+        console.log('✅ Pricing loaded successfully:', data.pricing);
       } else {
-        setPricingError('Failed to fetch property data');
+        setPricingError(data.error || 'Failed to fetch pricing');
         setPricing(null);
+        console.log('❌ Pricing failed:', data.error);
       }
     } catch (error) {
+      console.error('💥 Pricing fetch error:', error);
       setPricingError('Failed to fetch pricing');
       setPricing(null);
     } finally {
@@ -314,6 +309,7 @@ const MainSection = () => {
   };
 
   const handleCheckInSelect = (date: Date | null) => {
+    console.log('📅 Check-in date selected:', date);
     setCheckInDate(date);
     
     // Clear pricing if check-in is cleared
@@ -325,11 +321,13 @@ const MainSection = () => {
     
     // Fetch pricing if both dates are selected
     if (date && checkOutDate) {
+      console.log('🔄 Both dates selected, fetching pricing...');
       fetchPricing(date, checkOutDate);
     }
   };
 
   const handleCheckOutSelect = (date: Date | null) => {
+    console.log('📅 Check-out date selected:', date);
     setCheckOutDate(date);
     
     // Clear pricing if check-out is cleared
@@ -341,6 +339,7 @@ const MainSection = () => {
     
     // Fetch pricing if both dates are selected
     if (checkInDate && date) {
+      console.log('🔄 Both dates selected, fetching pricing...');
       fetchPricing(checkInDate, date);
     }
   };
@@ -368,27 +367,45 @@ const MainSection = () => {
       setBookingLoading(false);
       return;
     }
+    
     const arrival = formatLocalDate(checkInDate);
     const departure = formatLocalDate(checkOutDate);
     const property_id = property.id;
     const is_block = false;
+    
     try {
       const results: any[] = [];
+      let successfulBooking = null;
+      
       for (const g of addedGuests) {
         const guest_id = g.guestObj?.id;
         if (!guest_id) {
           results.push({ success: false, guest: g, error: 'Missing guest ID' });
           continue;
         }
+        
         const res = await fetch('/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ arrival, departure, property_id, is_block, guest_id })
+          body: JSON.stringify({ 
+            arrival, 
+            departure, 
+            property_id, 
+            is_block, 
+            guest_id,
+            check_in: "15:00", // Default check-in time 3:00 PM
+            check_out: "11:00", // Default check-out time 11:00 AM
+            title: `Booking for ${g.name} from ${arrival} to ${departure}`,
+            notes: `Guest: ${g.name} (${g.email}) - Phone: ${g.phone}`
+          })
         });
+        
         const data = await res.json();
         results.push({ ...data, guest: g });
+        
         // Save booking ID to user if booking was successful
         if (data.success && data.booking && data.booking.id) {
+          successfulBooking = data.booking;
           await fetch('/api/user/add-booking', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -396,6 +413,38 @@ const MainSection = () => {
           });
         }
       }
+      
+      // If we have at least one successful booking, redirect to confirmation page
+      if (successfulBooking) {
+        // Prepare confirmation data
+        const confirmationData = {
+          bookingId: successfulBooking.id,
+          propertyName: property.name || 'Property',
+          propertyImage: property.thumbnail_url_medium || '/images/property.png',
+          checkInDate: arrival,
+          checkOutDate: departure,
+          totalAmount: pricing?.summary?.totalAmount || 0,
+          guestName: addedGuests[0]?.name || 'Guest',
+          guestEmail: addedGuests[0]?.email || 'guest@example.com',
+          guests: guests,
+          propertyAddress: property.address ? `${property.address.city}, ${property.address.state}, ${property.address.country}` : 'Address not available',
+          propertyType: property.property_type || 'Property',
+          bedrooms: property.bedrooms || 1,
+          bathrooms: property.bathrooms || 1
+        };
+        
+        // Build confirmation URL with parameters
+        const params = new URLSearchParams();
+        Object.entries(confirmationData).forEach(([key, value]) => {
+          params.append(key, value.toString());
+        });
+        
+        // Redirect to confirmation page
+        router.push(`/book-now/checkout/confirmation?${params.toString()}`);
+        return;
+      }
+      
+      // If no successful bookings, show results
       setBookingResults(results);
     } catch (err: any) {
       setBookingError('Booking failed. Please try again.');
@@ -650,6 +699,40 @@ const MainSection = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Date Selection */}
+              {/* <div className="border-t border-gray-200 pt-4 sm:pt-6 mb-4 sm:mb-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Select Dates</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-in Date</label>
+                    <DatePicker
+                      selected={checkInDate}
+                      onChange={handleCheckInSelect}
+                      selectsStart
+                      startDate={checkInDate}
+                      endDate={checkOutDate}
+                      minDate={new Date()}
+                      placeholderText="Select check-in"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-out Date</label>
+                    <DatePicker
+                      selected={checkOutDate}
+                      onChange={handleCheckOutSelect}
+                      selectsEnd
+                      startDate={checkInDate}
+                      endDate={checkOutDate}
+                      minDate={checkInDate || new Date()}
+                      placeholderText="Select check-out"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div> */}
+              
               {/* Booking Summary */}
               <div className="border-t border-gray-200 pt-4 sm:pt-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Booking Summary</h3>
@@ -681,27 +764,32 @@ const MainSection = () => {
                           <span>-${(pricing.summary.blockedNights * pricing.summary.averagePricePerNight).toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm sm:text-base">
+                      {/* <div className="flex justify-between text-sm sm:text-base">
                         <span className="text-gray-600">Taxes (4.5%)</span>
-                        <span className="font-medium">${(pricing.summary.totalAmount * 0.045).toFixed(2)}</span>
-                      </div>
+                        <span className="font-medium">${(pricing.summary.totalAmount).toFixed(2)}</span>
+                      </div> */}
                     </div>
                     <div className="border-t border-gray-200 pt-3 sm:pt-4 mb-4 sm:mb-6">
                       <div className="flex justify-between text-base sm:text-lg font-bold">
                         <span>Total</span>
-                        <span>${(pricing.summary.totalAmount * 1.045).toFixed(2)}</span>
+                        <span>${(pricing.summary.totalAmount ).toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="bg-blue-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
                       <div className="flex justify-between text-sm sm:text-base">
                         <span className="font-medium text-blue-800">Payment due</span>
-                        <span className="font-bold text-blue-800">${(pricing.summary.totalAmount * 1.045).toFixed(2)}</span>
+                        <span className="font-bold text-blue-800">${(pricing.summary.totalAmount).toFixed(2)}</span>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div className="text-center py-4 text-gray-400 text-sm">
                     No pricing available for selected dates
+                    {checkInDate && checkOutDate && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        Debug: Dates selected but no pricing loaded. Check console for errors.
+                      </div>
+                    )}
                   </div>
                 )}
                 <button
@@ -709,7 +797,7 @@ const MainSection = () => {
                   onClick={handleCheckout}
                   disabled={bookingLoading || addedGuests.length !== guests || !checkInDate || !checkOutDate || !property}
                 >
-                  {bookingLoading ? 'Processing...' : 'Continue →'}
+                  {bookingLoading ? 'Processing...' : 'Confirm Booking'}
                 </button>
                 {/* Booking feedback */}
                 {bookingError && <div className="text-red-500 text-sm mt-2">{bookingError}</div>}

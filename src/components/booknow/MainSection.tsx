@@ -6,6 +6,8 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getSearchSession, saveBookingPath } from '@/utils/cookies';
 import { useAuth } from '@/components/common/AuthContext';
+import PricingSkeleton from './PricingSkeleton';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const images = [
   '/images/booknow/image1.png',
@@ -36,16 +38,20 @@ export default function MainSection(props: MainSectionProps) {
       lunch: false,
       driver: false
     });
-    // Fetch property data
+    
+    // Property data state
     const [property, setProperty] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    // Get search session if searchId is provided
-    const [searchSession, setSearchSession] = useState<any>(null);
+    const [propertyLoading, setPropertyLoading] = useState(true);
+    const [propertyError, setPropertyError] = useState<string | null>(null);
+    
     // Pricing state
     const [pricing, setPricing] = useState<any>(null);
     const [pricingLoading, setPricingLoading] = useState(false);
     const [pricingError, setPricingError] = useState<string | null>(null);
+    const [showPricingSkeleton, setShowPricingSkeleton] = useState(false);
+    
+    // Get search session if searchId is provided
+    const [searchSession, setSearchSession] = useState<any>(null);
     
     useEffect(() => {
       if (searchId) {
@@ -67,65 +73,63 @@ export default function MainSection(props: MainSectionProps) {
           if (session.guests) {
             setGuests(session.guests);
           }
-          
-          // Pricing will be fetched automatically with the property data
-          // when the useEffect runs with the updated searchSession
         }
       }
     }, [searchId]);
-    console.log(searchSession)
+
+    // Fetch property data (without pricing)
     useEffect(() => {
       let isMounted = true;
-      setLoading(true);
-      setError(null);
+      setPropertyLoading(true);
+      setPropertyError(null);
       
-      // Check if we have dates from search session or cookies
-      let url = `/api/properties/${id}`;
-      const params = new URLSearchParams();
-      console.log(searchSession)
-      if (searchSession?.checkInDate && searchSession?.checkOutDate) {
-        params.append('start', searchSession.checkInDate);
-        params.append('end', searchSession.checkOutDate);
-        url += `?${params.toString()}`;
-      }
+      console.log('🔄 Step 1: Fetching property data...');
       
-      fetch(url)
+      fetch(`/api/properties/${id}`)
         .then(async (res) => {
           if (!res.ok) throw new Error('Failed to fetch property');
           const data = await res.json();
           if (isMounted) {
             if (data.success && data.property) {
+              console.log('✅ Step 1 Complete: Property data loaded');
               setProperty(data.property);
               
-              // If pricing data is available from the initial fetch, set it
-              if (data.pricing) {
-                setPricing(data.pricing);
-              } else if (data.pricingError) {
-                setPricingError(data.pricingError);
+              // After property loads successfully, show pricing skeleton and fetch pricing
+              if (searchSession?.checkInDate && searchSession?.checkOutDate) {
+                console.log('🔄 Step 2: Showing pricing skeleton and fetching pricing...');
+                // Show skeleton immediately after property loads
+                setShowPricingSkeleton(true);
+                
+                // Then fetch pricing data
+                setTimeout(() => {
+                  fetchPricing(searchSession.checkInDate, searchSession.checkOutDate);
+                }, 100); // Small delay to ensure skeleton shows first
               }
             } else {
               setProperty(null);
-              setError('Property not found');
+              setPropertyError('Property not found');
             }
           }
         })
         .catch(() => {
           if (isMounted) {
             setProperty(null);
-            setError('Failed to fetch property');
+            setPropertyError('Failed to fetch property');
           }
         })
         .finally(() => {
-          if (isMounted) setLoading(false);
+          if (isMounted) setPropertyLoading(false);
         });
       return () => { isMounted = false; };
     }, [id, searchSession]);
+
     // If user is logged in, set email to user.email
     useEffect(() => {
       if (isAuthenticated && user?.email) {
         setEmail(user.email);
       }
     }, [isAuthenticated, user]);
+
     // Use property medium thumbnail if available, otherwise fallback
     const mainImage = property?.thumbnail_url_medium || images[0];
     const [checkInDate, setCheckInDate] = useState<Date | null>(null);
@@ -135,12 +139,15 @@ export default function MainSection(props: MainSectionProps) {
     const checkInRef = useRef<DatePicker>(null);
     const checkOutRef = useRef<DatePicker>(null);
     const guestsRef = useRef<HTMLDivElement>(null);
+
     const handleServiceChange = (service: keyof typeof services) => {
       setServices(prev => ({ ...prev, [service]: !prev[service] }));
     };
   
     const fetchPricing = async (startDate: string, endDate: string) => {
       if (!startDate || !endDate || !id) return;
+      
+      console.log('🔄 Step 2: Fetching pricing data...');
       
       // Validate dates
       const start = new Date(startDate);
@@ -149,29 +156,26 @@ export default function MainSection(props: MainSectionProps) {
       if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
         setPricingError('Invalid date range');
         setPricing(null);
+        setShowPricingSkeleton(false);
         return;
       }
       
+      // Show skeleton first, then start loading
+      setShowPricingSkeleton(true);
       setPricingLoading(true);
       setPricingError(null);
       
       try {
-        // Fetch property with pricing using the existing API
-        const response = await fetch(`/api/properties/${id}?start=${startDate}&end=${endDate}`);
+        // Fetch pricing from the separate pricing API
+        const response = await fetch(`/api/properties/${id}/pricing?start=${startDate}&end=${endDate}`);
         const data = await response.json();
         
         if (data.success) {
-          // Extract pricing from the response
-          if (data.pricing) {
-            setPricing(data.pricing);
-          } else if (data.pricingError) {
-            setPricingError(data.pricingError);
-            setPricing(null);
-          } else {
-            setPricing(null);
-          }
+          console.log('✅ Step 2 Complete: Pricing data loaded');
+          setPricing(data.pricing);
+          setPricingError(null);
         } else {
-          setPricingError('Failed to fetch property data');
+          setPricingError(data.error || 'Failed to fetch pricing');
           setPricing(null);
         }
       } catch (error) {
@@ -179,6 +183,7 @@ export default function MainSection(props: MainSectionProps) {
         setPricing(null);
       } finally {
         setPricingLoading(false);
+        setShowPricingSkeleton(false);
       }
     };
 
@@ -197,6 +202,7 @@ export default function MainSection(props: MainSectionProps) {
       
       return total.toFixed(2);
     };
+
     const handleCheckInSelect = (date: Date | null) => {
       setCheckInDate(date);
       const dateStr = date?.toISOString().split('T')[0] || '';
@@ -206,12 +212,17 @@ export default function MainSection(props: MainSectionProps) {
       if (!dateStr) {
         setPricing(null);
         setPricingError(null);
+        setShowPricingSkeleton(false);
         return;
       }
       
-      // Fetch pricing if both dates are selected
+      // Show skeleton first, then fetch pricing if both dates are selected
       if (dateStr && checkOut) {
-        fetchPricing(dateStr, checkOut);
+        console.log('🔄 User selected dates - showing pricing skeleton...');
+        setShowPricingSkeleton(true);
+        setTimeout(() => {
+          fetchPricing(dateStr, checkOut);
+        }, 100);
       }
     };
     
@@ -224,14 +235,20 @@ export default function MainSection(props: MainSectionProps) {
       if (!dateStr) {
         setPricing(null);
         setPricingError(null);
+        setShowPricingSkeleton(false);
         return;
       }
       
-      // Fetch pricing if both dates are selected
+      // Show skeleton first, then fetch pricing if both dates are selected
       if (checkIn && dateStr) {
-        fetchPricing(checkIn, dateStr);
+        console.log('🔄 User selected dates - showing pricing skeleton...');
+        setShowPricingSkeleton(true);
+        setTimeout(() => {
+          fetchPricing(checkIn, dateStr);
+        }, 100);
       }
     };
+
     const handleDropdown = (dropdown: typeof activeDropdown) => {
       setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
       setSuppressClose(true);
@@ -260,16 +277,17 @@ export default function MainSection(props: MainSectionProps) {
       }
     };
 
-    if (loading) {
+    if (propertyLoading) {
       return (
         <div className="flex justify-center items-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-400"></div>
+          <LoadingSpinner size="xl" color="yellow" text="Loading property details..." />
         </div>
       );
     }
-    if (error) {
+
+    if (propertyError) {
       return (
-        <div className="flex justify-center items-center min-h-[400px] text-red-500 font-semibold">{error}</div>
+        <div className="flex justify-center items-center min-h-[400px] text-red-500 font-semibold">{propertyError}</div>
       );
     }
     
@@ -407,9 +425,11 @@ export default function MainSection(props: MainSectionProps) {
                 <div className="text-center py-2 text-gray-400 text-sm">
                   Select check-in and check-out dates to see pricing
                 </div>
+              ) : showPricingSkeleton ? (
+                <PricingSkeleton />
               ) : pricingLoading ? (
-                <div className="text-center py-2 text-gray-500 text-sm">
-                  Loading pricing...
+                <div className="text-center py-2">
+                  <LoadingSpinner size="sm" color="blue" text="Loading pricing..." showText={true} />
                 </div>
               ) : pricingError ? (
                 <div className="text-center py-2 text-red-500 text-sm">
@@ -495,7 +515,7 @@ export default function MainSection(props: MainSectionProps) {
           </div>
           <div className="flex-1 flex items-center justify-start bg-white rounded-xl shadow p-4 gap-2">
             <div className="flex items-center">
-              <span className='bg-[#A020F0] p-2 rounded-lg'><BathroomIcon /></span>
+              <span className='bg-[#586DF7] p-2 rounded-lg'><BathroomIcon /></span>
               <div className='flex flex-col ml-2'>
                 <span className="text-xs text-gray-500 mb-1">Bathrooms</span>
                 <span className="text-purple-700 rounded-lg py-1 text-sm font-semibold">
