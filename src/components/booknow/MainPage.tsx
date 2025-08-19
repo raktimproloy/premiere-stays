@@ -56,6 +56,7 @@ export default function MainPage() {
     const [selectedBathrooms, setSelectedBathrooms] = useState<string[]>([]);
     const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+    const [isFiltering, setIsFiltering] = useState(false);
 
     // Ref to track if filters have been initialized to prevent unnecessary API calls
     const filtersInitializedRef = useRef(false);
@@ -78,8 +79,14 @@ export default function MainPage() {
     // Ref to track the last time pricing was loaded
     const lastPricingLoadTimeRef = useRef<number>(0);
     
+    // Ref to track filter debounce timer
+    const filterDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
     // Debounce delay for pricing API calls (2 seconds)
     const PRICING_DEBOUNCE_DELAY = 2000;
+    
+    // Debounce delay for filter API calls (500ms)
+    const FILTER_DEBOUNCE_DELAY = 500;
 
     // Fetch bulk pricing for all properties
     const fetchBulkPricing = async (properties: Property[], checkInDate: string, checkOutDate: string) => {
@@ -368,6 +375,11 @@ export default function MainPage() {
             lastPricingRequestRef.current = '';
             skipNextPricingLoadRef.current = false;
             lastPricingLoadTimeRef.current = 0;
+            
+            // Clear filter debounce timer
+            if (filterDebounceTimerRef.current) {
+                clearTimeout(filterDebounceTimerRef.current);
+            }
         };
     }, []);
 
@@ -401,97 +413,203 @@ export default function MainPage() {
 
     // Apply filters to properties
     useEffect(() => {
+        console.log('🔍 Filter effect triggered:', {
+            isInitialLoad,
+            hasSearchSession: !!searchSession,
+            propertiesCount: properties.length,
+            filtersInitialized: filtersInitializedRef.current,
+            selectedRoomTypes,
+            selectedBedrooms,
+            selectedBathrooms,
+            selectedGuests,
+            priceRange
+        });
+        
         // Skip filter application during initial load or if no search session
         if (isInitialLoad || !searchSession || properties.length === 0) {
+            console.log('🔍 Skipping filter application - conditions not met');
             return;
         }
 
         // Skip if this is the first run (filters are at their default state)
         if (!filtersInitializedRef.current) {
+            console.log('🔍 Skipping filter application - filters not initialized yet');
             filtersInitializedRef.current = true;
             return;
         }
         
-        // Skip if search session changed but filters are still at default state
-        // This prevents unnecessary API calls when the component re-renders
+        // Check if any filters are actually active
+        const hasActiveFilters = selectedRoomTypes.length > 0 || 
+                               selectedBedrooms.length > 0 || 
+                               selectedBathrooms.length > 0 || 
+                               selectedGuests.length > 0 || 
+                               priceRange[0] > 0 || 
+                               priceRange[1] < 10000;
         
-        // Check if search session has changed (dates, guests, or properties)
-        const hasSearchSessionChanged = !previousSearchSessionRef.current || 
-            previousSearchSessionRef.current.propertyIds.length !== searchSession.propertyIds.length ||
-            previousSearchSessionRef.current.checkInDate !== searchSession.checkInDate ||
-            previousSearchSessionRef.current.checkOutDate !== searchSession.checkOutDate ||
-            previousSearchSessionRef.current.guests !== searchSession.guests;
+        console.log('🔍 Filter check result:', {
+            hasActiveFilters,
+            roomTypesActive: selectedRoomTypes.length > 0,
+            bedroomsActive: selectedBedrooms.length > 0,
+            bathroomsActive: selectedBathrooms.length > 0,
+            guestsActive: selectedGuests.length > 0,
+            priceMinActive: priceRange[0] > 0,
+            priceMaxActive: priceRange[1] < 10000,
+            priceRange
+        });
         
-        if (!hasSearchSessionChanged) {
+        // If no filters are active, show all properties and return early
+        if (!hasActiveFilters) {
+            console.log('✅ No filters active, showing all properties');
+            setFilteredProperties(properties);
+            setCurrentPage(1);
             return;
         }
         
-        // Update the previous search session reference
-        previousSearchSessionRef.current = { ...searchSession };
+        // Use debouncing to prevent rapid API calls
+        if (filterDebounceTimerRef.current) {
+            clearTimeout(filterDebounceTimerRef.current);
+        }
         
-        // If dates changed, refresh pricing for the new dates
-        if (previousSearchSessionRef.current && 
-            (previousSearchSessionRef.current.checkInDate !== searchSession.checkInDate ||
-             previousSearchSessionRef.current.checkOutDate !== searchSession.checkOutDate)) {
-            console.log('🔄 Search dates changed, refreshing pricing...');
-            setHasPricingLoaded(false);
-            // Reset the last pricing request to allow new pricing fetch
-            lastPricingRequestRef.current = '';
-            if (searchSession.checkInDate && searchSession.checkOutDate && !isBulkPricingInProgressRef.current) {
-                fetchBulkPricing(properties, searchSession.checkInDate, searchSession.checkOutDate);
+        filterDebounceTimerRef.current = setTimeout(() => {
+            console.log('🔍 Filters changed, calling API...');
+            applyFiltersWithAPI();
+        }, FILTER_DEBOUNCE_DELAY);
+        
+    }, [selectedRoomTypes, selectedBedrooms, selectedBathrooms, selectedGuests, priceRange, isInitialLoad, searchSession, properties]);
+
+    // Function to apply filters by calling the search API
+    const applyFiltersWithAPI = async () => {
+        if (!searchSession || properties.length === 0) return;
+
+        try {
+            console.log('🔍 Applying filters via API...');
+            console.log('🔍 Current filter state:', {
+                roomTypes: selectedRoomTypes,
+                bedrooms: selectedBedrooms,
+                bathrooms: selectedBathrooms,
+                guests: selectedGuests,
+                priceRange
+            });
+            console.log('🔍 Price range details:', {
+                min: priceRange[0],
+                max: priceRange[1],
+                minActive: priceRange[0] > 0,
+                maxActive: priceRange[1] < 10000
+            });
+            
+            setIsFiltering(true);
+            
+            // Build search parameters with filters
+            const searchParams = new URLSearchParams();
+            
+            // Add original search parameters
+            if (searchSession.propertyIds.length > 0) {
+                searchParams.append('ids', searchSession.propertyIds.join(','));
             }
+            if (searchSession.checkInDate) {
+                searchParams.append('availabilityFrom', searchSession.checkInDate);
+            }
+            if (searchSession.checkOutDate) {
+                searchParams.append('availabilityTo', searchSession.checkOutDate);
+            }
+            if (searchSession.guests) {
+                searchParams.append('guestsFrom', searchSession.guests.toString());
+                searchParams.append('guestsTo', searchSession.guests.toString());
+            }
+
+            // Add filter parameters
+            if (selectedRoomTypes.length > 0) {
+                searchParams.append('roomTypes', selectedRoomTypes.join(','));
+            }
+            if (selectedBedrooms.length > 0) {
+                searchParams.append('bedroomRanges', selectedBedrooms.join(','));
+            }
+            if (selectedBathrooms.length > 0) {
+                searchParams.append('bathroomRanges', selectedBathrooms.join(','));
+            }
+            if (selectedGuests.length > 0) {
+                searchParams.append('guestRanges', selectedGuests.join(','));
+            }
+            if (priceRange[0] > 0 || priceRange[1] < 10000) {
+                searchParams.append('priceRange', JSON.stringify(priceRange));
+            }
+
+            console.log('📤 Search API request with filters:', searchParams.toString());
+
+            // Call the search API with filters
+            const response = await fetch(`/api/properties/search?${searchParams.toString()}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data.properties) {
+                    console.log(`✅ Filtered properties loaded: ${data.data.properties.length} properties`);
+                    
+                    // Transform API data to match Property interface
+                    const transformedProperties = data.data.properties.map((prop: any) => {
+                        const roomType = prop.property_type || 'house';
+                        const bedrooms = prop.bedrooms || 1;
+                        const bathrooms = prop.bathrooms || 1;
+                        const maxGuests = prop.max_guests || 2;
+                        
+                        return {
+                            id: prop.id,
+                            title: prop.name,
+                            location: `${prop.address?.city || ''}, ${prop.address?.state || ''}, ${prop.address?.country || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, ''),
+                            image: prop.thumbnail_url_medium || propertyImage1,
+                            beds: bedrooms,
+                            bathrooms: bathrooms,
+                            guestType: 'Adult',
+                            persons: maxGuests,
+                            roomType: roomType,
+                            facilities: [],
+                            price: 0,
+                            discountPrice: 180,
+                            badge: "FOR RENT",
+                            rating: 4.8,
+                            reviews: 28,
+                            pricing: null,
+                            pricingLoading: true,
+                            pricingError: null
+                        };
+                    });
+
+                    // Update properties with filtered results
+                    setProperties(transformedProperties);
+                    setFilteredProperties(transformedProperties);
+                    setCurrentPage(1);
+
+                    // Refresh pricing for the filtered properties
+                    if (searchSession.checkInDate && searchSession.checkOutDate && !isBulkPricingInProgressRef.current) {
+                        console.log('🔄 Refreshing pricing for filtered properties...');
+                        setHasPricingLoaded(false);
+                        lastPricingRequestRef.current = '';
+                        fetchBulkPricing(transformedProperties, searchSession.checkInDate, searchSession.checkOutDate);
+                    }
+                } else {
+                    console.log('No filtered properties found');
+                    setFilteredProperties([]);
+                    setCurrentPage(1);
+                }
+            } else {
+                console.error('Failed to fetch filtered properties');
+                // Fallback to local filtering if API fails
+                applyFiltersLocally();
+            }
+        } catch (error) {
+            console.error('Error applying filters via API:', error);
+            // Fallback to local filtering if API fails
+            applyFiltersLocally();
+        } finally {
+            setIsFiltering(false);
         }
+    };
+
+    // Fallback local filtering function
+    const applyFiltersLocally = () => {
+        console.log('🔍 Applying filters locally as fallback...');
         
-        // Skip if properties haven't actually changed (prevents unnecessary API calls)
-        if (previousPropertiesRef.current.length === properties.length && 
-            previousPropertiesRef.current.every((prop, index) => prop.id === properties[index]?.id)) {
-            return;
-        }
+        let filtered = [...properties];
         
-        // Update the previous properties reference
-        previousPropertiesRef.current = [...properties];
-        
-        // Apply filters locally to preserve pricing data
-        const applyFiltersLocally = () => {
-            console.log('🔍 Applying filters locally to preserve pricing data...');
-                         console.log('🔍 Current filter state:', {
-                 roomTypes: selectedRoomTypes,
-                 bedrooms: selectedBedrooms,
-                 bathrooms: selectedBathrooms,
-                 guests: selectedGuests,
-                 priceRange
-             });
-            
-                         // Debug: Show available filter options from properties
-             const availableRoomTypes = [...new Set(properties.map(p => p.roomType))];
-             const availableBedrooms = [...new Set(properties.map(p => p.beds))];
-             const availableBathrooms = [...new Set(properties.map(p => p.bathrooms))];
-             const availableGuests = [...new Set(properties.map(p => p.persons))];
-             const availablePrices = properties.map(p => p.price).filter(p => p > 0);
-             
-             console.log('🔍 Available filter options from properties:', {
-                 roomTypes: availableRoomTypes,
-                 bedrooms: availableBedrooms,
-                 bathrooms: availableBathrooms,
-                 guests: availableGuests,
-                 priceRange: availablePrices.length > 0 ? `$${Math.min(...availablePrices)} - $${Math.max(...availablePrices)}` : 'No pricing data'
-             });
-            
-                         console.log('🔍 Properties to filter:', properties.map(p => ({
-                 id: p.id,
-                 title: p.title,
-                 roomType: p.roomType,
-                 bedrooms: p.beds,
-                 bathrooms: p.bathrooms,
-                 guests: p.persons,
-                 price: p.price,
-                 hasPricing: !!p.pricing,
-                 pricingError: p.pricingError
-             })));
-            
-            let filtered = [...properties];
-            
-            // Check if any filters are active
+        // Check if any filters are active
         const hasActiveFilters = selectedRoomTypes.length > 0 || 
                                selectedBedrooms.length > 0 || 
                                selectedBathrooms.length > 0 || 
@@ -500,110 +618,98 @@ export default function MainPage() {
                                priceRange[1] < 10000;
 
         if (!hasActiveFilters) {
-                // No filters active, show all properties
-                console.log('✅ No filters active, showing all properties');
+            // No filters active, show all properties
+            console.log('✅ No filters active, showing all properties');
             setFilteredProperties(properties);
             setCurrentPage(1);
             return;
         }
 
-            // Room Type filter
-                if (selectedRoomTypes.length > 0) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(prop => {
-                    const matches = selectedRoomTypes.includes(prop.roomType);
-                    if (!matches) {
-                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by room type: ${prop.roomType} not in ${selectedRoomTypes.join(', ')}`);
-                    }
-                    return matches;
-                });
-                console.log(`🏠 After room type filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
-            }
-            
-            // Bedrooms filter
-            if (selectedBedrooms.length > 0) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(prop => {
-                    const matches = selectedBedrooms.some(range => {
-                        if (range === '1-2') return prop.beds >= 1 && prop.beds <= 2;
-                        if (range === '3-4') return prop.beds >= 3 && prop.beds <= 4;
-                        if (range === '5+') return prop.beds >= 5;
-                        return false;
-                    });
-                    if (!matches) {
-                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by bedrooms: ${prop.beds} not in ranges ${selectedBedrooms.join(', ')}`);
-                    }
-                    return matches;
-                });
-                console.log(`🛏️ After bedrooms filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
-            }
-            
-            // Bathrooms filter
-            if (selectedBathrooms.length > 0) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(prop => {
-                    const matches = selectedBathrooms.some(range => {
-                        if (range === '1-2') return prop.bathrooms >= 1 && prop.bathrooms <= 2;
-                        if (range === '3-4') return prop.bathrooms >= 3 && prop.bathrooms <= 4;
-                        if (range === '5+') return prop.bathrooms >= 5;
-                        return false;
-                    });
-                    if (!matches) {
-                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by bathrooms: ${prop.bathrooms} not in ranges ${selectedBathrooms.join(', ')}`);
-                    }
-                    return matches;
-                });
-                console.log(`🚿 After bathrooms filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
-            }
-            
-            // Guests filter
-            if (selectedGuests.length > 0) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(prop => {
-                    const matches = selectedGuests.some(range => {
-                        if (range === '1-4') return prop.persons >= 1 && prop.persons <= 4;
-                        if (range === '5-8') return prop.persons >= 5 && prop.persons <= 8;
-                        if (range === '9+') return prop.persons >= 9;
-                        return false;
-                    });
-                    if (!matches) {
-                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by guests: ${prop.persons} not in ranges ${selectedGuests.join(', ')}`);
-                    }
-                    return matches;
-                });
-                console.log(`👥 After guests filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
-            }
-            
-            // Price range filter
-            if (priceRange[0] > 0 || priceRange[1] < 10000) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(prop => {
-                    const price = prop.price || 0;
-                    const matches = price >= priceRange[0] && price <= priceRange[1];
-                    if (!matches) {
-                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by price: $${price} not in range $${priceRange[0]} - $${priceRange[1]}`);
-                    }
-                    return matches;
-                });
-                console.log(`💰 After price filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
-            }
-            
-            console.log(`✅ Filtering complete: ${filtered.length} properties match criteria`);
-            console.log('🔍 Final filtered properties:', filtered.map(p => ({
-                id: p.id,
-                title: p.title,
-                price: p.price,
-                hasPricing: !!p.pricing,
-                pricingError: p.pricingError
-            })));
-            setFilteredProperties(filtered);
-        setCurrentPage(1); // Reset to first page when filters change
-        };
+        // Room Type filter
+        if (selectedRoomTypes.length > 0) {
+            const beforeCount = filtered.length;
+            filtered = filtered.filter(prop => {
+                const matches = selectedRoomTypes.includes(prop.roomType);
+                if (!matches) {
+                    console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by room type: ${prop.roomType} not in ${selectedRoomTypes.join(', ')}`);
+                }
+                return matches;
+            });
+            console.log(`🏠 After room type filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+        }
         
-        // Apply filters locally instead of making API calls
-        applyFiltersLocally();
+        // Bedrooms filter
+        if (selectedBedrooms.length > 0) {
+            const beforeCount = filtered.length;
+            filtered = filtered.filter(prop => {
+                const matches = selectedBedrooms.some(range => {
+                    if (range === '1-2') return prop.beds >= 1 && prop.beds <= 2;
+                    if (range === '3-4') return prop.beds >= 3 && prop.beds <= 4;
+                    if (range === '5+') return prop.beds >= 5;
+                    return false;
+                });
+                if (!matches) {
+                    console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by bedrooms: ${prop.beds} not in ranges ${selectedBedrooms.join(', ')}`);
+                }
+                return matches;
+            });
+            console.log(`🛏️ After bedrooms filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+        }
         
-    }, [selectedRoomTypes, selectedBedrooms, selectedBathrooms, selectedGuests, priceRange, isInitialLoad, properties]);
+        // Bathrooms filter
+        if (selectedBathrooms.length > 0) {
+            const beforeCount = filtered.length;
+            filtered = filtered.filter(prop => {
+                const matches = selectedBathrooms.some(range => {
+                    if (range === '1-2') return prop.bathrooms >= 1 && prop.bathrooms <= 2;
+                    if (range === '3-4') return prop.bathrooms >= 3 && prop.bathrooms <= 4;
+                    if (range === '5+') return prop.bathrooms >= 5;
+                    return false;
+                });
+                if (!matches) {
+                    console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by bathrooms: ${prop.bathrooms} not in ranges ${selectedBathrooms.join(', ')}`);
+                }
+                return matches;
+            });
+            console.log(`🚿 After bathrooms filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+        }
+        
+        // Guests filter
+        if (selectedGuests.length > 0) {
+            const beforeCount = filtered.length;
+            filtered = filtered.filter(prop => {
+                const matches = selectedGuests.some(range => {
+                    if (range === '1-4') return prop.persons >= 1 && prop.persons <= 4;
+                    if (range === '5-8') return prop.persons >= 5 && prop.persons <= 8;
+                    if (range === '9+') return prop.persons >= 9;
+                    return false;
+                });
+                if (!matches) {
+                    console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by guests: ${prop.persons} not in ranges ${selectedGuests.join(', ')}`);
+                }
+                return matches;
+            });
+            console.log(`👥 After guests filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+        }
+        
+        // Price range filter
+        if (priceRange[0] > 0 || priceRange[1] < 10000) {
+            const beforeCount = filtered.length;
+            filtered = filtered.filter(prop => {
+                const price = prop.price || 0;
+                const matches = price >= priceRange[0] && price <= priceRange[1];
+                if (!matches) {
+                    console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by price: $${price} not in range $${priceRange[0]} - $${priceRange[1]}`);
+                }
+                return matches;
+            });
+            console.log(`💰 After price filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+        }
+        
+        console.log(`✅ Local filtering complete: ${filtered.length} properties match criteria`);
+        setFilteredProperties(filtered);
+        setCurrentPage(1);
+    };
 
     const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
     const paginatedProperties = filteredProperties.slice(
@@ -621,7 +727,12 @@ export default function MainPage() {
     // Handler for price range
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
         const val = Number(e.target.value);
-        setPriceRange((prev) => idx === 0 ? [val, prev[1]] : [prev[0], val]);
+        console.log(`🔍 Price range change: idx=${idx}, val=${val}, current=${priceRange}`);
+        setPriceRange((prev) => {
+            const newRange: [number, number] = idx === 0 ? [val, prev[1]] : [prev[0], val];
+            console.log(`🔍 New price range: ${prev} -> ${newRange}`);
+            return newRange;
+        });
     };
 
     // Clear all filters
@@ -632,13 +743,83 @@ export default function MainPage() {
         setSelectedGuests([]);
         setPriceRange([0, 10000]);
         
-        // Refresh pricing when filters are cleared to show all properties with updated pricing
-        if (searchSession?.checkInDate && searchSession?.checkOutDate && properties.length > 0 && !isBulkPricingInProgressRef.current) {
-            console.log('🔄 Refreshing pricing after clearing filters...');
-            setHasPricingLoaded(false);
-            // Reset the last pricing request to allow new pricing fetch
-            lastPricingRequestRef.current = '';
-            fetchBulkPricing(properties, searchSession.checkInDate, searchSession.checkOutDate);
+        // Refresh properties from API when filters are cleared to show all properties
+        if (searchSession && !isBulkPricingInProgressRef.current) {
+            console.log('🔄 Refreshing properties after clearing filters...');
+            setIsFiltering(true);
+            
+            // Build search parameters without filters
+            const searchParams = new URLSearchParams();
+            if (searchSession.propertyIds.length > 0) {
+                searchParams.append('ids', searchSession.propertyIds.join(','));
+            }
+            if (searchSession.checkInDate) {
+                searchParams.append('availabilityFrom', searchSession.checkInDate);
+            }
+            if (searchSession.checkOutDate) {
+                searchParams.append('availabilityTo', searchSession.checkOutDate);
+            }
+            if (searchSession.guests) {
+                searchParams.append('guestsFrom', searchSession.guests.toString());
+                searchParams.append('guestsTo', searchSession.guests.toString());
+            }
+
+            // Fetch all properties without filters
+            fetch(`/api/properties/search?${searchParams.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.properties) {
+                        console.log(`✅ All properties restored: ${data.data.properties.length} properties`);
+                        
+                        // Transform API data to match Property interface
+                        const transformedProperties = data.data.properties.map((prop: any) => {
+                            const roomType = prop.property_type || 'house';
+                            const bedrooms = prop.bedrooms || 1;
+                            const bathrooms = prop.bathrooms || 1;
+                            const maxGuests = prop.max_guests || 2;
+                            
+                            return {
+                                id: prop.id,
+                                title: prop.name,
+                                location: `${prop.address?.city || ''}, ${prop.address?.state || ''}, ${prop.address?.country || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, ''),
+                                image: prop.thumbnail_url_medium || propertyImage1,
+                                beds: bedrooms,
+                                bathrooms: bathrooms,
+                                guestType: 'Adult',
+                                persons: maxGuests,
+                                roomType: roomType,
+                                facilities: [],
+                                price: 0,
+                                discountPrice: 180,
+                                badge: "FOR RENT",
+                                rating: 4.8,
+                                reviews: 28,
+                                pricing: null,
+                                pricingLoading: true,
+                                pricingError: null
+                            };
+                        });
+
+                        // Update properties with all results
+                        setProperties(transformedProperties);
+                        setFilteredProperties(transformedProperties);
+                        setCurrentPage(1);
+
+                        // Refresh pricing for all properties
+                        if (searchSession.checkInDate && searchSession.checkOutDate && !isBulkPricingInProgressRef.current) {
+                            console.log('🔄 Refreshing pricing for all properties...');
+                            setHasPricingLoaded(false);
+                            lastPricingRequestRef.current = '';
+                            fetchBulkPricing(transformedProperties, searchSession.checkInDate, searchSession.checkOutDate);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error refreshing properties after clearing filters:', error);
+                })
+                .finally(() => {
+                    setIsFiltering(false);
+                });
         }
     };
 
@@ -671,7 +852,7 @@ export default function MainPage() {
                                 (filtered from {properties.length} total)
                             </span>
                         )}
-                        {isPricingLoading && (
+                        {/* {isPricingLoading && (
                             <span className="ml-2 text-yellow-600 text-xs flex items-center">
                                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-400 mr-1"></div>
                                 Loading pricing...
@@ -698,9 +879,21 @@ export default function MainPage() {
                             >
                                 {isBulkPricingInProgressRef.current ? 'Loading...' : 'Load pricing'}
                             </button>
-                        )}
+                        )} */}
+                        {/* {isFiltering && (
+                            <span className="ml-2 text-blue-600 text-xs flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400 mr-1"></div>
+                                Applying filters...
+                            </span>
+                        )} */}
+                        {/* Show active filters indicator
+                        {(selectedRoomTypes.length > 0 || selectedBedrooms.length > 0 || selectedBathrooms.length > 0 || selectedGuests.length > 0 || priceRange[0] > 0 || priceRange[1] < 10000) && (
+                            <span className="ml-2 text-purple-600 text-xs flex items-center">
+                                🔍 Filters active
+                            </span>
+                        )} */}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* <div className="flex items-center gap-2">
                         <span className="text-gray-500 text-xs sm:text-sm">Sort By:</span>
                         <button
                             className="ml-2 border border-gray-300 rounded-full px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition flex items-center"
@@ -726,7 +919,7 @@ export default function MainPage() {
                             More Filters
                             <svg className="ml-1 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             )}
 
@@ -749,6 +942,18 @@ export default function MainPage() {
                                                 Showing {filteredProperties.length} of {properties.length} properties
                                             </div>
                                         )}
+                                        {/* Show active filters summary */}
+                                        {(selectedRoomTypes.length > 0 || selectedBedrooms.length > 0 || selectedBathrooms.length > 0 || selectedGuests.length > 0 || priceRange[0] > 0 || priceRange[1] < 10000) && (
+                                            <div className="text-xs text-purple-600 mt-1">
+                                                🔍 Filters: {[
+                                                    selectedRoomTypes.length > 0 && `${selectedRoomTypes.length} room types`,
+                                                    selectedBedrooms.length > 0 && `${selectedBedrooms.length} bedroom ranges`,
+                                                    selectedBathrooms.length > 0 && `${selectedBathrooms.length} bathroom ranges`,
+                                                    selectedGuests.length > 0 && `${selectedGuests.length} guest ranges`,
+                                                    (priceRange[0] > 0 || priceRange[1] < 10000) && 'price range'
+                                                ].filter(Boolean).join(', ')}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button 
@@ -765,11 +970,26 @@ export default function MainPage() {
                                                     priceRange
                                                 };
                                                 console.log('🧪 Current filters:', currentFilters);
+                                                
+                                                // Manually trigger the filter API call
+                                                console.log('🧪 Manually triggering filter API call...');
+                                                applyFiltersWithAPI();
                                             }}
                                         >
                                             Test
                                         </button>
-                                        <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
+                                        <button 
+                                            className="text-orange-500 text-sm ml-2" 
+                                            onClick={() => {
+                                                // Test price range filter
+                                                console.log('🧪 Testing price range filter...');
+                                                setPriceRange([3000, 10000]);
+                                                console.log('🧪 Set price range to [3000, 10000]');
+                                            }}
+                                        >
+                                            Test Price
+                                        </button>
+                                        <button className="text-blue-500 text-sm" onClick={clearAll} disabled={isFiltering}>Clear all</button>
                                         <button className="text-gray-400 hover:text-gray-600 text-2xl" onClick={() => setShowFilters(false)}>&times;</button>
                                     </div>
                                 </div>
@@ -781,44 +1001,68 @@ export default function MainPage() {
                                     <div className="font-semibold text-sm mb-2">Room Type</div>
                                     {ROOM_TYPES.map((type) => (
                                         <div key={type} className="flex items-center mb-1">
-                                            <input type="checkbox" checked={selectedRoomTypes.includes(type)} onChange={handleCheckbox(setSelectedRoomTypes, type)} className="mr-2" />
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedRoomTypes.includes(type)} 
+                                                onChange={handleCheckbox(setSelectedRoomTypes, type)} 
+                                                className="mr-2" 
+                                                disabled={isFiltering}
+                                            />
                                             <span className="text-sm">{type}</span>
                                         </div>
                                     ))}
                                 </div>
                                 
-                                                                 {/* Bedrooms */}
-                                 <div>
-                                     <div className="font-semibold text-sm mb-2">Bedrooms</div>
-                                     {BEDROOM_RANGES.map((range) => (
-                                         <div key={range} className="flex items-center mb-1">
-                                             <input type="checkbox" checked={selectedBedrooms.includes(range)} onChange={handleCheckbox(setSelectedBedrooms, range)} className="mr-2" />
-                                             <span className="text-sm">{range}</span>
-                                         </div>
-                                     ))}
-                                 </div>
-                                 
-                                 {/* Bathrooms */}
-                                 <div>
-                                     <div className="font-semibold text-sm mb-2">Bathrooms</div>
-                                     {BATHROOM_RANGES.map((range) => (
-                                         <div key={range} className="flex items-center mb-1">
-                                             <input type="checkbox" checked={selectedBathrooms.includes(range)} onChange={handleCheckbox(setSelectedBathrooms, range)} className="mr-2" />
-                                             <span className="text-sm">{range}</span>
-                                         </div>
-                                     ))}
-                                 </div>
-                                 
-                                 {/* Guests */}
-                                 <div>
-                                     <div className="font-semibold text-sm mb-2">Guests</div>
-                                     {GUEST_RANGES.map((range) => (
-                                         <div key={range} className="flex items-center mb-1">
-                                             <input type="checkbox" checked={selectedGuests.includes(range)} onChange={handleCheckbox(setSelectedGuests, range)} className="mr-2" />
-                                             <span className="text-sm">{range}</span>
-                                         </div>
-                                     ))}
-                                 </div>
+                                {/* Bedrooms */}
+                                <div>
+                                    <div className="font-semibold text-sm mb-2">Bedrooms</div>
+                                    {BEDROOM_RANGES.map((range) => (
+                                        <div key={range} className="flex items-center mb-1">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedBedrooms.includes(range)} 
+                                                onChange={handleCheckbox(setSelectedBedrooms, range)} 
+                                                className="mr-2" 
+                                                disabled={isFiltering}
+                                            />
+                                            <span className="text-sm">{range}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {/* Bathrooms */}
+                                <div>
+                                    <div className="font-semibold text-sm mb-2">Bathrooms</div>
+                                    {BATHROOM_RANGES.map((range) => (
+                                        <div key={range} className="flex items-center mb-1">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedBathrooms.includes(range)} 
+                                                onChange={handleCheckbox(setSelectedBathrooms, range)} 
+                                                className="mr-2" 
+                                                disabled={isFiltering}
+                                            />
+                                            <span className="text-sm">{range}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {/* Guests */}
+                                <div>
+                                    <div className="font-semibold text-sm mb-2">Guests</div>
+                                    {GUEST_RANGES.map((range) => (
+                                        <div key={range} className="flex items-center mb-1">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedGuests.includes(range)} 
+                                                onChange={handleCheckbox(setSelectedGuests, range)} 
+                                                className="mr-2" 
+                                                disabled={isFiltering}
+                                            />
+                                            <span className="text-sm">{range}</span>
+                                        </div>
+                                    ))}
+                                </div>
                                 
                                 {/* Price Range */}
                                 <div>
@@ -831,11 +1075,13 @@ export default function MainPage() {
                                                 min={0}
                                                 max={priceRange[1]}
                                                 value={priceRange[0]}
-                                                onChange={e => {
-                                                    const val = Math.min(Number(e.target.value), priceRange[1]);
-                                                    setPriceRange([val, priceRange[1]]);
-                                                }}
+                                                                                            onChange={e => {
+                                                const val = Math.min(Number(e.target.value), priceRange[1]);
+                                                console.log(`🔍 Desktop min price slider change: ${val}`);
+                                                setPriceRange([val, priceRange[1]]);
+                                            }}
                                                 className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                                                disabled={isFiltering}
                                             />
                                         </div>
                                         <span className="mx-2 text-gray-400 hidden sm:inline">—</span>
@@ -846,11 +1092,13 @@ export default function MainPage() {
                                                 min={priceRange[0]}
                                                 max={10000}
                                                 value={priceRange[1]}
-                                                onChange={e => {
-                                                    const val = Math.max(Number(e.target.value), priceRange[0]);
-                                                    setPriceRange([priceRange[0], val]);
-                                                }}
+                                                                                            onChange={e => {
+                                                const val = Math.max(Number(e.target.value), priceRange[0]);
+                                                console.log(`🔍 Desktop max price slider change: ${val}`);
+                                                setPriceRange([priceRange[0], val]);
+                                            }}
                                                 className="w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                                                disabled={isFiltering}
                                             />
                                         </div>
                                     </div>
@@ -863,10 +1111,12 @@ export default function MainPage() {
                                             value={priceRange[0]}
                                             onChange={e => {
                                                 const val = Math.min(Number(e.target.value), priceRange[1]);
+                                                console.log(`🔍 Min price slider change: ${val}`);
                                                 setPriceRange([val, priceRange[1]]);
                                             }}
                                             className="w-full accent-yellow-400"
                                             style={{ zIndex: priceRange[0] > 0 ? 2 : 1 }}
+                                            disabled={isFiltering}
                                         />
                                         {/* Max slider */}
                                         <input
@@ -876,11 +1126,13 @@ export default function MainPage() {
                                             value={priceRange[1]}
                                             onChange={e => {
                                                 const val = Math.max(Number(e.target.value), priceRange[0]);
+                                                console.log(`🔍 Max price slider change: ${val}`);
                                                 setPriceRange([priceRange[0], val]);
                                             }}
                                             className="w-full accent-yellow-400 absolute left-0 top-0"
                                             style={{ zIndex: 1 }}
                                             tabIndex={-1}
+                                            disabled={isFiltering}
                                         />
                                     </div>
                                     <div className="flex justify-between text-xs text-gray-400 mt-1">
@@ -904,6 +1156,18 @@ export default function MainPage() {
                                         Showing {filteredProperties.length} of {properties.length} properties
                                     </div>
                                 )}
+                                {/* Show active filters summary */}
+                                {(selectedRoomTypes.length > 0 || selectedBedrooms.length > 0 || selectedBathrooms.length > 0 || selectedGuests.length > 0 || priceRange[0] > 0 || priceRange[1] < 10000) && (
+                                    <div className="text-xs text-purple-600 mt-1">
+                                        🔍 Filters: {[
+                                            selectedRoomTypes.length > 0 && `${selectedRoomTypes.length} room types`,
+                                            selectedBedrooms.length > 0 && `${selectedBedrooms.length} bedroom ranges`,
+                                            selectedBathrooms.length > 0 && `${selectedBathrooms.length} bathroom ranges`,
+                                            selectedGuests.length > 0 && `${selectedGuests.length} guest ranges`,
+                                            (priceRange[0] > 0 || priceRange[1] < 10000) && 'price range'
+                                        ].filter(Boolean).join(', ')}
+                                    </div>
+                                )}
                             </div>
                             <div className="flex gap-2">
                                 <button 
@@ -922,11 +1186,26 @@ export default function MainPage() {
                                         console.log('🧪 Current filters:', currentFilters);
                                         console.log('🧪 Properties to filter:', properties.length);
                                         console.log('🧪 Current filtered count:', filteredProperties.length);
+                                        
+                                        // Manually trigger the filter API call
+                                        console.log('🧪 Manually triggering filter API call...');
+                                        applyFiltersWithAPI();
                                     }}
                                 >
                                     Test
                                 </button>
-                            <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
+                                <button 
+                                    className="text-orange-500 text-sm ml-2" 
+                                    onClick={() => {
+                                        // Test price range filter
+                                        console.log('🧪 Testing price range filter...');
+                                        setPriceRange([3000, 10000]);
+                                        console.log('🧪 Set price range to [3000, 10000]');
+                                    }}
+                                >
+                                    Test Price
+                                </button>
+                            <button className="text-blue-500 text-sm" onClick={clearAll} disabled={isFiltering}>Clear all</button>
                             </div>
                         </div>
                         
@@ -935,44 +1214,68 @@ export default function MainPage() {
                             <div className="font-semibold text-sm mb-2">Room Type</div>
                             {ROOM_TYPES.map((type) => (
                                 <div key={type} className="flex items-center mb-1">
-                                    <input type="checkbox" checked={selectedRoomTypes.includes(type)} onChange={handleCheckbox(setSelectedRoomTypes, type)} className="mr-2" />
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedRoomTypes.includes(type)} 
+                                        onChange={handleCheckbox(setSelectedRoomTypes, type)} 
+                                        className="mr-2" 
+                                        disabled={isFiltering}
+                                    />
                                     <span className="text-sm">{type}</span>
                                 </div>
                             ))}
                         </div>
                         
-                                                 {/* Bedrooms */}
-                         <div className="mb-4">
-                             <div className="font-semibold text-sm mb-2">Bedrooms</div>
-                             {BEDROOM_RANGES.map((range) => (
-                                 <div key={range} className="flex items-center mb-1">
-                                     <input type="checkbox" checked={selectedBedrooms.includes(range)} onChange={handleCheckbox(setSelectedBedrooms, range)} className="mr-2" />
-                                     <span className="text-sm">{range}</span>
-                                 </div>
-                             ))}
-                         </div>
-                         
-                         {/* Bathrooms */}
-                         <div className="mb-4">
-                             <div className="font-semibold text-sm mb-2">Bathrooms</div>
-                             {BATHROOM_RANGES.map((range) => (
-                                 <div key={range} className="flex items-center mb-1">
-                                     <input type="checkbox" checked={selectedBathrooms.includes(range)} onChange={handleCheckbox(setSelectedBathrooms, range)} className="mr-2" />
-                                     <span className="text-sm">{range}</span>
-                                 </div>
-                             ))}
-                         </div>
-                         
-                         {/* Guests */}
-                         <div className="mb-4">
-                             <div className="font-semibold text-sm mb-2">Guests</div>
-                             {GUEST_RANGES.map((range) => (
-                                 <div key={range} className="flex items-center mb-1">
-                                     <input type="checkbox" checked={selectedGuests.includes(range)} onChange={handleCheckbox(setSelectedGuests, range)} className="mr-2" />
-                                     <span className="text-sm">{range}</span>
-                                 </div>
-                             ))}
-                         </div>
+                        {/* Bedrooms */}
+                        <div className="mb-4">
+                            <div className="font-semibold text-sm mb-2">Bedrooms</div>
+                            {BEDROOM_RANGES.map((range) => (
+                                <div key={range} className="flex items-center mb-1">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedBedrooms.includes(range)} 
+                                        onChange={handleCheckbox(setSelectedBedrooms, range)} 
+                                        className="mr-2" 
+                                        disabled={isFiltering}
+                                    />
+                                    <span className="text-sm">{range}</span>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* Bathrooms */}
+                        <div className="mb-4">
+                            <div className="font-semibold text-sm mb-2">Bathrooms</div>
+                            {BATHROOM_RANGES.map((range) => (
+                                <div key={range} className="flex items-center mb-1">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedBathrooms.includes(range)} 
+                                        onChange={handleCheckbox(setSelectedBathrooms, range)} 
+                                        className="mr-2" 
+                                        disabled={isFiltering}
+                                    />
+                                    <span className="text-sm">{range}</span>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* Guests */}
+                        <div className="mb-4">
+                            <div className="font-semibold text-sm mb-2">Guests</div>
+                            {GUEST_RANGES.map((range) => (
+                                <div key={range} className="flex items-center mb-1">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedGuests.includes(range)} 
+                                        onChange={handleCheckbox(setSelectedGuests, range)} 
+                                        className="mr-2" 
+                                        disabled={isFiltering}
+                                    />
+                                    <span className="text-sm">{range}</span>
+                                </div>
+                            ))}
+                        </div>
                         
                         {/* Price Range */}
                         <div className="mb-4">
@@ -987,9 +1290,11 @@ export default function MainPage() {
                                         value={priceRange[0]}
                                         onChange={e => {
                                             const val = Math.min(Number(e.target.value), priceRange[1]);
+                                            console.log(`🔍 Mobile min price input change: ${val}`);
                                             setPriceRange([val, priceRange[1]]);
                                         }}
                                         className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                                        disabled={isFiltering}
                                     />
                                 </div>
                                 <span className="mx-2 text-gray-400 hidden sm:inline">—</span>
@@ -1002,9 +1307,11 @@ export default function MainPage() {
                                         value={priceRange[1]}
                                         onChange={e => {
                                             const val = Math.max(Number(e.target.value), priceRange[0]);
+                                            console.log(`🔍 Mobile max price input change: ${val}`);
                                             setPriceRange([priceRange[0], val]);
                                         }}
                                         className="w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                                        disabled={isFiltering}
                                     />
                                 </div>
                             </div>
@@ -1015,12 +1322,14 @@ export default function MainPage() {
                                     min={0}
                                     max={priceRange[1]}
                                     value={priceRange[0]}
-                                    onChange={e => {
-                                        const val = Math.min(Number(e.target.value), priceRange[1]);
-                                        setPriceRange([val, priceRange[1]]);
-                                    }}
+                                                                            onChange={e => {
+                                            const val = Math.min(Number(e.target.value), priceRange[1]);
+                                            console.log(`🔍 Mobile min price slider change: ${val}`);
+                                            setPriceRange([val, priceRange[1]]);
+                                        }}
                                     className="w-full accent-yellow-400"
                                     style={{ zIndex: priceRange[0] > 0 ? 2 : 1 }}
+                                    disabled={isFiltering}
                                 />
                                 {/* Max slider */}
                                 <input
@@ -1028,13 +1337,15 @@ export default function MainPage() {
                                     min={priceRange[0]}
                                     max={10000}
                                     value={priceRange[1]}
-                                    onChange={e => {
-                                        const val = Math.max(Number(e.target.value), priceRange[0]);
-                                        setPriceRange([priceRange[0], val]);
-                                    }}
+                                                                            onChange={e => {
+                                            const val = Math.max(Number(e.target.value), priceRange[0]);
+                                            console.log(`🔍 Mobile max price slider change: ${val}`);
+                                            setPriceRange([priceRange[0], val]);
+                                        }}
                                     className="w-full accent-yellow-400 absolute left-0 top-0"
                                     style={{ zIndex: 1 }}
                                     tabIndex={-1}
+                                    disabled={isFiltering}
                                 />
                             </div>
                             <div className="flex justify-between text-xs text-gray-400 mt-1">
@@ -1051,6 +1362,11 @@ export default function MainPage() {
                         <div className="w-full text-center py-16">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
                             <p className="text-gray-600">Loading properties...</p>
+                        </div>
+                    ) : isFiltering ? (
+                        <div className="w-full text-center py-16">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Applying filters...</p>
                         </div>
                     ) : !isInitialLoad && !isLoading && properties.length === 0 ? (
                         <div className="w-full text-center py-16">
@@ -1124,3 +1440,4 @@ export default function MainPage() {
         </>
     )
 }
+

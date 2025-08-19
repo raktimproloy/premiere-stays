@@ -53,6 +53,12 @@ export interface SearchFilters {
   excludedTagIds?: string;
   page?: number;
   pageSize?: number;
+  // New filter properties for UI
+  roomTypes?: string[];
+  bedroomRanges?: string[];
+  bathroomRanges?: string[];
+  guestRanges?: string[];
+  priceRange?: [number, number];
 }
 
 export interface OwnerRezSearchResponse {
