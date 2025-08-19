@@ -2,7 +2,7 @@
 import Breadcrumb from '@/components/common/Breadcrumb'
 import PropertyCard from '@/components/common/card/PropertyCard';
 import DefaultLayout from '@/components/layout/DefaultLayout'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { getSearchSession, SearchSession } from '@/utils/cookies';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -31,12 +31,10 @@ interface Property {
   pricingError?: string | null;
 }
 
-const ROOM_TYPES = ['Private Room', 'Shared Room', 'Entire Unit'];
-const BED_TYPES = ['Single Bed', 'Double Bed'];
-const BATHROOMS = ['Single Bathroom', 'Double Bathroom'];
-const GUESTS = ['Adult', 'Youth', 'Children'];
-const PERSONS = ['One Person', 'Two Person', 'Four Person'];
-const FACILITIES = ['Wi-Fi', 'Pet-Friendly', 'AC', 'Laundry', 'Kitchen Access', 'Private Bathroom', 'Parking', 'Furnished'];
+const ROOM_TYPES = ['house', 'apartment', 'condo', 'villa', 'townhouse'];
+const BEDROOM_RANGES = ['1-2', '3-4', '5+'];
+const BATHROOM_RANGES = ['1-2', '3-4', '5+'];
+const GUEST_RANGES = ['1-4', '5-8', '9+'];
 
 const PROPERTIES_PER_PAGE = 9;
 
@@ -49,74 +47,178 @@ export default function MainPage() {
     const [searchSession, setSearchSession] = useState<SearchSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [isPricingLoading, setIsPricingLoading] = useState(false);
+    const [hasPricingLoaded, setHasPricingLoaded] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
-    const [selectedBeds, setSelectedBeds] = useState<string[]>([]);
+    const [selectedBedrooms, setSelectedBedrooms] = useState<string[]>([]);
     const [selectedBathrooms, setSelectedBathrooms] = useState<string[]>([]);
     const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
-    const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
-    const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
-    const [priceRange, setPriceRange] = useState<[number, number]>([0, 400]);
+    const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
 
-    // Fetch pricing for a specific property
-    const fetchPropertyPricing = async (propertyId: number, checkInDate: string, checkOutDate: string) => {
-        if (!checkInDate || !checkOutDate) return;
+    // Ref to track if filters have been initialized to prevent unnecessary API calls
+    const filtersInitializedRef = useRef(false);
+    
+    // Ref to track previous properties to prevent unnecessary API calls
+    const previousPropertiesRef = useRef<Property[]>([]);
+    
+    // Ref to track previous search session to prevent unnecessary API calls
+    const previousSearchSessionRef = useRef<SearchSession | null>(null);
+
+    // Ref to track if bulk pricing API call is in progress
+    const isBulkPricingInProgressRef = useRef(false);
+    
+    // Ref to track the last pricing request to prevent duplicates
+    const lastPricingRequestRef = useRef<string>('');
+    
+    // Ref to track if we should skip the next pricing load
+    const skipNextPricingLoadRef = useRef(false);
+    
+    // Ref to track the last time pricing was loaded
+    const lastPricingLoadTimeRef = useRef<number>(0);
+    
+    // Debounce delay for pricing API calls (2 seconds)
+    const PRICING_DEBOUNCE_DELAY = 2000;
+
+    // Fetch bulk pricing for all properties
+    const fetchBulkPricing = async (properties: Property[], checkInDate: string, checkOutDate: string) => {
+        if (!checkInDate || !checkOutDate || properties.length === 0) return;
+
+        // Create a unique request identifier
+        const requestId = `${checkInDate}-${checkOutDate}-${properties.map(p => p.id).sort().join(',')}`;
+        
+        // Prevent duplicate API calls
+        if (isBulkPricingInProgressRef.current) {
+            console.log('⚠️ Bulk pricing already in progress, skipping duplicate request');
+            return;
+        }
+        
+        // Check if this exact request was already made
+        if (lastPricingRequestRef.current === requestId) {
+            console.log('⚠️ Same pricing request already made, skipping duplicate');
+            return;
+        }
+        
+        // Debounce rapid API calls
+        const now = Date.now();
+        if (now - lastPricingLoadTimeRef.current < PRICING_DEBOUNCE_DELAY) {
+            console.log('⚠️ Pricing request debounced, too soon since last call');
+            return;
+        }
 
         try {
-            console.log(`🔄 Fetching pricing for property ${propertyId}...`);
+            console.log(`🔄 Fetching bulk pricing for ${properties.length} properties...`);
+            isBulkPricingInProgressRef.current = true;
+            lastPricingRequestRef.current = requestId;
+            setIsPricingLoading(true);
             
-            // Update property to show pricing loading state
-            setProperties(prev => prev.map(prop => 
-                prop.id === propertyId 
-                    ? { ...prop, pricingLoading: true, pricingError: null }
-                    : prop
-            ));
+            // Update all properties to show pricing loading state
+            setProperties(prev => prev.map(prop => ({
+                ...prop,
+                pricingLoading: true,
+                pricingError: null
+            })));
 
-            const response = await fetch(`/api/properties/${propertyId}/pricing?start=${checkInDate}&end=${checkOutDate}`);
+            // Prepare bulk pricing request
+            const bulkPricingRequest = {
+                properties: properties.map(prop => ({
+                    id: prop.id,
+                    start: checkInDate,
+                    end: checkOutDate
+                }))
+            };
+            
+            console.log('📤 Bulk pricing request:', bulkPricingRequest);
+
+            const response = await fetch('/api/properties/bulk-pricing', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bulkPricingRequest)
+            });
+
             const data = await response.json();
+            console.log('📥 Bulk pricing response:', data);
 
             if (data.success) {
-                console.log(`✅ Pricing loaded for property ${propertyId}`);
-                // Update property with pricing data
-                setProperties(prev => prev.map(prop => 
-                    prop.id === propertyId 
-                        ? { 
-                            ...prop, 
-                            pricing: data.pricing, 
-                            pricingLoading: false, 
-                            pricingError: null,
-                            price: data.pricing.summary.totalAmount || prop.price
-                        }
-                        : prop
-                ));
+                console.log(`✅ Bulk pricing loaded successfully for ${data.summary.successfulProperties} properties`);
+                
+                // Update properties with pricing data from bulk response
+                const updatedProperties = properties.map(prop => {
+                    // Try to find the pricing result with flexible ID matching
+                    const pricingResult = data.results.find((result: any) => 
+                        result.propertyId === prop.id || 
+                        result.propertyId === prop.id.toString() || 
+                        result.propertyId === Number(prop.id)
+                    );
+                    
+                                         if (pricingResult && pricingResult.success) {
+                         return {
+                             ...prop, 
+                             pricing: pricingResult.pricing,
+                             pricingLoading: false, 
+                             pricingError: null,
+                             price: pricingResult.pricing.summary.totalAmount || 0
+                         };
+                     } else if (pricingResult && !pricingResult.success) {
+                         return {
+                             ...prop,
+                             pricing: null,
+                             pricingLoading: false,
+                             pricingError: pricingResult.error || 'Failed to fetch pricing'
+                         };
+                     } else {
+                         // No result found for this property
+                         return {
+                             ...prop,
+                             pricing: null,
+                             pricingLoading: false,
+                             pricingError: 'No pricing data received'
+                         };
+                     }
+                });
+                
+                // Update both properties and filteredProperties to ensure pricing is shown
+                setProperties(updatedProperties);
+                setFilteredProperties(updatedProperties);
+                
+                // Mark pricing as loaded
+                setHasPricingLoaded(true);
             } else {
-                console.log(`❌ Pricing failed for property ${propertyId}:`, data.error);
-                // Update property with pricing error
-                setProperties(prev => prev.map(prop => 
-                    prop.id === propertyId 
-                        ? { 
-                            ...prop, 
-                            pricing: null, 
-                            pricingLoading: false, 
-                            pricingError: data.error || 'Failed to fetch pricing'
-                        }
-                        : prop
-                ));
+                console.log(`❌ Bulk pricing failed:`, data.error);
+                
+                // Update all properties with pricing error
+                const errorProperties = properties.map(prop => ({
+                    ...prop, 
+                    pricing: null, 
+                    pricingLoading: false, 
+                    pricingError: data.error || 'Failed to fetch bulk pricing'
+                }));
+                
+                // Update both properties and filteredProperties
+                setProperties(errorProperties);
+                setFilteredProperties(errorProperties);
             }
         } catch (error) {
-            console.error(`❌ Pricing error for property ${propertyId}:`, error);
-            // Update property with pricing error
-            setProperties(prev => prev.map(prop => 
-                prop.id === propertyId 
-                    ? { 
-                        ...prop, 
-                        pricing: null, 
-                        pricingLoading: false, 
-                        pricingError: 'Failed to fetch pricing'
-                    }
-                    : prop
-            ));
+            console.error(`❌ Bulk pricing error:`, error);
+            
+            // Update all properties with pricing error
+            const errorProperties = properties.map(prop => ({
+                ...prop, 
+                pricing: null, 
+                pricingLoading: false, 
+                pricingError: 'Failed to fetch bulk pricing'
+            }));
+            
+            // Update both properties and filteredProperties
+            setProperties(errorProperties);
+            setFilteredProperties(errorProperties);
+        } finally {
+            setIsPricingLoading(false);
+            isBulkPricingInProgressRef.current = false;
+            lastPricingLoadTimeRef.current = Date.now();
         }
     };
 
@@ -172,47 +274,58 @@ export default function MainPage() {
                 }
 
                 // Then fetch properties from search API
-                console.log('🔄 Step 1: Fetching properties from search API...');
+                console.log('🔄 Step 2: Fetching properties from search API...');
                 const response = await fetch(`/api/properties/search?${searchParams.toString()}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.data.properties) {
                         // Transform API data to match Property interface
-                        const transformedProperties = data.data.properties.map((prop: any) => ({
-                            id: prop.id,
-                            title: prop.name,
-                            location: `${prop.address?.city}, ${prop.address?.state}, ${prop.address?.country}`,
-                            image: prop.thumbnail_url_medium || propertyImage1,
-                            beds: prop.bedrooms || 1,
-                            bathrooms: prop.bathrooms || 1,
-                            guestType: 'Adult', // Default value
-                            persons: prop.max_guests || 2,
-                            roomType: prop.property_type || 'Entire Unit',
-                            facilities: ['Wi-Fi', 'Parking'], // Default facilities
-                            price: 0, // Will be updated with real pricing
-                            discountPrice: 180,
-                            badge: "FOR RENT",
-                            rating: 4.8,
-                            reviews: 28,
-                            // Initialize pricing state
-                            pricing: null,
-                            pricingLoading: false,
-                            pricingError: null
-                        }));
-                        console.log(`✅ Step 1 Complete: Successfully loaded ${transformedProperties.length} properties`);
+                        const transformedProperties = data.data.properties.map((prop: any) => {
+                                                         // Use actual property data
+                             const roomType = prop.property_type || 'house';
+                             const bedrooms = prop.bedrooms || 1;
+                             const bathrooms = prop.bathrooms || 1;
+                             const maxGuests = prop.max_guests || 2;
+                            
+                                                         return {
+                                 id: prop.id,
+                                 title: prop.name,
+                                 location: `${prop.address?.city || ''}, ${prop.address?.state || ''}, ${prop.address?.country || ''}`.replace(/^,\s*/, '').replace(/,\s*$/, ''),
+                                 image: prop.thumbnail_url_medium || propertyImage1,
+                                 beds: bedrooms,
+                                 bathrooms: bathrooms,
+                                 guestType: 'Adult', // Default value
+                                 persons: maxGuests,
+                                 roomType: roomType,
+                                 facilities: [], // Simplified for now
+                                 price: 0, // Will be updated with real pricing when user requests it
+                                 discountPrice: 180,
+                                 badge: "FOR RENT",
+                                 rating: 4.8,
+                                 reviews: 28,
+                                 // Initialize pricing state - will show skeleton while loading
+                                 pricing: null,
+                                 pricingLoading: true,
+                                 pricingError: null
+                             };
+                        });
+                        
+                        // Debug: Log the transformed properties to see their structure
+                        console.log('🔍 Transformed properties structure:', transformedProperties.map((p: Property) => ({
+                            id: p.id,
+                            title: p.title,
+                            roomType: p.roomType,
+                            beds: p.beds,
+                            bathrooms: p.bathrooms,
+                            persons: p.persons,
+                            facilities: p.facilities
+                        })));
+                        
+                        console.log(`✅ Step 2 Complete: Successfully loaded ${transformedProperties.length} properties`);
                         setProperties(transformedProperties);
                         setFilteredProperties(transformedProperties);
 
-                        // Step 2: Fetch pricing for each property if we have dates
-                        if (session.checkInDate && session.checkOutDate) {
-                            console.log('🔄 Step 2: Fetching pricing for all properties...');
-                            // Fetch pricing for each property with a small delay to show properties first
-                            transformedProperties.forEach((property: Property, index: number) => {
-                                setTimeout(() => {
-                                    fetchPropertyPricing(property.id, session.checkInDate!, session.checkOutDate!);
-                                }, index * 200); // Stagger pricing requests
-                            });
-                        }
+                        console.log('✅ Properties loaded successfully. Bulk pricing will be loaded automatically.');
                     } else {
                         console.error('No properties found in search response');
                         // Don't clear properties if we already have some
@@ -243,8 +356,48 @@ export default function MainPage() {
             }
         };
 
+
         initializeSearch();
     }, [searchId, router]);
+
+    // Cleanup effect when component unmounts
+    useEffect(() => {
+        return () => {
+            // Reset all refs to prevent memory leaks
+            isBulkPricingInProgressRef.current = false;
+            lastPricingRequestRef.current = '';
+            skipNextPricingLoadRef.current = false;
+            lastPricingLoadTimeRef.current = 0;
+        };
+    }, []);
+
+    // Auto-load bulk pricing when properties and search session are available
+    useEffect(() => {
+        console.log('🔍 Pricing useEffect triggered:', {
+            isInitialLoad,
+            hasSearchSession: !!searchSession,
+            propertiesCount: properties.length,
+            hasPricingLoaded,
+            isBulkPricingInProgress: isBulkPricingInProgressRef.current,
+            skipNextPricingLoad: skipNextPricingLoadRef.current
+        });
+        
+        if (!isInitialLoad && searchSession && properties.length > 0 && !hasPricingLoaded && !isBulkPricingInProgressRef.current && !skipNextPricingLoadRef.current) {
+            const { checkInDate, checkOutDate } = searchSession;
+            if (checkInDate && checkOutDate) {
+                console.log('🔄 Auto-loading bulk pricing for properties...');
+                skipNextPricingLoadRef.current = true; // Prevent immediate re-trigger
+                fetchBulkPricing(properties, checkInDate, checkOutDate);
+            }
+        }
+    }, [isInitialLoad, searchSession, properties, hasPricingLoaded]);
+
+    // Reset skip flag when pricing is loaded
+    useEffect(() => {
+        if (hasPricingLoaded) {
+            skipNextPricingLoadRef.current = false;
+        }
+    }, [hasPricingLoaded]);
 
     // Apply filters to properties
     useEffect(() => {
@@ -253,159 +406,204 @@ export default function MainPage() {
             return;
         }
 
-        // Check if any filters are actually selected
+        // Skip if this is the first run (filters are at their default state)
+        if (!filtersInitializedRef.current) {
+            filtersInitializedRef.current = true;
+            return;
+        }
+        
+        // Skip if search session changed but filters are still at default state
+        // This prevents unnecessary API calls when the component re-renders
+        
+        // Check if search session has changed (dates, guests, or properties)
+        const hasSearchSessionChanged = !previousSearchSessionRef.current || 
+            previousSearchSessionRef.current.propertyIds.length !== searchSession.propertyIds.length ||
+            previousSearchSessionRef.current.checkInDate !== searchSession.checkInDate ||
+            previousSearchSessionRef.current.checkOutDate !== searchSession.checkOutDate ||
+            previousSearchSessionRef.current.guests !== searchSession.guests;
+        
+        if (!hasSearchSessionChanged) {
+            return;
+        }
+        
+        // Update the previous search session reference
+        previousSearchSessionRef.current = { ...searchSession };
+        
+        // If dates changed, refresh pricing for the new dates
+        if (previousSearchSessionRef.current && 
+            (previousSearchSessionRef.current.checkInDate !== searchSession.checkInDate ||
+             previousSearchSessionRef.current.checkOutDate !== searchSession.checkOutDate)) {
+            console.log('🔄 Search dates changed, refreshing pricing...');
+            setHasPricingLoaded(false);
+            // Reset the last pricing request to allow new pricing fetch
+            lastPricingRequestRef.current = '';
+            if (searchSession.checkInDate && searchSession.checkOutDate && !isBulkPricingInProgressRef.current) {
+                fetchBulkPricing(properties, searchSession.checkInDate, searchSession.checkOutDate);
+            }
+        }
+        
+        // Skip if properties haven't actually changed (prevents unnecessary API calls)
+        if (previousPropertiesRef.current.length === properties.length && 
+            previousPropertiesRef.current.every((prop, index) => prop.id === properties[index]?.id)) {
+            return;
+        }
+        
+        // Update the previous properties reference
+        previousPropertiesRef.current = [...properties];
+        
+        // Apply filters locally to preserve pricing data
+        const applyFiltersLocally = () => {
+            console.log('🔍 Applying filters locally to preserve pricing data...');
+                         console.log('🔍 Current filter state:', {
+                 roomTypes: selectedRoomTypes,
+                 bedrooms: selectedBedrooms,
+                 bathrooms: selectedBathrooms,
+                 guests: selectedGuests,
+                 priceRange
+             });
+            
+                         // Debug: Show available filter options from properties
+             const availableRoomTypes = [...new Set(properties.map(p => p.roomType))];
+             const availableBedrooms = [...new Set(properties.map(p => p.beds))];
+             const availableBathrooms = [...new Set(properties.map(p => p.bathrooms))];
+             const availableGuests = [...new Set(properties.map(p => p.persons))];
+             const availablePrices = properties.map(p => p.price).filter(p => p > 0);
+             
+             console.log('🔍 Available filter options from properties:', {
+                 roomTypes: availableRoomTypes,
+                 bedrooms: availableBedrooms,
+                 bathrooms: availableBathrooms,
+                 guests: availableGuests,
+                 priceRange: availablePrices.length > 0 ? `$${Math.min(...availablePrices)} - $${Math.max(...availablePrices)}` : 'No pricing data'
+             });
+            
+                         console.log('🔍 Properties to filter:', properties.map(p => ({
+                 id: p.id,
+                 title: p.title,
+                 roomType: p.roomType,
+                 bedrooms: p.beds,
+                 bathrooms: p.bathrooms,
+                 guests: p.persons,
+                 price: p.price,
+                 hasPricing: !!p.pricing,
+                 pricingError: p.pricingError
+             })));
+            
+            let filtered = [...properties];
+            
+            // Check if any filters are active
         const hasActiveFilters = selectedRoomTypes.length > 0 || 
-                               selectedBeds.length > 0 || 
+                               selectedBedrooms.length > 0 || 
                                selectedBathrooms.length > 0 || 
                                selectedGuests.length > 0 || 
-                               selectedPersons.length > 0 || 
-                               selectedFacilities.length > 0 || 
                                priceRange[0] > 0 || 
-                               priceRange[1] < 400;
+                               priceRange[1] < 10000;
 
-        // If no filters are active, just use the original properties
         if (!hasActiveFilters) {
+                // No filters active, show all properties
+                console.log('✅ No filters active, showing all properties');
             setFilteredProperties(properties);
             setCurrentPage(1);
             return;
         }
 
-        // If we have active filters, we need to make an API call
-        // But first, let's check if we actually have properties to filter
-        if (properties.length === 0) {
-            return;
-        }
-
-        // Build search parameters for API
-        const fetchFilteredProperties = async () => {
-            // Only show loading if we're actually making an API call
-            if (hasActiveFilters) {
-                setIsLoading(true);
-            }
-            try {
-                const searchParams = new URLSearchParams();
-                // Room Type
+            // Room Type filter
                 if (selectedRoomTypes.length > 0) {
-                    searchParams.append('property_type', selectedRoomTypes.join(','));
-                }
-                // Beds
-                if (selectedBeds.length > 0) {
-                    // Map to numbers
-                    const beds = selectedBeds.map(b => b === 'Single Bed' ? 1 : 2);
-                    searchParams.append('bedroomsFrom', Math.min(...beds).toString());
-                    searchParams.append('bedroomsTo', Math.max(...beds).toString());
-                }
-                // Bathrooms
-                if (selectedBathrooms.length > 0) {
-                    const baths = selectedBathrooms.map(b => b === 'Single Bathroom' ? 1 : 2);
-                    searchParams.append('bathroomsFullFrom', Math.min(...baths).toString());
-                    searchParams.append('bathroomsFullTo', Math.max(...baths).toString());
-                }
-                // Guests
-                if (selectedGuests.length > 0) {
-                    // Not clear how to map guestType, so skip unless API supports
-                }
-                // Persons (max_guests)
-                if (selectedPersons.length > 0) {
-                    const persons = selectedPersons.map(p => {
-                        if (p === 'One Person') return 1;
-                        if (p === 'Two Person') return 2;
-                        if (p === 'Four Person') return 4;
-                        return 1;
-                    });
-                    searchParams.append('guestsFrom', Math.min(...persons).toString());
-                    searchParams.append('guestsTo', Math.max(...persons).toString());
-                }
-                // Facilities (if API supports tags)
-                // if (selectedFacilities.length > 0) {
-                //     searchParams.append('includedTagIds', selectedFacilities.join(','));
-                // }
-                // Price Range
-                if (priceRange[0] > 0) {
-                    searchParams.append('rateFrom', priceRange[0].toString());
-                }
-                if (priceRange[1] < 400) {
-                    searchParams.append('rateTo', priceRange[1].toString());
-                }
-                // Always include propertyIds from searchSession if available
-                if (searchSession && searchSession.propertyIds.length > 0) {
-                    searchParams.append('ids', searchSession.propertyIds.join(','));
-                }
-                // Dates
-                if (searchSession && searchSession.checkInDate) {
-                    searchParams.append('availabilityFrom', searchSession.checkInDate);
-                }
-                if (searchSession && searchSession.checkOutDate) {
-                    searchParams.append('availabilityTo', searchSession.checkOutDate);
-                }
-                // Guests
-                if (searchSession && searchSession.guests) {
-                    searchParams.append('guestsFrom', searchSession.guests.toString());
-                    searchParams.append('guestsTo', searchSession.guests.toString());
-                }
-                // Fetch from API
-                const response = await fetch(`/api/properties/search?${searchParams.toString()}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data.properties) {
-                        const transformedProperties = data.data.properties.map((prop: any) => ({
-                            id: prop.id,
-                            title: prop.name,
-                            location: `${prop.address?.city}, ${prop.address?.state}, ${prop.address?.country}`,
-                            image: prop.thumbnail_url_medium || propertyImage1,
-                            beds: prop.bedrooms || 1,
-                            bathrooms: prop.bathrooms || 1,
-                            guestType: 'Adult', // Default value
-                            persons: prop.max_guests || 2,
-                            roomType: prop.property_type || 'Entire Unit',
-                            facilities: ['Wi-Fi', 'Parking'], // Default facilities
-                            price: 0, // Will be updated with real pricing
-                            discountPrice: 180,
-                            badge: "FOR RENT",
-                            rating: 4.8,
-                            reviews: 28,
-                            // Initialize pricing state
-                            pricing: null,
-                            pricingLoading: false,
-                            pricingError: null
-                        }));
-                        setFilteredProperties(transformedProperties);
-
-                        // Fetch pricing for filtered properties if we have dates
-                        if (searchSession && searchSession.checkInDate && searchSession.checkOutDate) {
-                            console.log('🔄 Fetching pricing for filtered properties...');
-                            transformedProperties.forEach((property: Property, index: number) => {
-                                setTimeout(() => {
-                                    fetchPropertyPricing(property.id, searchSession.checkInDate!, searchSession.checkOutDate!);
-                                }, index * 200); // Stagger pricing requests
-                            });
-                        }
-                    } else {
-                        // If no properties found in filter, keep the original properties
-                        setFilteredProperties(properties);
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(prop => {
+                    const matches = selectedRoomTypes.includes(prop.roomType);
+                    if (!matches) {
+                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by room type: ${prop.roomType} not in ${selectedRoomTypes.join(', ')}`);
                     }
-                } else {
-                    // If API call failed, keep the original properties
-                    setFilteredProperties(properties);
-                }
-            } catch (error) {
-                console.error('Error applying filters:', error);
-                // If there's an error, keep the original properties
-                setFilteredProperties(properties);
-            } finally {
-                // Only hide loading if we were actually loading
-                if (hasActiveFilters) {
-                    setIsLoading(false);
-                }
+                    return matches;
+                });
+                console.log(`🏠 After room type filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
             }
+            
+            // Bedrooms filter
+            if (selectedBedrooms.length > 0) {
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(prop => {
+                    const matches = selectedBedrooms.some(range => {
+                        if (range === '1-2') return prop.beds >= 1 && prop.beds <= 2;
+                        if (range === '3-4') return prop.beds >= 3 && prop.beds <= 4;
+                        if (range === '5+') return prop.beds >= 5;
+                        return false;
+                    });
+                    if (!matches) {
+                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by bedrooms: ${prop.beds} not in ranges ${selectedBedrooms.join(', ')}`);
+                    }
+                    return matches;
+                });
+                console.log(`🛏️ After bedrooms filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+            }
+            
+            // Bathrooms filter
+            if (selectedBathrooms.length > 0) {
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(prop => {
+                    const matches = selectedBathrooms.some(range => {
+                        if (range === '1-2') return prop.bathrooms >= 1 && prop.bathrooms <= 2;
+                        if (range === '3-4') return prop.bathrooms >= 3 && prop.bathrooms <= 4;
+                        if (range === '5+') return prop.bathrooms >= 5;
+                        return false;
+                    });
+                    if (!matches) {
+                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by bathrooms: ${prop.bathrooms} not in ranges ${selectedBathrooms.join(', ')}`);
+                    }
+                    return matches;
+                });
+                console.log(`🚿 After bathrooms filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+            }
+            
+            // Guests filter
+            if (selectedGuests.length > 0) {
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(prop => {
+                    const matches = selectedGuests.some(range => {
+                        if (range === '1-4') return prop.persons >= 1 && prop.persons <= 4;
+                        if (range === '5-8') return prop.persons >= 5 && prop.persons <= 8;
+                        if (range === '9+') return prop.persons >= 9;
+                        return false;
+                    });
+                    if (!matches) {
+                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by guests: ${prop.persons} not in ranges ${selectedGuests.join(', ')}`);
+                    }
+                    return matches;
+                });
+                console.log(`👥 After guests filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+            }
+            
+            // Price range filter
+            if (priceRange[0] > 0 || priceRange[1] < 10000) {
+                const beforeCount = filtered.length;
+                filtered = filtered.filter(prop => {
+                    const price = prop.price || 0;
+                    const matches = price >= priceRange[0] && price <= priceRange[1];
+                    if (!matches) {
+                        console.log(`❌ Property ${prop.title} (${prop.id}) filtered out by price: $${price} not in range $${priceRange[0]} - $${priceRange[1]}`);
+                    }
+                    return matches;
+                });
+                console.log(`💰 After price filter: ${filtered.length} properties (filtered out ${beforeCount - filtered.length})`);
+            }
+            
+            console.log(`✅ Filtering complete: ${filtered.length} properties match criteria`);
+            console.log('🔍 Final filtered properties:', filtered.map(p => ({
+                id: p.id,
+                title: p.title,
+                price: p.price,
+                hasPricing: !!p.pricing,
+                pricingError: p.pricingError
+            })));
+            setFilteredProperties(filtered);
+        setCurrentPage(1); // Reset to first page when filters change
         };
         
-        // Only fetch if we have active filters
-        if (hasActiveFilters) {
-            fetchFilteredProperties();
-        }
-        setCurrentPage(1); // Reset to first page when filters change
-    }, [selectedRoomTypes, selectedBeds, selectedBathrooms, selectedGuests, selectedPersons, selectedFacilities, priceRange, searchSession, isInitialLoad, properties, filteredProperties]);
+        // Apply filters locally instead of making API calls
+        applyFiltersLocally();
+        
+    }, [selectedRoomTypes, selectedBedrooms, selectedBathrooms, selectedGuests, priceRange, isInitialLoad, properties]);
 
     const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
     const paginatedProperties = filteredProperties.slice(
@@ -429,12 +627,19 @@ export default function MainPage() {
     // Clear all filters
     const clearAll = () => {
         setSelectedRoomTypes([]);
-        setSelectedBeds([]);
+        setSelectedBedrooms([]);
         setSelectedBathrooms([]);
         setSelectedGuests([]);
-        setSelectedPersons([]);
-        setSelectedFacilities([]);
-        setPriceRange([0, 400]);
+        setPriceRange([0, 10000]);
+        
+        // Refresh pricing when filters are cleared to show all properties with updated pricing
+        if (searchSession?.checkInDate && searchSession?.checkOutDate && properties.length > 0 && !isBulkPricingInProgressRef.current) {
+            console.log('🔄 Refreshing pricing after clearing filters...');
+            setHasPricingLoaded(false);
+            // Reset the last pricing request to allow new pricing fetch
+            lastPricingRequestRef.current = '';
+            fetchBulkPricing(properties, searchSession.checkInDate, searchSession.checkOutDate);
+        }
     };
 
     // Close filter on mobile when clicking outside
@@ -461,12 +666,62 @@ export default function MainPage() {
                 <div className="flex flex-col max-w-6xl mx-auto lg:flex-row justify-between items-center mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
                     <div className="text-sm sm:text-base lg:text-lg font-medium text-gray-800 text-center lg:text-left">
                         <span className="font-semibold">{(currentPage - 1) * PROPERTIES_PER_PAGE + 1}</span> - <span className="font-semibold">{Math.min(currentPage * PROPERTIES_PER_PAGE, filteredProperties.length)}</span> of <span className="font-semibold">{filteredProperties.length}</span> Properties
+                        {filteredProperties.length !== properties.length && (
+                            <span className="ml-2 text-blue-600 text-xs">
+                                (filtered from {properties.length} total)
+                            </span>
+                        )}
+                        {isPricingLoading && (
+                            <span className="ml-2 text-yellow-600 text-xs flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-400 mr-1"></div>
+                                Loading pricing...
+                            </span>
+                        )}
+                        {!isPricingLoading && hasPricingLoaded && (
+                            <span className="ml-2 text-green-600 text-xs flex items-center">
+                                ✅ Pricing loaded
+                            </span>
+                        )}
+                        {!isPricingLoading && !hasPricingLoaded && properties.length > 0 && (
+                            <button 
+                                onClick={() => {
+                                    if (searchSession?.checkInDate && searchSession?.checkOutDate && !isBulkPricingInProgressRef.current) {
+                                        console.log('🔄 Manually refreshing pricing...');
+                                        setHasPricingLoaded(false);
+                                        // Reset the last pricing request to allow new pricing fetch
+                                        lastPricingRequestRef.current = '';
+                                        fetchBulkPricing(properties, searchSession.checkInDate, searchSession.checkOutDate);
+                                    }
+                                }}
+                                className="ml-2 text-blue-600 text-xs hover:text-blue-800 underline cursor-pointer"
+                                disabled={isBulkPricingInProgressRef.current}
+                            >
+                                {isBulkPricingInProgressRef.current ? 'Loading...' : 'Load pricing'}
+                            </button>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-gray-500 text-xs sm:text-sm">Sort By:</span>
                         <button
                             className="ml-2 border border-gray-300 rounded-full px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition flex items-center"
-                            onClick={() => setShowFilters(!showFilters)}
+                            onClick={() => {
+                                                                 // Debug: Show available filter options
+                                 const availableRoomTypes = [...new Set(properties.map(p => p.roomType))];
+                                 const availableBedrooms = [...new Set(properties.map(p => p.beds))];
+                                 const availableBathrooms = [...new Set(properties.map(p => p.bathrooms))];
+                                 const availableGuests = [...new Set(properties.map(p => p.persons))];
+                                 const availablePrices = properties.map(p => p.price).filter(p => p > 0);
+                                 
+                                 console.log('🔍 Available filter options:', {
+                                     roomTypes: availableRoomTypes,
+                                     bedrooms: availableBedrooms,
+                                     bathrooms: availableBathrooms,
+                                     guests: availableGuests,
+                                     priceRange: availablePrices.length > 0 ? `$${Math.min(...availablePrices)} - $${Math.max(...availablePrices)}` : 'No pricing data'
+                                 });
+                                
+                                setShowFilters(!showFilters);
+                            }}
                         >
                             More Filters
                             <svg className="ml-1 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -487,8 +742,33 @@ export default function MainPage() {
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto transform transition-all duration-300 ease-in-out">
                             <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 rounded-t-xl">
                                 <div className="flex justify-between items-center">
+                                    <div>
                                     <div className="font-semibold text-lg">Filter by</div>
+                                        {filteredProperties.length !== properties.length && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                Showing {filteredProperties.length} of {properties.length} properties
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2">
+                                        <button 
+                                            className="text-green-500 text-sm" 
+                                            onClick={() => {
+                                                // Force re-apply filters to debug
+                                                console.log('🧪 Testing filters...');
+                                                // Trigger filter re-application
+                                                const currentFilters = {
+                                                    roomTypes: selectedRoomTypes,
+                                                    bedrooms: selectedBedrooms,
+                                                    bathrooms: selectedBathrooms,
+                                                    guests: selectedGuests,
+                                                    priceRange
+                                                };
+                                                console.log('🧪 Current filters:', currentFilters);
+                                            }}
+                                        >
+                                            Test
+                                        </button>
                                         <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
                                         <button className="text-gray-400 hover:text-gray-600 text-2xl" onClick={() => setShowFilters(false)}>&times;</button>
                                     </div>
@@ -507,60 +787,38 @@ export default function MainPage() {
                                     ))}
                                 </div>
                                 
-                                {/* Beds */}
-                                <div>
-                                    <div className="font-semibold text-sm mb-2">Beds</div>
-                                    {BED_TYPES.map((type) => (
-                                        <div key={type} className="flex items-center mb-1">
-                                            <input type="checkbox" checked={selectedBeds.includes(type)} onChange={handleCheckbox(setSelectedBeds, type)} className="mr-2" />
-                                            <span className="text-sm">{type}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                {/* Bathrooms */}
-                                <div>
-                                    <div className="font-semibold text-sm mb-2">Bathrooms</div>
-                                    {BATHROOMS.map((type) => (
-                                        <div key={type} className="flex items-center mb-1">
-                                            <input type="checkbox" checked={selectedBathrooms.includes(type)} onChange={handleCheckbox(setSelectedBathrooms, type)} className="mr-2" />
-                                            <span className="text-sm">{type}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                {/* Guest */}
-                                <div>
-                                    <div className="font-semibold text-sm mb-2">Guest</div>
-                                    {GUESTS.map((type) => (
-                                        <div key={type} className="flex items-center mb-1">
-                                            <input type="checkbox" checked={selectedGuests.includes(type)} onChange={handleCheckbox(setSelectedGuests, type)} className="mr-2" />
-                                            <span className="text-sm">{type}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                {/* Persons */}
-                                <div>
-                                    <div className="font-semibold text-sm mb-2">Persons</div>
-                                    {PERSONS.map((type) => (
-                                        <div key={type} className="flex items-center mb-1">
-                                            <input type="checkbox" checked={selectedPersons.includes(type)} onChange={handleCheckbox(setSelectedPersons, type)} className="mr-2" />
-                                            <span className="text-sm">{type}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                {/* Facilities */}
-                                <div>
-                                    <div className="font-semibold text-sm mb-2">Facilities</div>
-                                    {FACILITIES.map((type) => (
-                                        <div key={type} className="flex items-center mb-1">
-                                            <input type="checkbox" checked={selectedFacilities.includes(type)} onChange={handleCheckbox(setSelectedFacilities, type)} className="mr-2" />
-                                            <span className="text-sm">{type}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                                                 {/* Bedrooms */}
+                                 <div>
+                                     <div className="font-semibold text-sm mb-2">Bedrooms</div>
+                                     {BEDROOM_RANGES.map((range) => (
+                                         <div key={range} className="flex items-center mb-1">
+                                             <input type="checkbox" checked={selectedBedrooms.includes(range)} onChange={handleCheckbox(setSelectedBedrooms, range)} className="mr-2" />
+                                             <span className="text-sm">{range}</span>
+                                         </div>
+                                     ))}
+                                 </div>
+                                 
+                                 {/* Bathrooms */}
+                                 <div>
+                                     <div className="font-semibold text-sm mb-2">Bathrooms</div>
+                                     {BATHROOM_RANGES.map((range) => (
+                                         <div key={range} className="flex items-center mb-1">
+                                             <input type="checkbox" checked={selectedBathrooms.includes(range)} onChange={handleCheckbox(setSelectedBathrooms, range)} className="mr-2" />
+                                             <span className="text-sm">{range}</span>
+                                         </div>
+                                     ))}
+                                 </div>
+                                 
+                                 {/* Guests */}
+                                 <div>
+                                     <div className="font-semibold text-sm mb-2">Guests</div>
+                                     {GUEST_RANGES.map((range) => (
+                                         <div key={range} className="flex items-center mb-1">
+                                             <input type="checkbox" checked={selectedGuests.includes(range)} onChange={handleCheckbox(setSelectedGuests, range)} className="mr-2" />
+                                             <span className="text-sm">{range}</span>
+                                         </div>
+                                     ))}
+                                 </div>
                                 
                                 {/* Price Range */}
                                 <div>
@@ -586,13 +844,13 @@ export default function MainPage() {
                                             <input
                                                 type="number"
                                                 min={priceRange[0]}
-                                                max={400}
+                                                max={10000}
                                                 value={priceRange[1]}
                                                 onChange={e => {
                                                     const val = Math.max(Number(e.target.value), priceRange[0]);
                                                     setPriceRange([priceRange[0], val]);
                                                 }}
-                                                className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                                                className="w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
                                             />
                                         </div>
                                     </div>
@@ -614,7 +872,7 @@ export default function MainPage() {
                                         <input
                                             type="range"
                                             min={priceRange[0]}
-                                            max={400}
+                                            max={10000}
                                             value={priceRange[1]}
                                             onChange={e => {
                                                 const val = Math.max(Number(e.target.value), priceRange[0]);
@@ -627,7 +885,7 @@ export default function MainPage() {
                                     </div>
                                     <div className="flex justify-between text-xs text-gray-400 mt-1">
                                         <span>$0</span>
-                                        <span>$400</span>
+                                        <span>$10,000</span>
                                     </div>
                                 </div>
                             </div>
@@ -639,8 +897,37 @@ export default function MainPage() {
                 {showFilters && !isLoading && !isInitialLoad && properties.length > 0 && (
                     <div className="hidden lg:block lg:relative lg:w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-6 mr-8 relative z-20">
                         <div className="flex justify-between items-center mb-4">
+                            <div>
                             <div className="font-semibold text-lg">Filter by</div>
+                                {filteredProperties.length !== properties.length && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        Showing {filteredProperties.length} of {properties.length} properties
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex gap-2">
+                                <button 
+                                    className="text-green-500 text-sm" 
+                                    onClick={() => {
+                                        // Force re-apply filters to debug
+                                        console.log('🧪 Testing filters...');
+                                        // Trigger filter re-application
+                                        const currentFilters = {
+                                            roomTypes: selectedRoomTypes,
+                                            bedrooms: selectedBedrooms,
+                                            bathrooms: selectedBathrooms,
+                                            guests: selectedGuests,
+                                            priceRange
+                                        };
+                                        console.log('🧪 Current filters:', currentFilters);
+                                        console.log('🧪 Properties to filter:', properties.length);
+                                        console.log('🧪 Current filtered count:', filteredProperties.length);
+                                    }}
+                                >
+                                    Test
+                                </button>
                             <button className="text-blue-500 text-sm" onClick={clearAll}>Clear all</button>
+                            </div>
                         </div>
                         
                         {/* Room Type */}
@@ -654,60 +941,38 @@ export default function MainPage() {
                             ))}
                         </div>
                         
-                        {/* Beds */}
-                        <div className="mb-4">
-                            <div className="font-semibold text-sm mb-2">Beds</div>
-                            {BED_TYPES.map((type) => (
-                                <div key={type} className="flex items-center mb-1">
-                                    <input type="checkbox" checked={selectedBeds.includes(type)} onChange={handleCheckbox(setSelectedBeds, type)} className="mr-2" />
-                                    <span className="text-sm">{type}</span>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Bathrooms */}
-                        <div className="mb-4">
-                            <div className="font-semibold text-sm mb-2">Bathrooms</div>
-                            {BATHROOMS.map((type) => (
-                                <div key={type} className="flex items-center mb-1">
-                                    <input type="checkbox" checked={selectedBathrooms.includes(type)} onChange={handleCheckbox(setSelectedBathrooms, type)} className="mr-2" />
-                                    <span className="text-sm">{type}</span>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Guest */}
-                        <div className="mb-4">
-                            <div className="font-semibold text-sm mb-2">Guest</div>
-                            {GUESTS.map((type) => (
-                                <div key={type} className="flex items-center mb-1">
-                                    <input type="checkbox" checked={selectedGuests.includes(type)} onChange={handleCheckbox(setSelectedGuests, type)} className="mr-2" />
-                                    <span className="text-sm">{type}</span>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Persons */}
-                        <div className="mb-4">
-                            <div className="font-semibold text-sm mb-2">Persons</div>
-                            {PERSONS.map((type) => (
-                                <div key={type} className="flex items-center mb-1">
-                                    <input type="checkbox" checked={selectedPersons.includes(type)} onChange={handleCheckbox(setSelectedPersons, type)} className="mr-2" />
-                                    <span className="text-sm">{type}</span>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Facilities */}
-                        <div className="mb-4">
-                            <div className="font-semibold text-sm mb-2">Facilities</div>
-                            {FACILITIES.map((type) => (
-                                <div key={type} className="flex items-center mb-1">
-                                    <input type="checkbox" checked={selectedFacilities.includes(type)} onChange={handleCheckbox(setSelectedFacilities, type)} className="mr-2" />
-                                    <span className="text-sm">{type}</span>
-                                </div>
-                            ))}
-                        </div>
+                                                 {/* Bedrooms */}
+                         <div className="mb-4">
+                             <div className="font-semibold text-sm mb-2">Bedrooms</div>
+                             {BEDROOM_RANGES.map((range) => (
+                                 <div key={range} className="flex items-center mb-1">
+                                     <input type="checkbox" checked={selectedBedrooms.includes(range)} onChange={handleCheckbox(setSelectedBedrooms, range)} className="mr-2" />
+                                     <span className="text-sm">{range}</span>
+                                 </div>
+                             ))}
+                         </div>
+                         
+                         {/* Bathrooms */}
+                         <div className="mb-4">
+                             <div className="font-semibold text-sm mb-2">Bathrooms</div>
+                             {BATHROOM_RANGES.map((range) => (
+                                 <div key={range} className="flex items-center mb-1">
+                                     <input type="checkbox" checked={selectedBathrooms.includes(range)} onChange={handleCheckbox(setSelectedBathrooms, range)} className="mr-2" />
+                                     <span className="text-sm">{range}</span>
+                                 </div>
+                             ))}
+                         </div>
+                         
+                         {/* Guests */}
+                         <div className="mb-4">
+                             <div className="font-semibold text-sm mb-2">Guests</div>
+                             {GUEST_RANGES.map((range) => (
+                                 <div key={range} className="flex items-center mb-1">
+                                     <input type="checkbox" checked={selectedGuests.includes(range)} onChange={handleCheckbox(setSelectedGuests, range)} className="mr-2" />
+                                     <span className="text-sm">{range}</span>
+                                 </div>
+                             ))}
+                         </div>
                         
                         {/* Price Range */}
                         <div className="mb-4">
@@ -733,13 +998,13 @@ export default function MainPage() {
                                     <input
                                         type="number"
                                         min={priceRange[0]}
-                                        max={400}
+                                        max={10000}
                                         value={priceRange[1]}
                                         onChange={e => {
                                             const val = Math.max(Number(e.target.value), priceRange[0]);
                                             setPriceRange([priceRange[0], val]);
                                         }}
-                                        className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
+                                        className="w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:ring-2 focus:ring-yellow-400"
                                     />
                                 </div>
                             </div>
@@ -761,7 +1026,7 @@ export default function MainPage() {
                                 <input
                                     type="range"
                                     min={priceRange[0]}
-                                    max={400}
+                                    max={10000}
                                     value={priceRange[1]}
                                     onChange={e => {
                                         const val = Math.max(Number(e.target.value), priceRange[0]);
@@ -774,7 +1039,7 @@ export default function MainPage() {
                             </div>
                             <div className="flex justify-between text-xs text-gray-400 mt-1">
                                 <span>$0</span>
-                                <span>$400</span>
+                                <span>$10,000</span>
                             </div>
                         </div>
                     </div>
@@ -803,7 +1068,23 @@ export default function MainPage() {
                                 <PropertyCard key={property.id} property={property} searchId={searchId} />
                             ))}
                         </div>
-                    ) : null}
+                    ) : (
+                        <div className="w-full text-center py-16">
+                            <div className="mb-4">
+                                <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No properties match your filters</h3>
+                            <p className="text-gray-500">Try adjusting your filter criteria or clear all filters to see all properties.</p>
+                            <button 
+                                onClick={clearAll}
+                                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                Clear All Filters
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

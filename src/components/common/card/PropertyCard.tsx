@@ -7,7 +7,19 @@ import { useRouter } from 'next/navigation'
 import LoadingSpinner from '../LoadingSpinner';
 
 export default function PropertyCard({property, searchId, showPrice = true}: {property: any, searchId?: string | null, showPrice?: boolean}) {
-  console.log(property)
+  console.log('PropertyCard received:', {
+    id: property.id,
+    title: property.title,
+    price: property.price,
+    pricing: property.pricing ? {
+      hasPricing: !!property.pricing.pricing,
+      hasSummary: !!property.pricing.summary,
+      totalAmount: property.pricing.summary?.totalAmount,
+      structure: Object.keys(property.pricing)
+    } : 'No pricing data',
+    pricingLoading: property.pricingLoading,
+    pricingError: property.pricingError
+  });
   const router = useRouter();
 
   // Pricing skeleton component

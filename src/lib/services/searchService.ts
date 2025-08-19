@@ -1,15 +1,12 @@
-import { Property, SearchFilters, PropertyWithPricing } from '@/lib/types/property';
+import { Property, SearchFilters } from '@/lib/types/property';
 import { OwnerRezService } from './ownerRezService';
-import { PricingService } from './pricingService';
 import { getCachedProperties, getPropertiesByIds, ensureThumbnailUrls } from '@/utils/propertyCache';
 
 export class SearchService {
   private ownerRezService: OwnerRezService;
-  private pricingService: PricingService;
 
   constructor() {
     this.ownerRezService = new OwnerRezService();
-    this.pricingService = new PricingService();
   }
 
   /**
@@ -182,21 +179,12 @@ export class SearchService {
       // Step 3: Apply custom filters
       const filteredProperties = this.applyCustomFilters(fullProperties, filters);
 
-      // Step 4: Get pricing for properties if dates are provided
-      let propertiesWithPricing: PropertyWithPricing[] = [];
-      if (filters.availabilityFrom && filters.availabilityTo) {
-        propertiesWithPricing = await this.pricingService.getPropertiesWithPricing(
-          filteredProperties,
-          filters.availabilityFrom,
-          filters.availabilityTo
-        );
-      } else {
-        propertiesWithPricing = filteredProperties.map(prop => ({ ...prop }));
-      }
+      // Step 4: Return properties without pricing (pricing will be fetched separately when needed)
+      const propertiesWithoutPricing = filteredProperties.map(prop => ({ ...prop }));
 
       // Step 5: Apply pagination
       const { properties: paginatedProperties, pagination } = this.applyPagination(
-        propertiesWithPricing,
+        propertiesWithoutPricing,
         filters.page || 1,
         filters.pageSize || 10
       );
