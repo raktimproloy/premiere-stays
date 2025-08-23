@@ -7,7 +7,7 @@ import AboutUs from "@/components/home/AboutUs";
 import FeaturesSection from "@/components/home/FeaturesSection";
 import ServicesSection from "@/components/home/ServicesSection";
 import Properties from "@/components/home/Properties";
-import ReviewsSection from "@/components/home/Reviews";
+import ReviewsWrapper from "@/components/home/ReviewsWrapper";
 import FaqSection from "@/components/home/FaqSection";
 import WorkRating from "@/components/common/WorkRating";
  
@@ -21,7 +21,7 @@ export default function Home() {
       <ServicesSection />
       <WorkRating />
       <Properties />
-      <ReviewsSection />
+      <ReviewsWrapper />
       <FaqSection />
     </DefaultLayout>
   );

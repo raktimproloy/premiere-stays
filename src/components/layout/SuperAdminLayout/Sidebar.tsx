@@ -70,7 +70,7 @@ export default function Sidebar({
   const superadminNavItems: NavItem[] = [
     { title: 'Profile', link: '/superadmin/profile', icon: <ProfileIcon /> },
     { title: 'Settings', link: '/superadmin/settings', icon: <SettingsIcon /> },
-    // { title: 'Help', link: '/superadmin/help', icon: <FiHelpCircle size={22} /> },
+    { title: 'Page Setting', link: '/superadmin/page-setting', icon: <FiHelpCircle size={22} /> },
   ];
 
   return (

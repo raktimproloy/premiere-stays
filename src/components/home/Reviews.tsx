@@ -10,47 +10,22 @@ import 'swiper/css/pagination';
 import Image from 'next/image';
 import { QuoteIcon } from '../../../public/images/svg';
 
-const ReviewsSection = () => {
+// Define the interface for the testimonial data
+interface Testimonial {
+  id: string;
+  rating: number;
+  description: string;
+  profileImage: string;
+  name: string;
+  publishDate: string;
+}
+
+interface ReviewsSectionProps {
+  testimonials: Testimonial[];
+}
+
+const ReviewsSection: React.FC<ReviewsSectionProps> = ({ testimonials }) => {
   const swiperRef = useRef<any>(null);
-  const totalReviews = 66;
-  const ReviewImage1 = '/images/review1.png';
-  const ReviewImage2 = '/images/review2.png';
-
-
-  const reviews = [
-    {
-      id: 1,
-      name: "Annette Black",
-      date: "12 January, 2025",
-      image: ReviewImage1,
-      rating: 4,
-      content: "We had a wonderful experience with Premier Stays Miami. The rooms were spacious and well-equipped, and any requests we had were. It was the perfect home base for our family trip."
-    },
-    {
-      id: 2,
-      name: "Guy Hawkins",
-      date: "12 January, 2025",
-      image: ReviewImage2,
-      rating: 4,
-      content: "Excellent location and fantastic service! The property was exactly as described—clean, quiet, and close to Miami. The team made sure we felt welcome and taken our stay."
-    },
-    {
-      id: 3,
-      name: "Jane Cooper",
-      date: "5 February, 2025",
-      image: ReviewImage1,
-      rating: 5,
-      content: "Absolutely stunning property with breathtaking views. The attention to detail was impressive, and the amenities exceeded our expectations. We'll definitely be returning next year!"
-    },
-    {
-      id: 4,
-      name: "Robert Fox",
-      date: "28 March, 2025",
-      image: ReviewImage2,
-      rating: 4,
-      content: "The booking process was seamless, and the property manager was incredibly responsive. The space was perfect for our group, and the location couldn't be beat. Highly recommend!"
-    }
-  ];
 
   return (
     <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
@@ -112,8 +87,8 @@ const ReviewsSection = () => {
             }}
             className="mySwiper pt-8 pb-8 h-[400px]"
           >
-            {reviews.map((review) => (
-              <SwiperSlide key={review.id}>
+            {testimonials.map((testimonial) => (
+              <SwiperSlide key={testimonial.id}>
                 <div className="bg-white rounded-2xl shadow-md p-8 relative">
                   {/* Star Rating */}
                   <div className="flex mb-6">
@@ -121,7 +96,7 @@ const ReviewsSection = () => {
                       <svg
                         key={i}
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`h-6 w-6 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        className={`h-6 w-6 ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -131,19 +106,24 @@ const ReviewsSection = () => {
                   </div>
                   {/* Review Content */}
                   <blockquote className="text-gray-600 text-lg mb-8 italic">
-                    "{review.content}"
+                    "{testimonial.description}"
                   </blockquote>
                   <div className='flex items-center justify-between'>
                     <div className="flex items-center">
-                      <Image src={review.image} alt={review.name} width={100} height={100} className='rounded-full w-16 h-16 object-cover' />
+                      <Image 
+                        src={testimonial.profileImage} 
+                        alt={testimonial.name} 
+                        width={100} 
+                        height={100} 
+                        className='rounded-full w-16 h-16 object-cover' 
+                      />
                       <div className="ml-4">
-                        <h4 className="font-bold text-gray-900 text-lg">{review.name}</h4>
-                        <p className="text-gray-500">{review.date}</p>
+                        <h4 className="font-bold text-gray-900 text-lg">{testimonial.name}</h4>
+                        <p className="text-gray-500">{testimonial.publishDate}</p>
                       </div>
                     </div>
                     <QuoteIcon/>
                   </div>
-                  {/* Reviewer Info */}
                 </div>
               </SwiperSlide>
             ))}

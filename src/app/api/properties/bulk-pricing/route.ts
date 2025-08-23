@@ -194,8 +194,8 @@ export async function POST(request: NextRequest) {
     let grandTotalAmount = 0;
     let totalAvailableNights = 0;
     let totalBlockedNights = 0;
-    let allStartDates: string[] = [];
-    let allEndDates: string[] = [];
+    const allStartDates: string[] = [];
+    const allEndDates: string[] = [];
 
     successfulResults.forEach(result => {
       if (result.summary) {

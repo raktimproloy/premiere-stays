@@ -4,68 +4,78 @@ import React from 'react'
 import CardOne from '@/components/common/card/CardOne';
 import WorkRating from '@/components/common/WorkRating';
 
+// Define the interface for the service data
+interface Service {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+}
 
-
-export default function page() {
-  const serviceImage1 = '/images/service1.png';
-  const serviceImage2 = '/images/service2.png';
-  const serviceImage3 = '/images/service3.png';
-  const services = [
-    {
-      id: 1,
-      number: '18',
-      title: 'Housekeeping & Turnover Coordination',
-      image: serviceImage3,
-      imageBg: "#A020F0",
-      description: 'We prioritize cleanliness and guest satisfaction with our meticulous housekeeping. Each turnover is managed with a detailed checklist to ensure a hotel-standard experience.',
-      stat: '99%',
-      statLabel: 'Customer Satisfaction'
-    },
-    {
-      id: 2,
-      number: '99%',
-      title: 'Legal & Compliance Assistance',
-      image: serviceImage2,
-      imageBg: "#F86E04",
-      description: 'Navigating local laws and regulations in the short-term rental market can be complex, especially in places like Miami. We stay up-to-date on all relevant legal requirements.',
-      stat: '06Y',
-      statLabel: 'Years Experience'
-    },
-    {
-      id: 3,
-      number: '06Y',
-      title: 'Guest Communication & Booking Management',
-      image: serviceImage1,
-      imageBg: "#38C6F9",
-      description: 'Our team is available to handle all aspects of guest communication, from initial inquiries to post-checkout feedback. We ensure timely, professional responses to all',
-      stat: '35+',
-      statLabel: 'Amazing team members'
-    },
-    {
-      id: 4,
-      number: '99%',
-      title: 'Legal & Compliance Assistance',
-      image: serviceImage2,
-      imageBg: "#F86E04",
-      description: 'Navigating local laws and regulations in the short-term rental market can be complex, especially in places like Miami. We stay up-to-date on all relevant legal requirements.',
-      stat: '06Y',
-      statLabel: 'Years Experience'
-    },
-    {
-      id: 5,
-      number: '06Y',
-      title: 'Guest Communication & Booking Management',
-      image: serviceImage1,
-      imageBg: "#38C6F9",
-      description: 'Our team is available to handle all aspects of guest communication, from initial inquiries to post-checkout feedback. We ensure timely, professional responses to all',
-      stat: '35+',
-      statLabel: 'Amazing team members'
+// Fetch services data server-side
+async function getServicesData(): Promise<Service[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/page-settings/services`, {
+      cache: 'no-store' // Disable caching to always get fresh data
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch services data');
     }
-  ];
-  console.log(services)
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      return result.data.services || [];
+    } else {
+      throw new Error(result.message || 'Failed to fetch services data');
+    }
+  } catch (error) {
+    console.error('Error fetching services data:', error);
+    // Return default services if API fails
+    return [
+      {
+        id: '1',
+        icon: 'fas fa-home',
+        title: 'Housekeeping & Turnover Coordination',
+        description: 'We prioritize cleanliness and guest satisfaction with our meticulous housekeeping. Each turnover is managed with a detailed checklist to ensure a hotel-standard experience.'
+      },
+      {
+        id: '2',
+        icon: 'fas fa-gavel',
+        title: 'Legal & Compliance Assistance',
+        description: 'Navigating local laws and regulations in the short-term rental market can be complex, especially in places like Miami. We stay up-to-date on all relevant legal requirements.'
+      },
+      {
+        id: '3',
+        icon: 'fas fa-comments',
+        title: 'Guest Communication & Booking Management',
+        description: 'Our team is available to handle all aspects of guest communication, from initial inquiries to post-checkout feedback. We ensure timely, professional responses to all.'
+      },
+      {
+        id: '4',
+        icon: 'fas fa-chart-line',
+        title: 'Performance Analytics & Reporting',
+        description: 'Get detailed insights into your property performance with comprehensive analytics and regular reporting to help optimize your rental strategy.'
+      },
+      {
+        id: '5',
+        icon: 'fas fa-tools',
+        title: 'Maintenance & Property Care',
+        description: 'We handle all maintenance requests and ensure your property is always in top condition for guests.'
+      }
+    ];
+  }
+}
+
+export default async function ServicesPage() {
+  // Fetch data server-side
+  const services = await getServicesData();
+  
   return (
     <DefaultLayout>
-        <Breadcrumb bgImage={"/images/service_breadcrumb.jpg"} path={["Home", "Services"]} title="Find Your Perfect Stay - Book with Confidence" description="Explore a wide range of rental properties tailored to your needs. Whether it’s short-term or long-term, we make booking easy, secure, and hassle-free." />
+        <Breadcrumb bgImage={"/images/service_breadcrumb.jpg"} path={["Home", "Services"]} title="Find Your Perfect Stay - Book with Confidence" description="Explore a wide range of rental properties tailored to your needs. Whether it's short-term or long-term, we make booking easy, secure, and hassle-free." />
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
@@ -80,22 +90,23 @@ export default function page() {
               </p>
             </div>
 
-            {/* First row: 3 cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {services.slice(0, 3).map((service, index) => (
-                <CardOne 
-                  key={index}
-                  service={service}
-                />
-              ))}
-            </div>
-            {/* Second row: 2 cards centered using flexbox and width constraint */}
-            <div className="flex flex-col md:flex-row justify-center gap-8 mt-6 md:w-2/3 mx-auto">
-              {services.slice(3).map((service, index) => (
-                <CardOne 
-                  key={index + 3}
-                  service={service}
-                />
+            {/* Services Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {services.map((service, index) => (
+                <div key={service.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  {/* Icon */}
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mb-6">
+                    <i className={`${service.icon} text-2xl text-white`}></i>
+                  </div>
+                  
+                  {/* Content */}
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    {service.title}
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {service.description}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
