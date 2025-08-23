@@ -11,6 +11,7 @@ interface Service {
 export default function Service() {
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
 
     // Load data on component mount
@@ -37,6 +38,7 @@ export default function Service() {
 
     const saveServicesSettings = async () => {
         try {
+            setSaving(true);
             setMessage('');
             
             const response = await fetch('/api/page-settings/services', {
@@ -60,6 +62,8 @@ export default function Service() {
         } catch (error) {
             console.error('Error saving services settings:', error);
             setMessage('Error saving services');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -99,9 +103,17 @@ export default function Service() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={saveServicesSettings}
-                        className="px-4 py-2 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 transition-colors"
+                        disabled={saving}
+                        className="px-4 py-2 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        Save All Services
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            'Save All Services'
+                        )}
                     </button>
                     <button
                         onClick={addService}

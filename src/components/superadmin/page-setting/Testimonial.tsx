@@ -13,6 +13,7 @@ interface Testimonial {
 export default function Testimonial() {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [uploadingImage, setUploadingImage] = useState<string | null>(null);
     const [uploadedImages, setUploadedImages] = useState<Set<string>>(new Set());
@@ -42,6 +43,7 @@ export default function Testimonial() {
 
     const saveTestimonialsSettings = async () => {
         try {
+            setSaving(true);
             setMessage('');
             
             const response = await fetch('/api/page-settings/testimonials', {
@@ -65,6 +67,8 @@ export default function Testimonial() {
         } catch (error) {
             console.error('Error saving testimonials settings:', error);
             setMessage('Error saving testimonials');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -206,9 +210,17 @@ export default function Testimonial() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={saveTestimonialsSettings}
-                        className="px-4 py-2 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 transition-colors"
+                        disabled={saving}
+                        className="px-4 py-2 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        Save All Testimonials
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            'Save All Testimonials'
+                        )}
                     </button>
         <button
             onClick={addTestimonial}
