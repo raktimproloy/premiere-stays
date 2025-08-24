@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     // Check if user is admin or superadmin
     if (authResult.user.role !== 'admin' && authResult.user.role !== 'superadmin') {
       return NextResponse.json(
-        { success: false, message: 'Insufficient permissions. Only admins can view their properties.' },
+        { success: false, message: 'Insufficient permissions. Only admins can view properties.' },
         { status: 403 }
       );
     }
@@ -56,12 +56,20 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Build query to find properties owned by the authenticated admin
-    const query = {
-      'owner.id': authResult.user._id
-    };
+    // Build query based on user role
+    let query = {};
+    
+    if (authResult.user.role === 'superadmin') {
+      // Superadmin can see ALL properties
+      query = {};
+    } else {
+      // Regular admin can only see their own properties
+      query = {
+        'owner.id': authResult.user._id
+      };
+    }
 
-    // Get total count of properties owned by this admin
+    // Get total count of properties based on role
     const totalCount = await db.collection("properties").countDocuments(query);
 
     // Get properties with pagination
@@ -104,7 +112,9 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       totalPages: Math.ceil(totalCount / pageSize),
-      properties: formattedProperties
+      properties: formattedProperties,
+      userRole: authResult.user.role,
+      canManageAllProperties: authResult.user.role === 'superadmin'
     });
 
   } catch (error) {

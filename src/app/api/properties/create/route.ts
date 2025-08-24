@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cloudinary configuration not complete' }, { status: 500 });
     }
 
-    // First, create property in OwnerRez
+    // STEP 1: Create property in OwnerRez first
+    console.log('Step 1: Creating property in OwnerRez...');
     const auth = Buffer.from(`${username}:${password}`).toString('base64');
     const headers = {
       'Authorization': `Basic ${auth}`,
@@ -96,16 +97,16 @@ export async function POST(request: NextRequest) {
     };
 
     const ownerRezPayload = {
-      active: false,
+      active: false, // Start as inactive (draft) - superadmin will approve later
       name: propertyData.name,
       address: {
-        street1: propertyData.address?.street1 || propertyData.propertyLocation,
-        street2: "",
-        city: "",
-        province: "",
-        state: "",
-        postalCode: "",
-        country: "",
+        street1: propertyData.address?.street1 || propertyData.propertyLocation || '',
+        street2: propertyData.address?.street2 || '',
+        city: propertyData.address?.city || '',
+        province: propertyData.address?.state || '',
+        state: propertyData.address?.state || '',
+        postalCode: propertyData.address?.postalCode || '',
+        country: propertyData.address?.country || 'USA',
       },
       calendar_color: "FF0000",
       check_in: "15:00",
@@ -130,6 +131,8 @@ export async function POST(request: NextRequest) {
       user_id: 1,
     };
 
+    console.log('OwnerRez payload:', ownerRezPayload);
+
     const ownerRezRes = await fetch(`${baseUrl}/properties`, {
       method: 'POST',
       headers,
@@ -137,14 +140,34 @@ export async function POST(request: NextRequest) {
     });
 
     const ownerRezData = await ownerRezRes.json();
+    console.log('OwnerRez response:', {
+      status: ownerRezRes.status,
+      data: ownerRezData
+    });
+
     if (!ownerRezRes.ok) {
+      console.error('OwnerRez API error:', ownerRezData);
       return NextResponse.json({ 
+        success: false,
         error: ownerRezData.message || 'Failed to create property in OwnerRez', 
         details: ownerRezData 
       }, { status: ownerRezRes.status });
     }
 
-    // Upload images to Cloudinary
+    // Extract the OwnerRez property ID
+    const ownerRezId = ownerRezData.id;
+    if (!ownerRezId) {
+      console.error('OwnerRez response missing ID:', ownerRezData);
+      return NextResponse.json({ 
+        success: false,
+        error: 'OwnerRez API did not return a property ID' 
+      }, { status: 500 });
+    }
+
+    console.log('Property created in OwnerRez with ID:', ownerRezId);
+
+    // STEP 2: Upload images to Cloudinary
+    console.log('Step 2: Uploading images to Cloudinary...');
     let cloudinaryImages: Array<{
       url: string;
       publicId: string;
@@ -182,12 +205,13 @@ export async function POST(request: NextRequest) {
       console.log('No images to upload');
     }
 
-    // Save property data to MongoDB
+    // STEP 3: Save property data to MongoDB with OwnerRez ID
+    console.log('Step 3: Saving property to local database...');
     const client = await clientPromise;
     const db = client.db("premiere-stays");
     
     const mongoPropertyData = {
-      ownerRezId: ownerRezData.id,
+      ownerRezId: ownerRezId, // Use the ID returned from OwnerRez
       name: propertyData.name,
       description: propertyData.details || propertyData.editorValue || '',
       propertyType: propertyData.propertyType || 'house',
@@ -237,7 +261,7 @@ export async function POST(request: NextRequest) {
         email: authResult.user.email,
         phone: authResult.user.phone || "",
       },
-      status: 'draft',
+      status: 'draft', // Start as draft - superadmin will approve
       isVerified: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -261,19 +285,35 @@ export async function POST(request: NextRequest) {
       insertedId: mongoResult.insertedId
     });
 
+    if (!mongoResult.acknowledged) {
+      console.error('Failed to insert property into MongoDB');
+      return NextResponse.json({ 
+        success: false,
+        error: 'Failed to save property to local database' 
+      }, { status: 500 });
+    }
+
+    console.log('Property creation completed successfully!');
+
     return NextResponse.json({
       success: true,
-      ownerRezProperty: ownerRezData,
+      message: 'Property created successfully in both OwnerRez and local database',
+      ownerRezProperty: {
+        id: ownerRezId,
+        ...ownerRezData
+      },
       mongoProperty: {
         _id: mongoResult.insertedId,
         ...mongoPropertyData
       },
-      images: cloudinaryImages
+      images: cloudinaryImages,
+      nextSteps: 'Property is now in draft status. A superadmin must approve it before it becomes active.'
     });
 
   } catch (error) {
     console.error('Property creation error:', error);
     return NextResponse.json({ 
+      success: false,
       error: 'Failed to create property', 
       details: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
