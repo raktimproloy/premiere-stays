@@ -15,7 +15,7 @@ export interface User {
   isActive: boolean;
   emailVerified: boolean;
   guestId?: number; // Add guest ID from OwnerRez
-  registerType?: 'manual' | 'google' | 'facebook'; // Add register type
+  registerType?: 'manual' | 'google' | 'facebook' | 'apple'; // Add register type
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
@@ -39,7 +39,7 @@ export const authService = {
     password: string;
     profileImage?: string;
     guestId?: number; // Add guest ID parameter
-    registerType?: 'manual' | 'google' | 'facebook'; // Add register type
+    registerType?: 'manual' | 'google' | 'facebook' | 'apple'; // Add register type
   }): Promise<AuthResponse> {
     try {
       const client = await clientPromise;
@@ -71,7 +71,7 @@ export const authService = {
         profileImage: userData.profileImage || "",
         role: "admin" as const,
         isActive: true,
-        emailVerified: (userData.registerType === 'google' || userData.registerType === 'facebook') ? true : false, // Social accounts are verified
+        emailVerified: (userData.registerType === 'google' || userData.registerType === 'facebook' || userData.registerType === 'apple') ? true : false, // Social accounts are verified
         guestId: userData.guestId, // Store the guest ID
         registerType: userData.registerType || 'manual', // Store register type
         createdAt: new Date(),
@@ -133,7 +133,7 @@ export const authService = {
       }
 
       // For social login users, skip password verification
-      if (user.registerType === 'google' || user.registerType === 'facebook') {
+      if (user.registerType === 'google' || user.registerType === 'facebook' || user.registerType === 'apple') {
         console.log(`${user.registerType} user login - skipping password verification`);
       } else {
         // Verify password for manual users

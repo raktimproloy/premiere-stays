@@ -7,33 +7,30 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Get about page settings
-    const aboutSettings = await db.collection("pageSettings").findOne(
-      { type: "about" },
+    // Get home page settings
+    const homeSettings = await db.collection("pageSettings").findOne(
+      { type: "home" },
       { projection: { _id: 0 } }
     );
 
-    if (!aboutSettings) {
+    if (!homeSettings) {
       // Return default structure if no settings exist
       return NextResponse.json({
         success: true,
         data: {
-          title: '',
-          aboutText: '',
-          items: [],
-          mainImage: '',
-          smallImages: ['', '', '']
+          partners: [],
+          features: []
         }
       });
     }
 
     return NextResponse.json({
       success: true,
-      data: aboutSettings.data
+      data: homeSettings.data
     });
 
   } catch (error) {
-    console.error('Get about settings error:', error);
+    console.error('Get home settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }
@@ -70,40 +67,47 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { title, aboutText, items, mainImage, smallImages } = await request.json();
+    const { partners, features } = await request.json();
 
-    if (!title || !aboutText || !Array.isArray(items)) {
+    // Validate data structure
+    if (!Array.isArray(partners) || !Array.isArray(features)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid data format. Title, aboutText, and items are required' },
+        { success: false, message: 'Invalid data format. Partners and features must be arrays' },
         { status: 400 }
       );
     }
 
-    // Validate image fields
-    if (typeof mainImage !== 'string') {
-      return NextResponse.json(
-        { success: false, message: 'Invalid mainImage format' },
-        { status: 400 }
-      );
+    // Validate partners data
+    for (const partner of partners) {
+      if (!partner.id || !partner.name || typeof partner.name !== 'string') {
+        return NextResponse.json(
+          { success: false, message: 'Invalid partner data. Each partner must have an id and name' },
+          { status: 400 }
+        );
+      }
     }
 
-    if (!Array.isArray(smallImages) || smallImages.length !== 3 || !smallImages.every(img => typeof img === 'string')) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid smallImages format. Must be an array of 3 strings' },
-        { status: 400 }
-      );
+    // Validate features data
+    for (const feature of features) {
+      if (!feature.id || !feature.title || !feature.description || 
+          typeof feature.title !== 'string' || typeof feature.description !== 'string') {
+        return NextResponse.json(
+          { success: false, message: 'Invalid feature data. Each feature must have an id, title, and description' },
+          { status: 400 }
+        );
+      }
     }
 
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Upsert about page settings
+    // Upsert home page settings
     await db.collection("pageSettings").updateOne(
-      { type: "about" },
+      { type: "home" },
       { 
         $set: { 
-          type: "about",
-          data: { title, aboutText, items, mainImage, smallImages },
+          type: "home",
+          data: { partners, features },
           updatedAt: new Date(),
           updatedBy: result.user._id
         } 
@@ -113,11 +117,11 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'About page settings updated successfully'
+      message: 'Home page settings updated successfully'
     });
 
   } catch (error) {
-    console.error('Update about settings error:', error);
+    console.error('Update home settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }

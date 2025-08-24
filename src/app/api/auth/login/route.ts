@@ -48,12 +48,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.registerType === 'facebook') {
+        if (user.registerType === 'facebook') {
       return NextResponse.json(
         { 
-          success: false, 
+          success: false,
           message: 'This account was created with Facebook. Please use the "Continue with Facebook" button to login.',
           error: 'FACEBOOK_ACCOUNT'
+        },
+        { status: 401 }
+      );
+    }
+
+    if (user.registerType === 'apple') {
+      return NextResponse.json(
+        { 
+          success: false,
+          message: 'This account was created with Apple. Please use the "Continue with Apple" button to login.',
+          error: 'APPLE_ACCOUNT'
         },
         { status: 401 }
       );

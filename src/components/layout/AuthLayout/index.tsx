@@ -11,6 +11,7 @@ const Logo = "/images/logo.png"
 const SideImage = "/images/signup.png"
 const GoogleIcon = 'images/icons/google.svg'
 const FacebookIcon = 'images/icons/facebook.svg'
+const AppleIcon = 'images/icons/apple.svg'
 
 interface AuthLayoutProps {
     headingName: string;
@@ -25,6 +26,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
   const [loading, setLoading] = useState(false);
   const [processingAuth, setProcessingAuth] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   // Split full name into first and last name
   const splitName = (fullName: string) => {
@@ -38,19 +40,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
     }
   };
 
-  // Handle authentication when session changes
-  useEffect(() => {
-    if (session?.user && !processingAuth && session.user.email) {
-      // Check if this is a Google or Facebook session
-      const provider = (session as any)?.provider || 'google'; // Default to google for backward compatibility
-      
-      if (provider === 'facebook') {
-        handleFacebookAuthentication();
-      } else {
-        handleGoogleAuthentication();
-      }
-    }
-  }, [session, status, processingAuth, loginWithGoogle]);
+
 
   const handleGoogleAuthentication = async () => {
     if (processingAuth) return;
@@ -143,7 +133,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
     }
   };
 
-  const handleFacebookAuthentication = async () => {
+    const handleFacebookAuthentication = async () => {
     if (processingAuth) return;
     
     try {
@@ -215,24 +205,115 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
                 // Clear NextAuth session to prevent conflicts
                 if (result) {
                   await signOut({ redirect: false });
-                }
               }
-            } else {
-              console.error('Failed to login existing Facebook user:', facebookLoginResult.message);
             }
-          } catch (error) {
-            console.error('Error in Facebook login flow:', error);
+          } else {
+            console.error('Failed to login existing Facebook user:', facebookLoginResult.message);
           }
-        } else {
-          console.error('Facebook signup failed:', signupResult.message);
+        } catch (error) {
+          console.error('Error in Facebook login flow:', error);
         }
+      } else {
+        console.error('Facebook signup failed:', signupResult.message);
       }
-    } catch (error) {
-      console.error('Error during Facebook authentication:', error);
-    } finally {
-      setProcessingAuth(false);
     }
-  };
+  } catch (error) {
+    console.error('Error during Facebook authentication:', error);
+  } finally {
+    setProcessingAuth(false);
+  }
+};
+
+  const handleAppleAuthentication = async () => {
+    if (processingAuth) return;
+    
+    try {
+      setProcessingAuth(true);
+
+      // Split the name into first and last name
+      const fullName = session?.user?.name || 'Apple User';
+      const { firstName, lastName } = splitName(fullName);
+      
+      // Use the existing signup API with Apple data
+      const signupData = {
+        fullName: fullName,
+        email: session?.user?.email || '',
+        phone: '555-000-0000', // Valid phone format for Apple users
+        dob: '1990-01-01', // Valid date format for Apple users
+        password: '', // No password for Apple users
+        profileImage: session?.user?.image || '',
+        registerType: 'apple' // Add register type
+      };
+
+      
+      const signupResponse = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData)
+      });
+
+      const signupResult = await signupResponse.json();
+
+      if (signupResult.success) {
+        
+        // Update auth context
+        if (loginWithGoogle) {
+          const result = await loginWithGoogle(signupResult.user, signupResult.token);
+          
+          // Clear NextAuth session to prevent conflicts
+          if (result) {
+            await signOut({ redirect: false });
+          }
+        }
+      } else {
+        // If signup fails because user already exists, we need to handle this differently
+        if (signupResult.message?.includes('already exists') || signupResult.message?.includes('duplicate')) {
+          
+          try {
+            // Call a special endpoint to get Apple user data and create token
+            const appleLoginResponse = await fetch('/api/auth/apple-login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: session?.user?.email,
+                name: session?.user?.name,
+                image: session?.user?.image
+              })
+            });
+
+            const appleLoginResult = await appleLoginResponse.json();
+            
+            if (appleLoginResult.success) {
+              
+              // Update auth context
+              if (loginWithGoogle) {
+                const result = await loginWithGoogle(appleLoginResult.user, appleLoginResult.token);
+                
+                // Clear NextAuth session to prevent conflicts
+                if (result) {
+                  await signOut({ redirect: false });
+              }
+            }
+          } else {
+            console.error('Failed to login existing Apple user:', appleLoginResult.message);
+          }
+        } catch (error) {
+          console.error('Error in Apple login flow:', error);
+        }
+      } else {
+        console.error('Apple signup failed:', signupResult.message);
+      }
+    }
+  } catch (error) {
+    console.error('Error during Apple authentication:', error);
+  } finally {
+    setProcessingAuth(false);
+  }
+};
 
   const handleGoogleLogin = async () => {
     try {
@@ -272,6 +353,41 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
     }
   };
 
+  const handleAppleLogin = async () => {
+    try {
+      setAppleLoading(true);
+      console.log('Starting Apple login...');
+      const result = await signIn('apple');
+      if (result?.ok) {
+        console.log('Apple login successful!');
+        console.log('User data:', session?.user);
+        
+      } else {
+        console.error('Apple login failed:', result?.error);
+      }
+    } catch (error) {
+      console.error('Apple login error:', error);
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+  // Handle authentication when session changes
+  useEffect(() => {
+    if (session?.user && !processingAuth && session.user.email) {
+      // Check if this is a Google, Facebook, or Apple session
+      const provider = (session as any)?.provider || 'google'; // Default to google for backward compatibility
+      
+      if (provider === 'facebook') {
+        handleFacebookAuthentication();
+      } else if (provider === 'apple') {
+        handleAppleAuthentication();
+      } else {
+        handleGoogleAuthentication();
+      }
+    }
+  }, [session, status, processingAuth, loginWithGoogle, handleFacebookAuthentication, handleAppleAuthentication]);
+
   return (
     <div className="min-h-screen ">
     {/* Left Section - Hidden on mobile, visible on desktop */}
@@ -310,7 +426,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
           
           {/* Social Sign Up */}
           <div className="mt-2 flex justify-center gap-3">
-            <button
+            {/* <button
               type="button"
               className="inline-flex py-2 text-sm font-medium"
             >
@@ -328,7 +444,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
             </defs>
             </svg>
 
-            </button>
+            </button> */}
             
             <button
               type="button"
@@ -365,6 +481,25 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
                 </div>
               ) : (
                 <Image src={FacebookIcon} alt='facebook' width={56} height={56} />
+              )}
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleAppleLogin}
+              disabled={appleLoading || processingAuth}
+              className={`inline-flex py-2 text-sm font-medium transition ${(appleLoading || processingAuth) ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
+            >
+              {appleLoading ? (
+                <div className="flex items-center justify-center w-14 h-14">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                </div>
+              ) : processingAuth ? (
+                <div className="flex items-center justify-center w-14 h-14">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                </div>
+              ) : (
+                <Image src={AppleIcon} alt='apple' width={56} height={56} />
               )}
             </button>
           </div>

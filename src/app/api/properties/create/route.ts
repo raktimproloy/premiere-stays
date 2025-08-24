@@ -2,9 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cloudinaryService } from '@/lib/cloudinaryService';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { authService } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get token from cookie and verify authentication
+    const token = request.cookies.get('authToken')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the token and get user information
+    const authResult = await authService.verifyToken(token);
+    if (!authResult.valid || !authResult.user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is admin or superadmin
+    if (authResult.user.role !== 'admin' && authResult.user.role !== 'superadmin') {
+      return NextResponse.json(
+        { success: false, message: 'Insufficient permissions. Only admins can create properties.' },
+        { status: 403 }
+      );
+    }
+
+    console.log('Property creation initiated by user:', {
+      userId: authResult.user._id,
+      userEmail: authResult.user.email,
+      userName: authResult.user.fullName,
+      userRole: authResult.user.role
+    });
+
     const formData = await request.formData();
     
     console.log('FormData received:', {
@@ -197,10 +232,10 @@ export async function POST(request: NextRequest) {
         smokingPolicy: "No smoking",
       },
       owner: {
-        id: "1", // This should come from the authenticated user
-        name: "Property Owner",
-        email: "owner@example.com",
-        phone: "",
+        id: authResult.user._id,
+        name: authResult.user.fullName,
+        email: authResult.user.email,
+        phone: authResult.user.phone || "",
       },
       status: 'draft',
       isVerified: false,
@@ -212,6 +247,9 @@ export async function POST(request: NextRequest) {
     console.log('MongoDB property data to save:', {
       ownerRezId: mongoPropertyData.ownerRezId,
       name: mongoPropertyData.name,
+      ownerId: mongoPropertyData.owner.id,
+      ownerName: mongoPropertyData.owner.name,
+      ownerEmail: mongoPropertyData.owner.email,
       imageCount: mongoPropertyData.images.length,
       firstImageUrl: mongoPropertyData.images[0]?.url
     });

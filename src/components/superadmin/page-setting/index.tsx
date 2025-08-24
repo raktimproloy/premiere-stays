@@ -4,19 +4,11 @@ import { Plus, Star, Edit2, Trash2 } from 'lucide-react';
 import Service from './Service';
 import About from './About';
 import Testimonial from './Testimonial';
-
-
-
+import Home from './Home';
+import FAQ from './FAQ';
 
 const PageSetting: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('about');
-
-
-
-
-
-
-
+  const [activeTab, setActiveTab] = useState('home');
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -32,9 +24,11 @@ const PageSetting: React.FC = () => {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               {[
+                { id: 'home', label: 'Home' },
                 { id: 'about', label: 'About' },
                 { id: 'services', label: 'Services' },
-                { id: 'testimonials', label: 'Testimonials' }
+                { id: 'testimonials', label: 'Testimonials' },
+                { id: 'faqs', label: 'FAQs' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -54,6 +48,11 @@ const PageSetting: React.FC = () => {
 
         {/* Tab Content */}
         <div className="bg-white rounded-lg shadow-sm p-6">
+          {/* Home Tab */}
+          {activeTab === 'home' && (
+            <Home />
+          )}
+
           {/* About Tab */}
           {activeTab === 'about' && (
             <About />
@@ -67,6 +66,11 @@ const PageSetting: React.FC = () => {
           {/* Testimonials Tab */}
           {activeTab === 'testimonials' && (
             <Testimonial/>
+          )}
+
+          {/* FAQs Tab */}
+          {activeTab === 'faqs' && (
+            <FAQ/>
           )}
         </div>
       </div>

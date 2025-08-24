@@ -1,52 +1,187 @@
-import React from "react";
+'use client';
+
+import React, { useState, useEffect } from "react";
 import { FeatureIcon1, FeatureIcon2, FeatureIcon3, FeatureIcon4, FeatureIcon5 } from "../../../public/images/svg";
 import Image from "next/image";
 
-const features = [
-  {
-    icon: (
-      <span className="bg-[#586DF7] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-        {/* Home icon */}
-        <FeatureIcon1 />
-      </span>
-    ),
-    title: "Direct Booking with No Service Fees",
-    desc: "Encourages guests to book directly through the website and avoid third-party platform fees",
-  },
-  {
-    icon: (
-      <span className="bg-[#F86E04]  w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-        {/* Star icon */}
-        <FeatureIcon2 />
-      </span>
-    ),
-    title: "Luxury, Fully-Furnished Vacation Rentals",
-    desc: "Encourages guests to book directly through the website and avoid third-party platform fees",
-  },
-  {
-    icon: (
-      <span className="bg-[#38C6F9] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-        {/* Lock icon */}
-        <FeatureIcon3 />
-      </span>
-    ),
-    title: "Self Check-In with Smart Lock Technology",
-    desc: "Easy, contactless access to all properties through keyless entry, ensuring convenience and security.",
-  },
-  {
-    icon: (
-      <span className="bg-[#A020F0] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-        {/* Lightning bolt icon */}
-        <FeatureIcon4 />
-      </span>
-    ),
-    title: "Transparent Pricing & Instant Booking",
-    desc: "Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.",
-  },
-];
+// Define the interface for features data
+interface Feature {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+}
 
 export default function FeaturesSection() {
-    const FeatureImage = "/images/feature_section.png"
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch features data on component mount
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      try {
+        const response = await fetch('/api/page-settings/home');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data.features) {
+            setFeatures(result.data.features);
+          } else {
+            // Use default features if API doesn't return data
+            setFeatures([
+              {
+                id: '1',
+                icon: 'home',
+                title: 'Direct Booking with No Service Fees',
+                description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
+              },
+              {
+                id: '2',
+                icon: 'star',
+                title: 'Luxury, Fully-Furnished Vacation Rentals',
+                description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
+              },
+              {
+                id: '3',
+                icon: 'lock',
+                title: 'Self Check-In with Smart Lock Technology',
+                description: 'Easy, contactless access to all properties through keyless entry, ensuring convenience and security.',
+              },
+              {
+                id: '4',
+                icon: 'lightning',
+                title: 'Transparent Pricing & Instant Booking',
+                description: 'Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.',
+              },
+            ]);
+          }
+        } else {
+          // Use default features if API fails
+          setFeatures([
+            {
+              id: '1',
+              icon: 'home',
+              title: 'Direct Booking with No Service Fees',
+              description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
+            },
+            {
+              id: '2',
+              icon: 'star',
+              title: 'Luxury, Fully-Furnished Vacation Rentals',
+              description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
+            },
+            {
+              id: '3',
+              icon: 'lock',
+              title: 'Self Check-In with Smart Lock Technology',
+              description: 'Easy, contactless access to all properties through keyless entry, ensuring convenience and security.',
+            },
+            {
+              id: '4',
+              icon: 'lightning',
+              title: 'Transparent Pricing & Instant Booking',
+              description: 'Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.',
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching features:', error);
+        // Use default features if fetch fails
+        setFeatures([
+          {
+            id: '1',
+            icon: 'home',
+            title: 'Direct Booking with No Service Fees',
+            description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
+          },
+          {
+            id: '2',
+            icon: 'star',
+            title: 'Luxury, Fully-Furnished Vacation Rentals',
+            description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
+          },
+          {
+            id: '3',
+            icon: 'lock',
+            title: 'Self Check-In with Smart Lock Technology',
+            description: 'Easy, contactless access to all properties through keyless entry, ensuring convenience and security.',
+          },
+          {
+            id: '4',
+            icon: 'lightning',
+            title: 'Transparent Pricing & Instant Booking',
+            description: 'Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.',
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatures();
+  }, []);
+
+  // Helper function to get icon component based on icon string
+  function getIconComponent(icon: string) {
+    const iconMap: { [key: string]: React.ReactNode } = {
+      'home': (
+        <span className="bg-[#586DF7] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
+          <FeatureIcon1 />
+        </span>
+      ),
+      'star': (
+        <span className="bg-[#F86E04] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
+          <FeatureIcon2 />
+        </span>
+      ),
+      'lock': (
+        <span className="bg-[#38C6F9] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
+          <FeatureIcon3 />
+        </span>
+      ),
+      'lightning': (
+        <span className="bg-[#A020F0] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
+          <FeatureIcon4 />
+        </span>
+      ),
+      'default': (
+        <span className="bg-[#586DF7] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
+          <FeatureIcon1 />
+        </span>
+      ),
+    };
+
+    return iconMap[icon] || iconMap['default'];
+  }
+
+  const FeatureImage = "/images/feature_section.png";
+
+  if (loading) {
+    return (
+      <section className="bg-[#fafafd] py-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <div className="text-[#9B5CFF] font-medium mb-2">Our Feature</div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-2">Our Featured Properties</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="md:col-span-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-2 border border-gray-100 animate-pulse">
+                  <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+                  <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-300 rounded w-full"></div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden lg:flex md:col-span-1 justify-center items-center relative h-full">
+              <div className="w-96 h-96 bg-gray-300 rounded-lg animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="bg-[#fafafd] py-16">
       <div className="max-w-6xl mx-auto px-4">
@@ -57,17 +192,17 @@ export default function FeaturesSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Feature cards */}
           <div className="md:col-span-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {features.map((f, i) => (
+            {features.map((feature) => (
               <div
-                key={i}
+                key={feature.id}
                 className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-2 border border-gray-100"
               >
-                {f.icon}
+                {getIconComponent(feature.icon)}
                 <div className="font-semibold text-gray-900 mt-2 mb-1 leading-tight">
-                  {f.title}
+                  {feature.title}
                 </div>
                 <div className="text-gray-500 text-sm leading-snug">
-                  {f.desc}
+                  {feature.description}
                 </div>
               </div>
             ))}

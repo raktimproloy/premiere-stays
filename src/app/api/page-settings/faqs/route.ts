@@ -7,33 +7,29 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Get about page settings
-    const aboutSettings = await db.collection("pageSettings").findOne(
-      { type: "about" },
+    // Get FAQs page settings
+    const faqsSettings = await db.collection("pageSettings").findOne(
+      { type: "faqs" },
       { projection: { _id: 0 } }
     );
 
-    if (!aboutSettings) {
+    if (!faqsSettings) {
       // Return default structure if no settings exist
       return NextResponse.json({
         success: true,
         data: {
-          title: '',
-          aboutText: '',
-          items: [],
-          mainImage: '',
-          smallImages: ['', '', '']
+          faqs: []
         }
       });
     }
 
     return NextResponse.json({
       success: true,
-      data: aboutSettings.data
+      data: faqsSettings.data
     });
 
   } catch (error) {
-    console.error('Get about settings error:', error);
+    console.error('Get FAQs settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }
@@ -70,40 +66,42 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { title, aboutText, items, mainImage, smallImages } = await request.json();
+    const { faqs } = await request.json();
 
-    if (!title || !aboutText || !Array.isArray(items)) {
+    if (!Array.isArray(faqs)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid data format. Title, aboutText, and items are required' },
+        { success: false, message: 'Invalid data format. FAQs must be an array' },
         { status: 400 }
       );
     }
 
-    // Validate image fields
-    if (typeof mainImage !== 'string') {
-      return NextResponse.json(
-        { success: false, message: 'Invalid mainImage format' },
-        { status: 400 }
-      );
-    }
+    // Validate each FAQ
+    for (const faq of faqs) {
+      if (!faq.id || !faq.question || !faq.answer || !faq.category) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid FAQ data. Each FAQ must have id, question, answer, and category' },
+          { status: 400 }
+        );
+      }
 
-    if (!Array.isArray(smallImages) || smallImages.length !== 3 || !smallImages.every(img => typeof img === 'string')) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid smallImages format. Must be an array of 3 strings' },
-        { status: 400 }
-      );
+      if (!['property', 'booking'].includes(faq.category)) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid category. Must be either "property" or "booking"' },
+          { status: 400 }
+        );
+      }
     }
 
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Upsert about page settings
+    // Upsert FAQs page settings
     await db.collection("pageSettings").updateOne(
-      { type: "about" },
+      { type: "faqs" },
       { 
         $set: { 
-          type: "about",
-          data: { title, aboutText, items, mainImage, smallImages },
+          type: "faqs",
+          data: { faqs },
           updatedAt: new Date(),
           updatedBy: result.user._id
         } 
@@ -113,11 +111,11 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'About page settings updated successfully'
+      message: 'FAQs page settings updated successfully'
     });
 
   } catch (error) {
-    console.error('Update about settings error:', error);
+    console.error('Update FAQs settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }

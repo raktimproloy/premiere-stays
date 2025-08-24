@@ -61,17 +61,21 @@ const PropertyRequestList = ({role}: {role: string}) => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`/api/properties?page=${currentPage}&pageSize=${itemsPerPage}`)
+    fetch(`/api/properties/admin?page=${currentPage}&pageSize=${itemsPerPage}`)
       .then(async (res) => {
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Failed to fetch properties');
+          throw new Error(data.error || data.message || 'Failed to fetch properties');
         }
         return res.json();
       })
       .then((data) => {
-        setProperties(data.properties || []);
-        setTotal(data.total || 0);
+        if (data.success) {
+          setProperties(data.properties || []);
+          setTotal(data.total || 0);
+        } else {
+          setError(data.message || 'Failed to fetch properties');
+        }
       })
       .catch((err) => {
         setError(err.message);
@@ -190,7 +194,8 @@ const PropertyRequestList = ({role}: {role: string}) => {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Property Requests</h1>
+            <h1 className="text-2xl font-bold text-gray-900">My Properties</h1>
+            <p className="text-sm text-gray-600 mt-1">View and manage your property listings</p>
           </div>
           
           {/* Search Bar */}
@@ -241,7 +246,7 @@ const PropertyRequestList = ({role}: {role: string}) => {
                     ? 'bg-[#F7B730] text-white ' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}>
-                Pending Request
+                Draft Properties
                 </span>
             </label>
             </div>
