@@ -162,7 +162,7 @@ export default function SuperAdminUsersPage() {
                         onChange={(e) => updateUserRole(user._id, e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1 text-sm"
                       >
-                        <option value="user">User</option>
+                        {/* <option value="user">User</option> */}
                         <option value="admin">Admin</option>
                         <option value="superadmin">Super Admin</option>
                       </select>

@@ -24,6 +24,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [processingAuth, setProcessingAuth] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
 
   // Split full name into first and last name
   const splitName = (fullName: string) => {
@@ -40,8 +41,14 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
   // Handle authentication when session changes
   useEffect(() => {
     if (session?.user && !processingAuth && session.user.email) {
+      // Check if this is a Google or Facebook session
+      const provider = (session as any)?.provider || 'google'; // Default to google for backward compatibility
       
-      handleGoogleAuthentication();
+      if (provider === 'facebook') {
+        handleFacebookAuthentication();
+      } else {
+        handleGoogleAuthentication();
+      }
     }
   }, [session, status, processingAuth, loginWithGoogle]);
 
@@ -136,6 +143,97 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
     }
   };
 
+  const handleFacebookAuthentication = async () => {
+    if (processingAuth) return;
+    
+    try {
+      setProcessingAuth(true);
+
+      // Split the name into first and last name
+      const fullName = session?.user?.name || 'Facebook User';
+      const { firstName, lastName } = splitName(fullName);
+      
+      // Use the existing signup API with Facebook data
+      const signupData = {
+        fullName: fullName,
+        email: session?.user?.email || '',
+        phone: '555-000-0000', // Valid phone format for Facebook users
+        dob: '1990-01-01', // Valid date format for Facebook users
+        password: '', // No password for Facebook users
+        profileImage: session?.user?.image || '',
+        registerType: 'facebook' // Add register type
+      };
+
+      
+      const signupResponse = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData)
+      });
+
+      const signupResult = await signupResponse.json();
+
+      if (signupResult.success) {
+        
+        // Update auth context
+        if (loginWithGoogle) {
+          const result = await loginWithGoogle(signupResult.user, signupResult.token);
+          
+          // Clear NextAuth session to prevent conflicts
+          if (result) {
+            await signOut({ redirect: false });
+          }
+        }
+      } else {
+        // If signup fails because user already exists, we need to handle this differently
+        if (signupResult.message?.includes('already exists') || signupResult.message?.includes('duplicate')) {
+          
+          try {
+            // Call a special endpoint to get Facebook user data and create token
+            const facebookLoginResponse = await fetch('/api/auth/facebook-login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: session?.user?.email,
+                name: session?.user?.name,
+                image: session?.user?.image
+              })
+            });
+
+            const facebookLoginResult = await facebookLoginResponse.json();
+            
+            if (facebookLoginResult.success) {
+              
+              // Update auth context
+              if (loginWithGoogle) {
+                const result = await loginWithGoogle(facebookLoginResult.user, facebookLoginResult.token);
+                
+                // Clear NextAuth session to prevent conflicts
+                if (result) {
+                  await signOut({ redirect: false });
+                }
+              }
+            } else {
+              console.error('Failed to login existing Facebook user:', facebookLoginResult.message);
+            }
+          } catch (error) {
+            console.error('Error in Facebook login flow:', error);
+          }
+        } else {
+          console.error('Facebook signup failed:', signupResult.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error during Facebook authentication:', error);
+    } finally {
+      setProcessingAuth(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
@@ -152,6 +250,25 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
       console.error('Google login error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    try {
+      setFacebookLoading(true);
+      console.log('Starting Facebook login...');
+      const result = await signIn('facebook');
+      if (result?.ok) {
+        console.log('Facebook login successful!');
+        console.log('User data:', session?.user);
+        
+      } else {
+        console.error('Facebook login failed:', result?.error);
+      }
+    } catch (error) {
+      console.error('Facebook login error:', error);
+    } finally {
+      setFacebookLoading(false);
     }
   };
 
@@ -234,9 +351,21 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ headingName, title, description
             
             <button
               type="button"
-              className="inline-flex  py-2 text-sm font-medium"
+              onClick={handleFacebookLogin}
+              disabled={facebookLoading || processingAuth}
+              className={`inline-flex py-2 text-sm font-medium transition ${(facebookLoading || processingAuth) ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
             >
-              <Image src={FacebookIcon} alt='facebook' width={56} height={56} />
+              {facebookLoading ? (
+                <div className="flex items-center justify-center w-14 h-14">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+              ) : processingAuth ? (
+                <div className="flex items-center justify-center w-14 h-14">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                </div>
+              ) : (
+                <Image src={FacebookIcon} alt='facebook' width={56} height={56} />
+              )}
             </button>
           </div>
           

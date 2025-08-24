@@ -36,13 +36,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check register type and show appropriate error for Google users
+    // Check register type and show appropriate error for social login users
     if (user.registerType === 'google') {
       return NextResponse.json(
         { 
           success: false, 
           message: 'This account was created with Google. Please use the "Continue with Google" button to login.',
           error: 'GOOGLE_ACCOUNT'
+        },
+        { status: 401 }
+      );
+    }
+
+    if (user.registerType === 'facebook') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'This account was created with Facebook. Please use the "Continue with Facebook" button to login.',
+          error: 'FACEBOOK_ACCOUNT'
         },
         { status: 401 }
       );

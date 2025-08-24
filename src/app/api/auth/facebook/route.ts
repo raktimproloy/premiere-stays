@@ -1,32 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth';
 import { generateToken } from '@/lib/jwt';
 import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 
+// Function to create guest in OwnerRez (same as Google)
 async function createGuestInOwnerRez(fullName: string, email: string, phone?: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/guests`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_OWNERREZ_API_V1}/guests`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OWNERREZ_ACCESS_TOKEN}`,
       },
       body: JSON.stringify({
-        fullName,
-        email,
-        phone: phone || 'N/A' // Use N/A if no phone provided from Google
-      })
+        firstName: fullName.split(' ')[0] || fullName,
+        lastName: fullName.split(' ').slice(1).join(' ') || '',
+        email: email,
+        phone: phone || 'N/A',
+        address: {
+          country: 'US',
+          state: 'FL',
+          city: 'Miami'
+        }
+      }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Guest creation failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`OwnerRez API error: ${response.status}`);
     }
 
-    const result = await response.json();
-    return result.guest;
+    const guestData = await response.json();
+    return guestData;
   } catch (error) {
-    console.error('Guest creation error:', error);
+    console.error('Error creating guest in OwnerRez:', error);
     throw error;
   }
 }
@@ -52,7 +57,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-
       // Update last login
       await db.collection("users").updateOne(
         { _id: existingUser._id },
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
 
       const response = NextResponse.json({
         success: true,
-        message: 'Google login successful',
+        message: 'Facebook login successful',
         user: existingUser,
         token
       }, { status: 200 });
@@ -84,7 +88,6 @@ export async function POST(request: NextRequest) {
 
       return response;
     } else {
-
       // First, create guest in OwnerRez
       let guestData;
       try {
@@ -101,14 +104,15 @@ export async function POST(request: NextRequest) {
       const newUser = {
         fullName: name,
         email: email.toLowerCase(),
-        phone: 'N/A', // Google doesn't provide phone
-        dob: 'N/A', // Google doesn't provide DOB
-        password: '', // No password for Google users
+        phone: 'N/A', // Facebook doesn't provide phone
+        dob: 'N/A', // Facebook doesn't provide DOB
+        password: '', // No password for Facebook users
         profileImage: image || "",
         role: "admin" as const,
         isActive: true,
-        emailVerified: true, // Google accounts are verified
+        emailVerified: true, // Facebook accounts are verified
         guestId: guestData.id, // Store the guest ID
+        registerType: 'facebook', // Mark as Facebook user
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLogin: new Date(),
@@ -126,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       const response = NextResponse.json({
         success: true,
-        message: 'Google signup successful',
+        message: 'Facebook signup successful',
         user: { ...newUser, _id: userId },
         token
       }, { status: 201 });
@@ -143,10 +147,10 @@ export async function POST(request: NextRequest) {
       return response;
     }
   } catch (error) {
-    console.error('Google auth API error:', error);
+    console.error('Facebook auth API error:', error);
     return NextResponse.json(
-      { success: false, message: 'Internal server error' },
+      { success: false, message: 'Facebook authentication failed' },
       { status: 500 }
     );
   }
-} 
+}

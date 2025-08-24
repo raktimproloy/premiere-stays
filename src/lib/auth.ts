@@ -15,7 +15,7 @@ export interface User {
   isActive: boolean;
   emailVerified: boolean;
   guestId?: number; // Add guest ID from OwnerRez
-  registerType?: 'manual' | 'google'; // Add register type
+  registerType?: 'manual' | 'google' | 'facebook'; // Add register type
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
@@ -39,7 +39,7 @@ export const authService = {
     password: string;
     profileImage?: string;
     guestId?: number; // Add guest ID parameter
-    registerType?: 'manual' | 'google'; // Add register type
+    registerType?: 'manual' | 'google' | 'facebook'; // Add register type
   }): Promise<AuthResponse> {
     try {
       const client = await clientPromise;
@@ -69,9 +69,9 @@ export const authService = {
         dob: userData.dob,
         password: hashedPassword,
         profileImage: userData.profileImage || "",
-        role: "user" as const,
+        role: "admin" as const,
         isActive: true,
-        emailVerified: userData.registerType === 'google' ? true : false, // Google accounts are verified
+        emailVerified: (userData.registerType === 'google' || userData.registerType === 'facebook') ? true : false, // Social accounts are verified
         guestId: userData.guestId, // Store the guest ID
         registerType: userData.registerType || 'manual', // Store register type
         createdAt: new Date(),
@@ -132,11 +132,11 @@ export const authService = {
         };
       }
 
-      // For Google users, skip password verification
-      if (user.registerType === 'google') {
-        console.log('Google user login - skipping password verification');
+      // For social login users, skip password verification
+      if (user.registerType === 'google' || user.registerType === 'facebook') {
+        console.log(`${user.registerType} user login - skipping password verification`);
       } else {
-        // Verify password for non-Google users
+        // Verify password for manual users
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
           return {
