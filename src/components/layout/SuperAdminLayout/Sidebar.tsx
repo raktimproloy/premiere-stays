@@ -63,7 +63,7 @@ export default function Sidebar({
     { title: 'Payment History', link: '/superadmin/payment-history', icon: <PaymentHistoryIcon /> },
     { title: 'Calendar', link: '/superadmin/calendar', icon: <CalendarIcon /> },
     { title: 'Reviews', link: '/superadmin/reviews', icon: <ReviewsIcon /> },
-    // { title: 'Users', link: '/superadmin/users', icon: <ProfileIcon /> },
+    { title: 'Users', link: '/superadmin/users', icon: <ProfileIcon /> },
   ];
 
   // Superadmin navigation items
