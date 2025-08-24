@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { FeatureIcon1, FeatureIcon2, FeatureIcon3, FeatureIcon4, FeatureIcon5 } from "../../../public/images/svg";
 import Image from "next/image";
 
 // Define the interface for features data
@@ -30,25 +29,25 @@ export default function FeaturesSection() {
             setFeatures([
               {
                 id: '1',
-                icon: 'home',
+                icon: 'fas fa-home',
                 title: 'Direct Booking with No Service Fees',
                 description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
               },
               {
                 id: '2',
-                icon: 'star',
+                icon: 'fas fa-star',
                 title: 'Luxury, Fully-Furnished Vacation Rentals',
                 description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
               },
               {
                 id: '3',
-                icon: 'lock',
+                icon: 'fas fa-lock',
                 title: 'Self Check-In with Smart Lock Technology',
                 description: 'Easy, contactless access to all properties through keyless entry, ensuring convenience and security.',
               },
               {
                 id: '4',
-                icon: 'lightning',
+                icon: 'fas fa-bolt',
                 title: 'Transparent Pricing & Instant Booking',
                 description: 'Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.',
               },
@@ -59,25 +58,25 @@ export default function FeaturesSection() {
           setFeatures([
             {
               id: '1',
-              icon: 'home',
+              icon: 'fas fa-home',
               title: 'Direct Booking with No Service Fees',
               description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
             },
             {
               id: '2',
-              icon: 'star',
+              icon: 'fas fa-star',
               title: 'Luxury, Fully-Furnished Vacation Rentals',
               description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
             },
             {
               id: '3',
-              icon: 'lock',
+              icon: 'fas fa-lock',
               title: 'Self Check-In with Smart Lock Technology',
               description: 'Easy, contactless access to all properties through keyless entry, ensuring convenience and security.',
             },
             {
               id: '4',
-              icon: 'lightning',
+              icon: 'fas fa-bolt',
               title: 'Transparent Pricing & Instant Booking',
               description: 'Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.',
             },
@@ -89,25 +88,25 @@ export default function FeaturesSection() {
         setFeatures([
           {
             id: '1',
-            icon: 'home',
+            icon: 'fas fa-home',
             title: 'Direct Booking with No Service Fees',
             description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
           },
           {
             id: '2',
-            icon: 'star',
+            icon: 'fas fa-star',
             title: 'Luxury, Fully-Furnished Vacation Rentals',
             description: 'Encourages guests to book directly through the website and avoid third-party platform fees',
           },
           {
             id: '3',
-            icon: 'lock',
+            icon: 'fas fa-lock',
             title: 'Self Check-In with Smart Lock Technology',
             description: 'Easy, contactless access to all properties through keyless entry, ensuring convenience and security.',
-          },
+            },
           {
             id: '4',
-            icon: 'lightning',
+            icon: 'fas fa-bolt',
             title: 'Transparent Pricing & Instant Booking',
             description: 'Guests can view detailed pricing breakdowns with taxes and cleaning fees included, and instantly reserve.',
           },
@@ -120,37 +119,13 @@ export default function FeaturesSection() {
     fetchFeatures();
   }, []);
 
-  // Helper function to get icon component based on icon string
+  // Simple function to render FontAwesome icon using class names
   function getIconComponent(icon: string) {
-    const iconMap: { [key: string]: React.ReactNode } = {
-      'home': (
-        <span className="bg-[#586DF7] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-          <FeatureIcon1 />
-        </span>
-      ),
-      'star': (
-        <span className="bg-[#F86E04] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-          <FeatureIcon2 />
-        </span>
-      ),
-      'lock': (
-        <span className="bg-[#38C6F9] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-          <FeatureIcon3 />
-        </span>
-      ),
-      'lightning': (
-        <span className="bg-[#A020F0] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-          <FeatureIcon4 />
-        </span>
-      ),
-      'default': (
-        <span className="bg-[#586DF7] w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-          <FeatureIcon1 />
-        </span>
-      ),
-    };
-
-    return iconMap[icon] || iconMap['default'];
+    return (
+      <div className="w-10 h-10 bg-[#586DF7] rounded-full flex items-center justify-center">
+        <i className={`${icon} text-2xl text-white`}></i>
+      </div>
+    );
   }
 
   const FeatureImage = "/images/feature_section.png";
@@ -219,10 +194,8 @@ export default function FeaturesSection() {
                     <div className="text-gray-500 text-xs">Browse thousands of properties</div>
                 </div>
                 <div className="relative">
-                    <div className="absolute bottom-6 -right-16  bg-[#586DF7]  w-10 h-10 text-black rounded-full p-2 inline-flex items-center justify-center">
-                        <span className="bg-[#586DF7] w-12 h-12 text-black rounded-full p-3 inline-flex items-center justify-center">
-                        <FeatureIcon5 />
-                        </span>
+                    <div className="absolute bottom-6 -right-16 bg-[#586DF7] w-10 h-10 rounded-full flex items-center justify-center">
+                        <i className="fas fa-heart text-2xl text-white"></i>
                     </div>
                 </div>
               </div>
