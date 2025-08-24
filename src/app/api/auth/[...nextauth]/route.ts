@@ -13,6 +13,7 @@ const handler = NextAuth({
             clientSecret: process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_SECRET!,
         }),
     ],
+    secret: process.env.NEXT_PUBLIC_NEXTAUTH_SECRET || process.env.JWT_SECRET,
     callbacks: {
         async jwt({ token, user, account }) {
             if (account && user) {
