@@ -437,17 +437,46 @@ export default function MainSection(props: MainSectionProps) {
                 </div>
               ) : pricing ? (
                 <div className="border-t border-gray-200 pt-4 mb-4">
-                  <div className="space-y-2 text-sm">
+                  {/* Daily Pricing Breakdown */}
+                  <div className="mb-3">
+                    <div className="font-semibold text-sm text-gray-700 mb-2">Daily Rates:</div>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {pricing.pricing && pricing.pricing.map((day: any, index: number) => (
+                        <div key={day.date} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-800">
+                              {new Date(day.date).toLocaleDateString('en-US', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </span>
+                            <span className="text-xs text-gray-500">{day.date}</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="font-semibold text-blue-600">${day.amount}</span>
+                            {day.minNights > 1 && (
+                              <span className="text-xs text-orange-600">Min {day.minNights} nights</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Summary Information */}
+                  <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Property Rate ({pricing.summary.availableNights} night{pricing.summary.availableNights !== 1 ? 's' : ''}):</span>
-                      <span className="font-medium">${pricing.summary.totalAmount.toFixed(2)}</span>
+                      <span className="text-gray-600">Total ({pricing.summary.availableNights} night{pricing.summary.availableNights !== 1 ? 's' : ''}):</span>
+                      <span className="font-semibold text-blue-700">${pricing.summary.totalAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>${pricing.summary.averagePricePerNight.toFixed(2)}/night average</span>
+                      <span>Average per night:</span>
+                      <span>${pricing.summary.averagePricePerNight.toFixed(2)}</span>
                     </div>
                     {pricing.summary.blockedNights > 0 && (
-                      <div className="text-xs text-red-500">
-                        {pricing.summary.blockedNights} blocked night(s)
+                      <div className="text-xs text-red-500 text-center">
+                        ⚠️ {pricing.summary.blockedNights} blocked night(s)
                       </div>
                     )}
                   </div>

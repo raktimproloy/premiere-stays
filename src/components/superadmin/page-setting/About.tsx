@@ -6,13 +6,14 @@ export default function About() {
     const [aboutText, setAboutText] = useState('');
     const [items, setItems] = useState<string[]>([]);
     const [newItem, setNewItem] = useState('');
-    const [mainImage, setMainImage] = useState('');
+    const [mainMedia, setMainMedia] = useState('');
+    const [mainMediaType, setMainMediaType] = useState<'image' | 'video'>('image');
     const [smallImages, setSmallImages] = useState<string[]>(['', '', '']);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const [uploadingImage, setUploadingImage] = useState<string | null>(null);
-    const [uploadedImages, setUploadedImages] = useState<Set<string>>(new Set());
+    const [uploadingMedia, setUploadingMedia] = useState<string | null>(null);
+    const [uploadedMedia, setUploadedMedia] = useState<Set<string>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Load data on component mount
@@ -30,7 +31,8 @@ export default function About() {
                 setTitle(result.data.title || '');
                 setAboutText(result.data.aboutText || '');
                 setItems(result.data.items || []);
-                setMainImage(result.data.mainImage || '');
+                setMainMedia(result.data.mainMedia || result.data.mainImage || '');
+                setMainMediaType(result.data.mainMediaType || 'image');
                 setSmallImages(result.data.smallImages || ['', '', '']);
             }
         } catch (error) {
@@ -55,7 +57,8 @@ export default function About() {
                     title,
                     aboutText,
                     items,
-                    mainImage,
+                    mainMedia,
+                    mainMediaType,
                     smallImages
                 })
             });
@@ -116,53 +119,64 @@ export default function About() {
         const file = event?.target.files?.[0];
         if (file) {
             try {
-                // Validate file type
-                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                let allowedTypes: string[];
+                let maxSize: number;
+                
+                if (imageType === 'main' && mainMediaType === 'video') {
+                    // Video validation for main media
+                    allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+                    maxSize = 50 * 1024 * 1024; // 50MB for videos
+                } else {
+                    // Image validation
+                    allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                    maxSize = 5 * 1024 * 1024; // 5MB for images
+                }
+                
                 if (!allowedTypes.includes(file.type)) {
-                    setMessage('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+                    const mediaType = imageType === 'main' && mainMediaType === 'video' ? 'video' : 'image';
+                    setMessage(`Invalid file type. Only ${mediaType === 'video' ? 'MP4, WebM, and OGV' : 'JPEG, PNG, and WebP'} files are allowed.`);
                     return;
                 }
 
-                // Validate file size (max 5MB)
-                const maxSize = 5 * 1024 * 1024; // 5MB
                 if (file.size > maxSize) {
-                    setMessage('File size too large. Maximum size is 5MB.');
+                    const maxSizeMB = maxSize / (1024 * 1024);
+                    setMessage(`File size too large. Maximum size is ${maxSizeMB}MB.`);
                     return;
                 }
 
                 const imageId = imageType === 'main' ? 'main' : `small-${index}`;
-                setUploadingImage(imageId);
-                setMessage('Uploading image...');
+                setUploadingMedia(imageId);
+                setMessage(`Uploading ${imageType === 'main' && mainMediaType === 'video' ? 'video' : 'image'}...`);
                 
                 const imageUrl = await uploadImageToCloudinary(file);
                 
                 if (imageType === 'main') {
-                    setMainImage(imageUrl);
+                    setMainMedia(imageUrl);
                 } else if (index !== undefined) {
                     const newSmallImages = [...smallImages];
                     newSmallImages[index] = imageUrl;
                     setSmallImages(newSmallImages);
                 }
                 
-                // Mark this image as successfully uploaded
-                setUploadedImages(prev => new Set([...prev, imageId]));
+                // Mark this media as successfully uploaded
+                setUploadedMedia(prev => new Set([...prev, imageId]));
                 
-                setMessage('Image uploaded successfully!');
+                setMessage(`${imageType === 'main' && mainMediaType === 'video' ? 'Video' : 'Image'} uploaded successfully!`);
                 setTimeout(() => setMessage(''), 3000);
                 
                 // Remove the success indicator after 3 seconds
                 setTimeout(() => {
-                    setUploadedImages(prev => {
+                    setUploadedMedia(prev => {
                         const newSet = new Set(prev);
                         newSet.delete(imageId);
                         return newSet;
                     });
                 }, 3000);
             } catch (error) {
-                console.error('Error uploading image:', error);
-                setMessage(error instanceof Error ? error.message : 'Error uploading image');
+                console.error('Error uploading media:', error);
+                setMessage(error instanceof Error ? error.message : 'Error uploading media');
             } finally {
-                setUploadingImage(null);
+                setUploadingMedia(null);
             }
         }
         
@@ -174,7 +188,7 @@ export default function About() {
 
     const removeImage = (imageType: 'main' | 'small', index?: number) => {
         if (imageType === 'main') {
-            setMainImage('');
+            setMainMedia('');
         } else if (index !== undefined) {
             const newSmallImages = [...smallImages];
             newSmallImages[index] = '';
@@ -232,30 +246,68 @@ export default function About() {
             )}
             
             <div className="space-y-6">
-                {/* Main Image Section */}
+                {/* Main Media Section */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Main About Image
+                        Main About Media
                     </label>
+                    
+                    {/* Media Type Toggle */}
+                    <div className="flex gap-2 mb-3">
+                        <button
+                            type="button"
+                            onClick={() => setMainMediaType('image')}
+                            className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                                mainMediaType === 'image' 
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Image
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMainMediaType('video')}
+                            className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                                mainMediaType === 'video' 
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Video
+                        </button>
+                    </div>
+                    
                     <div className="flex items-center gap-4">
                         <div className="w-32 h-32 relative bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {uploadingImage === 'main' ? (
+                            {uploadingMedia === 'main' ? (
                                 <div className="w-full h-full bg-blue-100 rounded-lg flex items-center justify-center">
                                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                                 </div>
-                            ) : mainImage ? (
+                            ) : mainMedia ? (
                                 <div className="relative w-full h-full">
-                                    <img 
-                                        src={mainImage} 
-                                        alt="Main About" 
-                                        className={`w-full h-full object-cover rounded-lg ${
-                                            uploadedImages.has('main') ? 'ring-2 ring-green-500' : ''
-                                        }`}
-                                        onError={(e) => {
-                                            e.currentTarget.src = '';
-                                        }}
-                                    />
-                                    {uploadedImages.has('main') && (
+                                    {mainMediaType === 'image' ? (
+                                        <img 
+                                            src={mainMedia} 
+                                            alt="Main About" 
+                                            className={`w-full h-full object-cover rounded-lg ${
+                                                uploadedMedia.has('main') ? 'ring-2 ring-green-500' : ''
+                                            }`}
+                                            onError={(e) => {
+                                                e.currentTarget.src = '';
+                                            }}
+                                        />
+                                    ) : (
+                                        <video 
+                                            src={mainMedia} 
+                                            className={`w-full h-full object-cover rounded-lg ${
+                                                uploadedMedia.has('main') ? 'ring-2 ring-green-500' : ''
+                                            }`}
+                                            controls
+                                            muted
+                                        />
+                                    )}
+                                    {uploadedMedia.has('main') && (
                                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center">
                                             <span className="text-xs">✓</span>
                                         </div>
@@ -263,7 +315,7 @@ export default function About() {
                                 </div>
                             ) : (
                                 <div className="w-full h-full bg-gray-300 rounded-lg flex items-center justify-center">
-                                    <span className="text-gray-500 text-xs">No Image</span>
+                                    <span className="text-gray-500 text-xs">No {mainMediaType}</span>
                                 </div>
                             )}
                             
@@ -271,10 +323,10 @@ export default function About() {
                             <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
                                 <button
                                     onClick={() => triggerFileInput('main')}
-                                    disabled={uploadingImage === 'main'}
+                                    disabled={uploadingMedia === 'main'}
                                     className="opacity-0 hover:opacity-100 transition-opacity p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
                                 >
-                                    {uploadingImage === 'main' ? (
+                                    {uploadingMedia === 'main' ? (
                                         <Loader2 className="w-4 h-4 text-gray-700 animate-spin" />
                                     ) : (
                                         <Upload className="w-4 h-4 text-gray-700" />
@@ -282,8 +334,8 @@ export default function About() {
                                 </button>
                             </div>
 
-                            {/* Remove Image Button */}
-                            {mainImage && (
+                            {/* Remove Media Button */}
+                            {mainMedia && (
                                 <button
                                     onClick={() => removeImage('main')}
                                     className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
@@ -294,7 +346,10 @@ export default function About() {
                         </div>
                         <div className="flex-1">
                             <p className="text-sm text-gray-600">
-                                Upload a high-quality image for the main about section. Recommended size: 800x600px or larger.
+                                {mainMediaType === 'image' 
+                                    ? 'Upload a high-quality image for the main about section. Recommended size: 800x600px or larger.'
+                                    : 'Upload a video for the main about section. Supported formats: MP4, WebM, OGV. Recommended duration: 10-30 seconds.'
+                                }
                             </p>
                         </div>
                     </div>
@@ -309,7 +364,7 @@ export default function About() {
                         {smallImages.map((image, index) => (
                             <div key={index} className="flex flex-col items-center gap-2">
                                 <div className="w-24 h-24 relative bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                                    {uploadingImage === `small-${index}` ? (
+                                    {uploadingMedia === `small-${index}` ? (
                                         <div className="w-full h-full bg-blue-100 rounded-lg flex items-center justify-center">
                                             <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
                                         </div>
@@ -319,13 +374,13 @@ export default function About() {
                                                 src={image} 
                                                 alt={`Small About ${index + 1}`} 
                                                 className={`w-full h-full object-cover rounded-lg ${
-                                                    uploadedImages.has(`small-${index}`) ? 'ring-2 ring-green-500' : ''
+                                                    uploadedMedia.has(`small-${index}`) ? 'ring-2 ring-green-500' : ''
                                                 }`}
                                                 onError={(e) => {
                                                     e.currentTarget.src = '';
                                                 }}
                                             />
-                                            {uploadedImages.has(`small-${index}`) && (
+                                            {uploadedMedia.has(`small-${index}`) && (
                                                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center">
                                                     <span className="text-xs">✓</span>
                                                 </div>
@@ -341,10 +396,10 @@ export default function About() {
                                     <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
                                         <button
                                             onClick={() => triggerFileInput('small', index)}
-                                            disabled={uploadingImage === `small-${index}`}
+                                            disabled={uploadingMedia === `small-${index}`}
                                             className="opacity-0 hover:opacity-100 transition-opacity p-1 bg-white rounded-full shadow-lg disabled:opacity-50"
                                         >
-                                            {uploadingImage === `small-${index}` ? (
+                                            {uploadingMedia === `small-${index}` ? (
                                                 <Loader2 className="w-3 h-3 text-gray-700 animate-spin" />
                                             ) : (
                                                 <Upload className="w-3 h-3 text-gray-700" />
@@ -438,11 +493,11 @@ export default function About() {
                 </div>
             </div>
 
-            {/* Hidden file input for image uploads */}
+            {/* Hidden file input for media uploads */}
             <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={mainMediaType === 'image' ? 'image/*' : 'video/*'}
                 className="hidden"
                 onChange={(e) => {
                     const imageType = e.currentTarget.getAttribute('data-image-type') as 'main' | 'small';

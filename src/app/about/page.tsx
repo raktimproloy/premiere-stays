@@ -10,7 +10,9 @@ interface AboutPageData {
   title: string;
   aboutText: string;
   items: string[];
-  mainImage: string;
+  mainMedia?: string;
+  mainImage?: string; // Keep for backward compatibility
+  mainMediaType?: 'image' | 'video';
   smallImages: string[];
 }
 
@@ -25,7 +27,8 @@ export default function AboutPage() {
       "Luxury+Level Guest Experience",
       "Performance-Driven Approach"
     ],
-    mainImage: '',
+    mainMedia: '',
+    mainMediaType: 'image',
     smallImages: ['', '', '']
   });
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,16 @@ export default function AboutPage() {
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
-            setAboutData(result.data);
+            // Handle backward compatibility and new media structure
+            const data = result.data;
+            setAboutData({
+              title: data.title || aboutData.title,
+              aboutText: data.aboutText || aboutData.aboutText,
+              items: data.items || aboutData.items,
+              mainMedia: data.mainMedia || data.mainImage || '',
+              mainMediaType: data.mainMediaType || 'image',
+              smallImages: data.smallImages || aboutData.smallImages
+            });
           }
         }
       } catch (error) {
@@ -97,15 +109,19 @@ export default function AboutPage() {
             {/* Left Column - Content */}
             <div className="relative">
               {/* Main Image - Use from API if available, otherwise fallback to video */}
-              {aboutData.mainImage ? (
+              {aboutData.mainMedia ? (
                 <div className="relative rounded-2xl w-full h-[400px] overflow-hidden shadow-xl aspect-[4/5]">
-                  <Image 
-                    src={aboutData.mainImage} 
-                    alt="Main About" 
-                    fill
-                    className="object-cover"
-                    priority
-                  />
+                  {aboutData.mainMediaType === 'image' ? (
+                    <Image 
+                      src={aboutData.mainMedia} 
+                      alt="Main About" 
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  ) : (
+                    <video src={aboutData.mainMedia} autoPlay muted loop className="w-full h-full object-cover" />
+                  )}
                 </div>
               ) : (
                 <div className="relative rounded-2xl w-full h-[400px] overflow-hidden shadow-xl aspect-[4/5]">

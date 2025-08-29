@@ -1,5 +1,5 @@
 {
-  "timestamp": 1756027813296,
+  "timestamp": 1756272162902,
   "data": {
     "role": "admin",
     "previousRevenue": [
@@ -83,7 +83,7 @@
       {
         "month": "Dec",
         "year": 2024,
-        "value": 6.77
+        "value": 6.13
       },
       {
         "month": "Jan",
@@ -157,8 +157,8 @@
       {
         "monthName": "Dec",
         "year": 2024,
-        "totalNights": 21,
-        "ratePerNight": 560.06
+        "totalNights": 19,
+        "ratePerNight": 619.02
       },
       {
         "monthName": "Jan",
@@ -210,6 +210,88 @@
       }
     ],
     "bookings": [
+      {
+        "adults": 8,
+        "arrival": "2025-09-13",
+        "booked_utc": "2025-08-25T00:36:40Z",
+        "charges": [
+          {
+            "amount": 913,
+            "commission_amount": 0,
+            "description": "Rent",
+            "is_channel_managed": true,
+            "is_commission_all": false,
+            "is_expense_all": false,
+            "is_taxable": true,
+            "owner_amount": 913,
+            "owner_commission_percent": 0,
+            "position": 0,
+            "rate": 913,
+            "rate_is_percent": false,
+            "type": "rent"
+          },
+          {
+            "amount": 45.65,
+            "commission_amount": 0,
+            "description": "Management",
+            "is_channel_managed": true,
+            "is_commission_all": false,
+            "is_expense_all": false,
+            "is_taxable": true,
+            "owner_amount": 45.65,
+            "owner_commission_percent": 0,
+            "position": 1,
+            "rate": 45.65,
+            "rate_is_percent": false,
+            "surcharge_id": 102666346,
+            "type": "surcharge"
+          },
+          {
+            "amount": 250,
+            "commission_amount": 0,
+            "description": "Cleaning Fee",
+            "is_channel_managed": true,
+            "is_commission_all": false,
+            "is_expense_all": false,
+            "is_taxable": true,
+            "owner_amount": 250,
+            "owner_commission_percent": 0,
+            "position": 2,
+            "rate": 250,
+            "rate_is_percent": false,
+            "surcharge_id": 102666342,
+            "type": "surcharge"
+          }
+        ],
+        "check_in": "15:00",
+        "check_out": "11:00",
+        "children": 0,
+        "created_utc": "2025-08-25T00:36:40Z",
+        "currency_code": "USD",
+        "departure": "2025-09-15",
+        "form_key": "f5a8df3257154fc88c14a48a7f96c8f0",
+        "guest_id": 618232504,
+        "id": 14791691,
+        "infants": 0,
+        "is_block": false,
+        "listing_site": "Airbnb",
+        "pets": 0,
+        "platform_reservation_number": "HMBPBZCBC9",
+        "property": {
+          "id": 459941,
+          "name": "Modern Design District Wynwood TH w/Heated Pool"
+        },
+        "property_id": 459941,
+        "status": "active",
+        "thread_ids": [
+          8790622
+        ],
+        "total_amount": 1208.65,
+        "total_host_fees": 36.26,
+        "total_paid": 1208.65,
+        "type": "booking",
+        "updated_utc": "2025-08-25T00:45:53Z"
+      },
       {
         "adults": 0,
         "arrival": "2025-08-20",
@@ -6209,37 +6291,6 @@
         "total_paid": 4275,
         "type": "booking",
         "updated_utc": "2025-08-10T13:21:51Z"
-      },
-      {
-        "adults": 12,
-        "arrival": "2024-12-20",
-        "booked_utc": "2024-09-11T21:00:59Z",
-        "canceled_utc": "2025-08-07T15:07:01Z",
-        "check_in": "15:00",
-        "check_out": "11:00",
-        "children": 0,
-        "created_utc": "2025-08-07T15:07:01Z",
-        "currency_code": "USD",
-        "departure": "2024-12-22",
-        "form_key": "5b8bd309cd8b49eaae65ad3fcb281991",
-        "guest_id": 617949059,
-        "id": 14637101,
-        "infants": 0,
-        "is_block": false,
-        "listing_site": "Airbnb",
-        "pets": 0,
-        "platform_reservation_number": "HMJHQHKW3T",
-        "property": {
-          "id": 460000,
-          "name": "Wynwood Townhomes w/Heated Pools"
-        },
-        "property_id": 460000,
-        "status": "canceled",
-        "thread_ids": [
-          8669087
-        ],
-        "type": "booking",
-        "updated_utc": "2025-08-10T13:21:50Z"
       }
     ]
   }

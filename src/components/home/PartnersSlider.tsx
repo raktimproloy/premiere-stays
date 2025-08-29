@@ -41,10 +41,11 @@ export default function PartnersSlider({ partners }: PartnersSliderProps) {
             <Image 
               src={partner.image} 
               alt={partner.name || 'partner'} 
-              width={160} 
-              height={160} 
-              className="w-24 h-16 sm:w-32 sm:h-24 md:w-40 md:h-32 lg:w-48 lg:h-40 object-contain"
-              sizes="(max-width: 640px) 96px, (max-width: 900px) 128px, (max-width: 1200px) 160px, 192px"
+              width={1000} 
+              height={1000} 
+              className='w-full h-full object-contain'
+              // className="w-24 h-16 sm:w-32 sm:h-24 md:w-40 md:h-32 lg:w-48 lg:h-40 object-contain"
+              // sizes="(max-width: 640px) 96px, (max-width: 900px) 128px, (max-width: 1200px) 160px, 192px"
               priority
             />
           </div>

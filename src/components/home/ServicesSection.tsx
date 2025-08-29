@@ -71,7 +71,7 @@ const ServicesSection = () => {
           </div>
           <Link 
             href="/services" 
-            className="mt-4 bg-[#F7B730] rounded-full px-6 py-4 md:mt-0 flex items-center text-blue-600 font-semibold hover:text-blue-800 transition-colors"
+            className="mt-4 bg-[#F7B730] rounded-full px-6 py-4 md:mt-0 flex items-center text-black font-semibold hover:text-blue-800 transition-colors"
           >
             View All Service
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">

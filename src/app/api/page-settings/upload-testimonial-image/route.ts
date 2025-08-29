@@ -70,7 +70,6 @@ export async function POST(request: NextRequest) {
       });
 
       const uploadResult = await cloudinaryService.uploadImage(file, 'testimonials', {
-        transformation: true,
         quality: 80,
         format: 'webp'
       });

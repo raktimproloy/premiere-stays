@@ -7,34 +7,29 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Get about page settings
-    const aboutSettings = await db.collection("pageSettings").findOne(
-      { type: "about" },
+    // Get terms & conditions settings
+    const termsSettings = await db.collection("pageSettings").findOne(
+      { type: "terms" },
       { projection: { _id: 0 } }
     );
 
-    if (!aboutSettings) {
+    if (!termsSettings) {
       // Return default structure if no settings exist
       return NextResponse.json({
         success: true,
         data: {
-          title: '',
-          aboutText: '',
-          items: [],
-          mainMedia: '',
-          mainMediaType: 'image',
-          smallImages: ['', '', '']
+          termsContent: ''
         }
       });
     }
 
     return NextResponse.json({
       success: true,
-      data: aboutSettings.data
+      data: termsSettings.data
     });
 
   } catch (error) {
-    console.error('Get about settings error:', error);
+    console.error('Get terms settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }
@@ -71,33 +66,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { title, aboutText, items, mainMedia, mainMediaType, smallImages } = await request.json();
+    const { termsContent } = await request.json();
 
-    if (!title || !aboutText || !Array.isArray(items)) {
+    if (typeof termsContent !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'Invalid data format. Title, aboutText, and items are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate media fields
-    if (typeof mainMedia !== 'string') {
-      return NextResponse.json(
-        { success: false, message: 'Invalid mainMedia format' },
-        { status: 400 }
-      );
-    }
-
-    if (mainMediaType && !['image', 'video'].includes(mainMediaType)) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid mainMediaType. Must be either "image" or "video"' },
-        { status: 400 }
-      );
-    }
-
-    if (!Array.isArray(smallImages) || smallImages.length !== 3 || !smallImages.every(img => typeof img === 'string')) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid smallImages format. Must be an array of 3 strings' },
+        { success: false, message: 'Invalid data format. Terms content must be a string' },
         { status: 400 }
       );
     }
@@ -105,13 +78,13 @@ export async function PUT(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Upsert about page settings
+    // Upsert terms & conditions settings
     await db.collection("pageSettings").updateOne(
-      { type: "about" },
+      { type: "terms" },
       { 
         $set: { 
-          type: "about",
-          data: { title, aboutText, items, mainMedia, mainMediaType, smallImages },
+          type: "terms",
+          data: { termsContent },
           updatedAt: new Date(),
           updatedBy: result.user._id
         } 
@@ -121,11 +94,11 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'About page settings updated successfully'
+      message: 'Terms & conditions updated successfully'
     });
 
   } catch (error) {
-    console.error('Update about settings error:', error);
+    console.error('Update terms settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }

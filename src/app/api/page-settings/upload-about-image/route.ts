@@ -41,20 +41,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    // Validate file type - support both images and videos
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+    
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed' },
+        { success: false, message: 'Invalid file type. Only JPEG, PNG, WebP images and MP4, WebM, OGV videos are allowed' },
         { status: 400 }
       );
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size based on type
+    const isVideo = allowedVideoTypes.includes(file.type);
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024; // 50MB for videos, 5MB for images
     if (file.size > maxSize) {
+      const maxSizeMB = maxSize / (1024 * 1024);
       return NextResponse.json(
-        { success: false, message: 'File size too large. Maximum size is 5MB' },
+        { success: false, message: `File size too large. Maximum size is ${maxSizeMB}MB.` },
         { status: 400 }
       );
     }
@@ -69,25 +74,36 @@ export async function POST(request: NextRequest) {
         fileConstructor: file.constructor.name
       });
 
-      const uploadResult = await cloudinaryService.uploadImage(file, 'about-page', {
-        transformation: true,
-        quality: 80,
-        format: 'webp'
-      });
+      let uploadResult;
+      
+      if (isVideo) {
+        // Use video upload for video files
+        uploadResult = await cloudinaryService.uploadVideo(file, 'about-page', {
+          quality: 80
+        });
+      } else {
+        // Use image upload for image files
+        uploadResult = await cloudinaryService.uploadImage(file, 'about-page', {
+          quality: 80,
+          format: 'webp'
+        });
+      }
 
       console.log('Cloudinary upload successful for about page:', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
         url: uploadResult.url,
-        publicId: uploadResult.publicId
+        publicId: uploadResult.publicId,
+        resourceType: uploadResult.resourceType
       });
 
       return NextResponse.json({
         success: true,
-        message: 'Image uploaded successfully',
+        message: `${isVideo ? 'Video' : 'Image'} uploaded successfully`,
         url: uploadResult.url,
-        publicId: uploadResult.publicId
+        publicId: uploadResult.publicId,
+        mediaType: isVideo ? 'video' : 'image'
       });
     } catch (uploadError) {
       console.error('Cloudinary upload failed for about page:', {

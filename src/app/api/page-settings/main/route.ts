@@ -7,34 +7,35 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Get about page settings
-    const aboutSettings = await db.collection("pageSettings").findOne(
-      { type: "about" },
+    // Get main settings
+    const mainSettings = await db.collection("pageSettings").findOne(
+      { type: "main" },
       { projection: { _id: 0 } }
     );
 
-    if (!aboutSettings) {
+    if (!mainSettings) {
       // Return default structure if no settings exist
       return NextResponse.json({
         success: true,
         data: {
-          title: '',
-          aboutText: '',
-          items: [],
-          mainMedia: '',
-          mainMediaType: 'image',
-          smallImages: ['', '', '']
+          phone: '',
+          email: '',
+          address: '',
+          facebook: '',
+          x: '',
+          instagram: '',
+          youtube: ''
         }
       });
     }
 
     return NextResponse.json({
       success: true,
-      data: aboutSettings.data
+      data: mainSettings.data
     });
 
   } catch (error) {
-    console.error('Get about settings error:', error);
+    console.error('Get main settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }
@@ -71,33 +72,54 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { title, aboutText, items, mainMedia, mainMediaType, smallImages } = await request.json();
+    const { phone, email, address, facebook, x, instagram, youtube } = await request.json();
 
-    if (!title || !aboutText || !Array.isArray(items)) {
+    // Validate data - all fields are optional but should be strings if provided
+    if (phone !== undefined && typeof phone !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'Invalid data format. Title, aboutText, and items are required' },
+        { success: false, message: 'Phone must be a string' },
         { status: 400 }
       );
     }
 
-    // Validate media fields
-    if (typeof mainMedia !== 'string') {
+    if (email !== undefined && typeof email !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'Invalid mainMedia format' },
+        { success: false, message: 'Email must be a string' },
         { status: 400 }
       );
     }
 
-    if (mainMediaType && !['image', 'video'].includes(mainMediaType)) {
+    if (address !== undefined && typeof address !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'Invalid mainMediaType. Must be either "image" or "video"' },
+        { success: false, message: 'Address must be a string' },
         { status: 400 }
       );
     }
 
-    if (!Array.isArray(smallImages) || smallImages.length !== 3 || !smallImages.every(img => typeof img === 'string')) {
+    if (facebook !== undefined && typeof facebook !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'Invalid smallImages format. Must be an array of 3 strings' },
+        { success: false, message: 'Facebook URL must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (x !== undefined && typeof x !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'X URL must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (instagram !== undefined && typeof instagram !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'Instagram URL must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (youtube !== undefined && typeof youtube !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'YouTube URL must be a string' },
         { status: 400 }
       );
     }
@@ -105,13 +127,13 @@ export async function PUT(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db("premiere-stays");
 
-    // Upsert about page settings
+    // Upsert main settings
     await db.collection("pageSettings").updateOne(
-      { type: "about" },
+      { type: "main" },
       { 
         $set: { 
-          type: "about",
-          data: { title, aboutText, items, mainMedia, mainMediaType, smallImages },
+          type: "main",
+          data: { phone, email, address, facebook, x, instagram, youtube },
           updatedAt: new Date(),
           updatedBy: result.user._id
         } 
@@ -121,11 +143,11 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'About page settings updated successfully'
+      message: 'Main settings updated successfully'
     });
 
   } catch (error) {
-    console.error('Update about settings error:', error);
+    console.error('Update main settings error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }
